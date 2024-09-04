@@ -1,8 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ObsController;
 
-Route::view('/', 'welcome');
+Route::view('/', 'control');
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
@@ -12,4 +13,7 @@ Route::view('profile', 'profile')
     ->middleware(['auth'])
     ->name('profile');
 
-require __DIR__.'/auth.php';
+Route::get('/start-streaming', [ObsController::class, 'startStreaming']);
+Route::get('/stop-streaming', [ObsController::class, 'stopStreaming']);
+
+require __DIR__ . '/auth.php';
