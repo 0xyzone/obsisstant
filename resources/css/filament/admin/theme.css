@@ -1,0 +1,14 @@
+@import '/vendor/filament/filament/resources/css/theme.css';
+
+@config 'tailwind.config.js';
+
+.fi-logo:after {
+    content: "beta";
+    color: aliceblue;
+    border: 1px solid currentColor;
+    border-radius: 20%;
+    padding: 0.2px 5px;
+    font-size: 10px;
+    margin-left: 10px;
+    margin-top: -2px;
+}
