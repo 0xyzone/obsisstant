@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('short_name');
-            $table->string('team_logo_path');
+            $table->string('team_logo_path')->nullable();
             $table->foreignId('tournament_id')->constrained()->cascadeOnDelete();
             $table->integer('p')->nullable();
             $table->integer('w')->nullable();

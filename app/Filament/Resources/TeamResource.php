@@ -2,16 +2,18 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\TeamResource\Pages;
-use App\Filament\Resources\TeamResource\RelationManagers;
-use App\Models\Team;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
+use App\Models\Team;
 use Filament\Tables;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Filament\Resources\Resource;
+use App\Filament\Imports\TeamImporter;
+use Filament\Tables\Actions\ImportAction;
 use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\TeamResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\TeamResource\RelationManagers;
 
 class TeamResource extends Resource
 {
@@ -19,8 +21,7 @@ class TeamResource extends Resource
 
     protected static ?string $navigationIcon = 'phosphor-microsoft-teams-logo-duotone';
     protected static ?string $activeNavigationIcon = 'phosphor-microsoft-teams-logo-fill';
-
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
     {
@@ -110,6 +111,10 @@ class TeamResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+            ])
+            ->headerActions([
+                ImportAction::make()
+                    ->importer(TeamImporter::class)
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
