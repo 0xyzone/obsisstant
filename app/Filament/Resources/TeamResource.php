@@ -17,7 +17,8 @@ class TeamResource extends Resource
 {
     protected static ?string $model = Team::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'phosphor-microsoft-teams-logo-duotone';
+    protected static ?string $activeNavigationIcon = 'phosphor-microsoft-teams-logo-fill';
 
     protected static ?int $navigationSort = 3;
 
