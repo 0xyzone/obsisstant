@@ -8,6 +8,7 @@ use Filament\Tables;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Filament\Tables\Grouping\Group;
 use App\Filament\Imports\HeroImporter;
 use Filament\Tables\Actions\ImportAction;
 use Illuminate\Database\Eloquent\Builder;
@@ -46,9 +47,7 @@ class HeroResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('game.name')
-                    ->numeric()
-                    ->sortable(),
+                Tables\Columns\ImageColumn::make('game.game_logo_path'),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\ImageColumn::make('hero_image_path'),
@@ -71,6 +70,10 @@ class HeroResource extends Resource
                 ImportAction::make()
                     ->importer(HeroImporter::class)
             ])
+            ->groups([
+                Group::make('game.name')
+                ->collapsible()
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
@@ -90,7 +93,7 @@ class HeroResource extends Resource
         return [
             'index' => Pages\ListHeroes::route('/'),
             'create' => Pages\CreateHero::route('/create'),
-            'edit' => Pages\EditHero::route('/{record}/edit'),
+            // 'edit' => Pages\EditHero::route('/{record}/edit'),
         ];
     }
 }

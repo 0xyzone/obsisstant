@@ -47,7 +47,7 @@ class TournamentResource extends Resource
                 ->label('ID')
                 ->alignRight()
                 ->width('10px'),
-                Tables\Columns\TextColumn::make('name')
+                Tables\Columns\TextInputColumn::make('name')
                 ->searchable(),
                 Tables\Columns\SelectColumn::make('type')
                 ->options(TournamentType::class)
@@ -93,7 +93,7 @@ class TournamentResource extends Resource
         return [
             'index' => Pages\ListTournaments::route('/'),
             'create' => Pages\CreateTournament::route('/create'),
-            'edit' => Pages\EditTournament::route('/{record}/edit'),
+            // 'edit' => Pages\EditTournament::route('/{record}/edit'),
         ];
     }
 }
