@@ -48,7 +48,10 @@ class TournamentResource extends Resource
                 ->alignRight()
                 ->width('10px'),
                 Tables\Columns\TextInputColumn::make('name')
-                ->searchable(),
+                ->searchable()
+                ->extraAttributes([
+                    'class' => 'w-full'
+                ]),
                 Tables\Columns\SelectColumn::make('type')
                 ->options(TournamentType::class)
                 ->extraAttributes([
