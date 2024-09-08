@@ -34,6 +34,7 @@ class TournamentResource extends Resource
                     ->required(),
                 Forms\Components\Select::make('type')
                     ->required()
+                    ->disabledOn('edit')
                     ->options(TournamentType::class)
                     ->disablePlaceholderSelection(),
             ]);
@@ -52,12 +53,10 @@ class TournamentResource extends Resource
                 ->extraAttributes([
                     'class' => 'w-full'
                 ]),
-                Tables\Columns\SelectColumn::make('type')
-                ->options(TournamentType::class)
+                Tables\Columns\BadgeColumn::make('type')
                 ->extraAttributes([
                     'class' => 'capitalize'
-                ])
-                ->disablePlaceholderSelection(),
+                ]),
                 Tables\Columns\ImageColumn::make('game.game_logo_path'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
