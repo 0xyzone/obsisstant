@@ -58,13 +58,16 @@ class GameResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('id')
+                    ->label('ID')
+                    ->searchable(isIndividual: true),
                 Tables\Columns\TextColumn::make('name')
-                ->label('Game')
+                    ->label('Game')
                     ->searchable(isIndividual: true),
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(isIndividual: true),
                 Tables\Columns\ImageColumn::make('game_logo_path')
-                ->label('Logo'),
+                    ->label('Logo'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
