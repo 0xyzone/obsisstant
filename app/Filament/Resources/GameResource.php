@@ -59,8 +59,7 @@ class GameResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
-                    ->searchable(isIndividual: true),
+                    ->label('ID'),
                 Tables\Columns\TextColumn::make('name')
                     ->label('Game')
                     ->searchable(isIndividual: true),
