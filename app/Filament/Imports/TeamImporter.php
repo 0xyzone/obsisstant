@@ -23,7 +23,7 @@ class TeamImporter extends Importer
             ImportColumn::make('tournament')
                 ->label('Tournament ID')
                 ->requiredMapping()
-                ->relationship()
+                ->relationship(resolveUsing: 'name')
                 ->rules(['required']),
         ];
     }

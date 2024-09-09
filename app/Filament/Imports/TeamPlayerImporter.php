@@ -16,7 +16,7 @@ class TeamPlayerImporter extends Importer
         return [
             ImportColumn::make('team')
                 ->requiredMapping()
-                ->relationship()
+                ->relationship(resolveUsing: 'name')
                 ->rules(['required']),
             ImportColumn::make('name')
                 ->requiredMapping()
