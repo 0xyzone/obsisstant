@@ -39,7 +39,8 @@ class MatchMakingResource extends Resource
                     ->relationship('tournament', 'name')
                     ->required()
                     ->live()
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->disabledOn('edit'),
                 Section::make('Team A')
                     ->description('Just a test')
                     ->schema([
@@ -48,7 +49,11 @@ class MatchMakingResource extends Resource
                             ->options(function (Get $get): array {
                                 return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
                             })
-                            ->live(),
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, $record) {
+                                $record->team_a = $get('team_a');
+                                $record->save();
+                            }),
                         CheckboxList::make('a_playing')
                             ->label('Playing')
                             ->options(function (Get $get) {
@@ -101,7 +106,11 @@ class MatchMakingResource extends Resource
                             ->options(function (Get $get): array {
                                 return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
                             })
-                            ->live(),
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, $record) {
+                                $record->team_b = $get('team_b');
+                                $record->save();
+                            }),
                         CheckboxList::make('b_playing')
                             ->label('Playing')
                             ->options(function (Get $get) {
