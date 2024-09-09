@@ -113,9 +113,16 @@ class MatchMakingResource extends Resource
                 Tables\Columns\TextColumn::make('tournament.name')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('teamA.name'),
-                Tables\Columns\TextColumn::make('teamB.name'),
-                Tables\Columns\TextColumn::make('winner.name'),
+                Tables\Columns\SelectColumn::make('team_a')
+                ->options(function ($record) {
+                    $team = Team::where('tournament_id', $record->tournament->id)->pluck('name','id');
+                    return $team->toArray();
+                }),
+                Tables\Columns\SelectColumn::make('team_b')
+                ->options(function ($record) {
+                    $teamB = Team::where('tournament_id', $record->tournament->id)->pluck('name','id');
+                    return $teamB->toArray();
+                }),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
