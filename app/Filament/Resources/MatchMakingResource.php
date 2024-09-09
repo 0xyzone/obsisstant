@@ -45,7 +45,7 @@ class MatchMakingResource extends Resource
                     ->required()
                     ->unique()
                     ->validationMessages([
-                        'unique' => 'Match for this :attribute has already been created. <a href="#">'.'something</a>',
+                        'unique' => 'Match for this :attribute has already been created.',
                     ])
                     ->live()
                     ->columnSpan(6)
