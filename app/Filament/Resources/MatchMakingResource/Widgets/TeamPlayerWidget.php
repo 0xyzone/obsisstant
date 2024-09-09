@@ -30,6 +30,7 @@ class TeamPlayerWidget extends BaseWidget
             )
             ->heading('Team A Players')
             ->paginated(false)
+            ->deferLoading()
             ->columns([
                 TextColumn::make("name"),
                 CheckboxColumn::make("is_playing")
@@ -40,7 +41,13 @@ class TeamPlayerWidget extends BaseWidget
                 ->alignCenter()
                 ->beforeStateUpdated(function (TeamPlayer $record) {
                     TeamPlayer::where('team_id', $record->team_id)->where('id', '!=', $record->id)->update(['is_mvp' => false]);
-                }),
+                })
+                ->disabled(function (TeamPlayer $record) {
+                    if($record->is_playing == null || $record->is_playing == false) {
+                        return true;
+                    } else { 
+                        return false;
+                    }}),
                 TextInputColumn::make("kills")
                 ->label('K')
                 ->alignCenter(),
