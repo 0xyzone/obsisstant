@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\MatchMakingResource\Pages;
 
-use App\Filament\Resources\MatchMakingResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use App\Filament\Widgets\TeamPlayerWidget;
+use App\Filament\Widgets\TeamPlayerBWidget;
+use App\Filament\Resources\MatchMakingResource;
 
 class EditMatchMaking extends EditRecord
 {
@@ -13,12 +15,30 @@ class EditMatchMaking extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            // Actions\DeleteAction::make(),
+        ];
+    }
+
+    public function getFormActions(): array
+    {
+        return []; // Return an empty array to remove the "Save" action button
+    }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            TeamPlayerWidget::class,
+            TeamPlayerBWidget::class,
         ];
     }
 
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    protected function getActions(): array
+    {
+        return []; // Remove all actions, including "Save"
     }
 }

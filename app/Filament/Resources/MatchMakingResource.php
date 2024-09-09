@@ -31,6 +31,11 @@ class MatchMakingResource extends Resource
     protected static ?string $activeNavigationIcon = 'phosphor-sword-fill';
     protected static ?int $navigationSort = 6;
 
+    public static function canUpdate(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -39,120 +44,8 @@ class MatchMakingResource extends Resource
                     ->relationship('tournament', 'name')
                     ->required()
                     ->live()
-                    ->columnSpanFull()
+                    ->columnSpan(6)
                     ->disabledOn('edit'),
-                Section::make('Team A')
-                    ->description('Just a test')
-                    ->schema([
-                        Forms\Components\Select::make('team_a')
-                            ->hidden(fn(Get $get): bool => $get('tournament_id') != null ? false : true)
-                            ->options(function (Get $get): array {
-                                return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
-                            })
-                            ->live()
-                            ->afterStateUpdated(function (Get $get, $record) {
-                                $record->team_a = $get('team_a');
-                                $record->save();
-                            }),
-                        CheckboxList::make('a_playing')
-                            ->label('Playing')
-                            ->options(function (Get $get) {
-                                $teamAid = $get('team_a');
-                                if ($teamAid) {
-                                    $teamAid = $get('team_a');
-                                    if ($teamAid) {
-                                        $players = TeamPlayer::where(['team_id' => $teamAid, 'is_playing' => true])->pluck('name', 'id');
-                                        return $players->toArray();
-                                    }
-                                    return [];
-                                }
-                                return [];
-                            })
-                            ->afterStateUpdated(function (Get $get, Set $set) {
-                                $selectedPlayers = $get('a_playing');
-                                TeamPlayer::whereIn('id', $selectedPlayers)->update(['is_playing' => false]);
-                                $set('a_playing', []);
-                            })
-                            ->live()
-                            ->dehydrated(false)
-                            ->hidden(fn(Get $get): bool => !$get('team_a')),
-                        CheckboxList::make('a_not_playing')
-                            ->label('Not Playing')
-                            ->options(function (Get $get) {
-                                $teamAid = $get('team_a');
-                                if ($teamAid) {
-                                    $players = TeamPlayer::where(['team_id' => $teamAid, 'is_playing' => false])->pluck('name', 'id');
-                                    return $players->toArray();
-                                }
-                                return [];
-                            })
-                            ->afterStateUpdated(function (Get $get, Set $set) {
-                                $selectedPlayers = $get('a_not_playing');
-                                TeamPlayer::whereIn('id', $selectedPlayers)->update(['is_playing' => true]);
-                                $set('a_not_playing', []);
-                            })
-                            ->live()
-                            ->dehydrated(false)
-                            ->hidden(fn(Get $get): bool => !$get('team_a')),
-                    ])
-                    ->columnSpan(4),
-
-                // Team B
-                Section::make('Team B')
-                    ->description('Just a test')
-                    ->schema([
-                        Forms\Components\Select::make('team_b')
-                            ->hidden(fn(Get $get): bool => $get('tournament_id') != null ? false : true)
-                            ->options(function (Get $get): array {
-                                return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
-                            })
-                            ->live()
-                            ->afterStateUpdated(function (Get $get, $record) {
-                                $record->team_b = $get('team_b');
-                                $record->save();
-                            }),
-                        CheckboxList::make('b_playing')
-                            ->label('Playing')
-                            ->options(function (Get $get) {
-                                $teamAid = $get('team_b');
-                                if ($teamAid) {
-                                    $teamAid = $get('team_b');
-                                    if ($teamAid) {
-                                        $players = TeamPlayer::where(['team_id' => $teamAid, 'is_playing' => true])->pluck('name', 'id');
-                                        return $players->toArray();
-                                    }
-                                    return [];
-                                }
-                                return [];
-                            })
-                            ->afterStateUpdated(function (Get $get, Set $set) {
-                                $selectedPlayers = $get('b_playing');
-                                TeamPlayer::whereIn('id', $selectedPlayers)->update(['is_playing' => false]);
-                                $set('b_playing', []);
-                            })
-                            ->live()
-                            ->dehydrated(false)
-                            ->hidden(fn(Get $get): bool => !$get('team_b')),
-                        CheckboxList::make('a_not_playing')
-                            ->label('Not Playing')
-                            ->options(function (Get $get) {
-                                $teamAid = $get('team_b');
-                                if ($teamAid) {
-                                    $players = TeamPlayer::where(['team_id' => $teamAid, 'is_playing' => false])->pluck('name', 'id');
-                                    return $players->toArray();
-                                }
-                                return [];
-                            })
-                            ->afterStateUpdated(function (Get $get, Set $set) {
-                                $selectedPlayers = $get('a_not_playing');
-                                TeamPlayer::whereIn('id', $selectedPlayers)->update(['is_playing' => true]);
-                                $set('a_not_playing', []);
-                            })
-                            ->live()
-                            ->dehydrated(false)
-                            ->hidden(fn(Get $get): bool => !$get('team_b')),
-                    ])
-                    ->columnSpan(4),
                 Forms\Components\Select::make('winning_team')
                     ->hidden(fn(Get $get): bool => ($get('team_a') != null && $get('team_b') != null) ? false : true)
                     ->options(function (Get $get): array {
@@ -171,7 +64,44 @@ class MatchMakingResource extends Resource
                         // dd($record);
                         $record->winning_team = $get('winning_team');
                         $record->save();
-                    }),
+                    })
+                    ->columnSpan(2),
+                Section::make('Team A')
+                    ->description('Just a test')
+                    ->schema([
+                        Forms\Components\Select::make('team_a')
+                            ->hidden(fn(Get $get): bool => $get('tournament_id') != null ? false : true)
+                            ->options(function (Get $get): array {
+                                return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
+                            })
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, $record) {
+                                if ($record) {
+                                    $record->team_a = $get('team_a');
+                                    $record->save();
+                                }
+                            }),
+                    ])
+                    ->columnSpan(4),
+
+                // Team B
+                Section::make('Team B')
+                    ->description('Just a test')
+                    ->schema([
+                        Forms\Components\Select::make('team_b')
+                            ->hidden(fn(Get $get): bool => $get('tournament_id') != null ? false : true)
+                            ->options(function (Get $get): array {
+                                return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
+                            })
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, $record) {
+                                if ($record) {
+                                    $record->team_b = $get('team_b');
+                                    $record->save();
+                                }
+                            }),
+                    ])
+                    ->columnSpan(4),
             ])
             ->columns(8);
     }
@@ -222,5 +152,9 @@ class MatchMakingResource extends Resource
             'create' => Pages\CreateMatchMaking::route('/create'),
             'edit' => Pages\EditMatchMaking::route('/{record}/edit'),
         ];
+    }
+    protected function getActions(): array
+    {
+        return []; // Remove all actions, including "Save"
     }
 }

@@ -36,6 +36,7 @@ class TournamentResource extends Resource
                     ->required()
                     ->disabledOn('edit')
                     ->options(TournamentType::class)
+                    ->default('team')
                     ->disablePlaceholderSelection(),
             ]);
     }
