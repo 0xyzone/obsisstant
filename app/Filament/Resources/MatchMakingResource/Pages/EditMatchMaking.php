@@ -4,8 +4,8 @@ namespace App\Filament\Resources\MatchMakingResource\Pages;
 
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
-use App\Filament\Widgets\TeamPlayerWidget;
-use App\Filament\Widgets\TeamPlayerBWidget;
+use App\Filament\Resources\MatchMakingResource\Widgets\TeamPlayerWidget;
+use App\Filament\Resources\MatchMakingResource\Widgets\TeamPlayerBWidget;
 use App\Filament\Resources\MatchMakingResource;
 
 class EditMatchMaking extends EditRecord

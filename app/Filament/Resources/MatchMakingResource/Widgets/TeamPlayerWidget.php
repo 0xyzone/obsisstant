@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Widgets;
+namespace App\Filament\Resources\MatchMakingResource\Widgets;
 
 use App\Models\Hero;
 use Filament\Tables;

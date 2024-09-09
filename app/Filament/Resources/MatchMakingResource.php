@@ -153,8 +153,4 @@ class MatchMakingResource extends Resource
             'edit' => Pages\EditMatchMaking::route('/{record}/edit'),
         ];
     }
-    protected function getActions(): array
-    {
-        return []; // Remove all actions, including "Save"
-    }
 }
