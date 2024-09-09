@@ -44,6 +44,9 @@ class MatchMakingResource extends Resource
                     ->relationship('tournament', 'name')
                     ->required()
                     ->unique()
+                    ->validationMessages([
+                        'unique' => 'Match for this :attribute has already been created. <a href="#">'.'something</a>',
+                    ])
                     ->live()
                     ->columnSpan(6)
                     ->disabledOn('edit'),
