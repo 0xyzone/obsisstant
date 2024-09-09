@@ -41,7 +41,6 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 Widgets\AccountWidget::class,
                 // Widgets\FilamentInfoWidget::class,
-                TeamPlayerWidget::class
             ])
             ->middleware([
                 EncryptCookies::class,
