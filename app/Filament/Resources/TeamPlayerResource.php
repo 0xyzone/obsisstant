@@ -53,26 +53,6 @@ class TeamPlayerResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\ImageColumn::make('player_image_path'),
-                Tables\Columns\CheckboxColumn::make('is_playing'),
-                Tables\Columns\CheckboxColumn::make('is_mvp'),
-                Tables\Columns\TextColumn::make('kills')
-                    ->numeric(),
-                Tables\Columns\TextColumn::make('deaths')
-                    ->numeric(),
-                Tables\Columns\TextColumn::make('assists')
-                    ->numeric(),
-                Tables\Columns\TextColumn::make('net_worth')
-                    ->numeric(),
-                Tables\Columns\TextColumn::make('hero.name')
-                    ->numeric(),
-                Tables\Columns\TextColumn::make('hero_damage')
-                    ->numeric(),
-                Tables\Columns\TextColumn::make('turret_damage')
-                    ->numeric(),
-                Tables\Columns\TextColumn::make('damage_taken')
-                    ->numeric(),
-                Tables\Columns\TextColumn::make('fight_participation')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
