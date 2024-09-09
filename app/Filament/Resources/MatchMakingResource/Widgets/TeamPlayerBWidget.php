@@ -9,6 +9,7 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Tables\Columns\SelectColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -31,9 +32,12 @@ class TeamPlayerBWidget extends BaseWidget
                 CheckboxColumn::make("is_playing")
                 ->label('Playing?')
                 ->alignCenter(),
-                CheckboxColumn::make("is_mvp")
+                ToggleColumn::make("is_mvp")
                 ->label('Mvp?')
-                ->alignCenter(),
+                ->alignCenter()
+                ->beforeStateUpdated(function (TeamPlayer $record) {
+                    TeamPlayer::where('team_id', $record->team_id)->where('id', '!=', $record->id)->update(['is_mvp' => false]);
+                }),
                 TextInputColumn::make("kills")
                 ->label('K')
                 ->alignCenter(),
