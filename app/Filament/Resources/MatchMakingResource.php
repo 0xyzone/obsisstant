@@ -43,6 +43,7 @@ class MatchMakingResource extends Resource
                 Forms\Components\Select::make('tournament_id')
                     ->relationship('tournament', 'name')
                     ->required()
+                    ->unique()
                     ->live()
                     ->columnSpan(6)
                     ->disabledOn('edit'),
