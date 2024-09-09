@@ -79,24 +79,6 @@ class TeamResource extends Resource
                 Tables\Columns\TextColumn::make('tournament.name')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('p')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('w')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('l')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('d')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('f')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('pts')
-                    ->numeric()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

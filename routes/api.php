@@ -12,3 +12,7 @@ Route::get('/user', function (Request $request) {
 Route::prefix('tournament')->group(function () {
     Route::get('/{id}', [ApiController::class, 'index']);
 });
+
+Route::prefix('match')->group(function () {
+    Route::get('/{id}', [ApiController::class, 'matchTeams']);
+});

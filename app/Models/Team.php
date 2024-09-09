@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Tournament;
+use App\Models\MatchMaking;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,5 +31,15 @@ class Team extends Model
     public function teamPlayers(): HasMany
     {
         return $this->hasMany(TeamPlayer::class);
+    }
+
+    /**
+     * Get all of the matchMakings for the Tournament
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function matchMakings(): HasMany
+    {
+        return $this->hasMany(MatchMaking::class);
     }
 }

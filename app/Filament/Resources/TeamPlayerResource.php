@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use App\Models\TeamPlayer;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Filament\Forms\Components\Checkbox;
 use Filament\Tables\Actions\ImportAction;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Imports\TeamPlayerImporter;
@@ -36,8 +37,9 @@ class TeamPlayerResource extends Resource
                     ->required(),
                 Forms\Components\FileUpload::make('player_image_path')
                     ->label('Photo')
-                    ->image()
-                    ->required(),
+                    ->image(),
+                Checkbox::make('is_playing')
+                    ->default(false)
             ]);
     }
 
