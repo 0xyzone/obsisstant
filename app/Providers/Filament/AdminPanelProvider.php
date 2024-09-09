@@ -29,6 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->favicon(asset('ObsistanT.png'))
+            ->brandLogo(asset('mainLogo.png'))
             ->login()
             ->colors([
                 'primary' => Color::Violet,
