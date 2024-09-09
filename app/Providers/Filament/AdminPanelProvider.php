@@ -28,6 +28,7 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->id('admin')
             ->path('admin')
+            ->favicon(asset('ObsistanT.png'))
             ->login()
             ->colors([
                 'primary' => Color::Violet,
