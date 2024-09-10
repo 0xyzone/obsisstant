@@ -37,7 +37,8 @@ class TeamPlayerResource extends Resource
                     ->required(),
                 Forms\Components\FileUpload::make('player_image_path')
                     ->label('Photo')
-                    ->image(),
+                    ->image()
+                    ->directory('playerImage'),
                 Checkbox::make('is_playing')
                     ->default(false)
             ]);

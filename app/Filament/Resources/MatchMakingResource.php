@@ -65,13 +65,12 @@ class MatchMakingResource extends Resource
                     })
                     ->live()
                     ->afterStateUpdated(function (Get $get, $record) {
-                        // dd($record);
                         $record->winning_team = $get('winning_team');
                         $record->save();
                     })
                     ->columnSpan(2),
                 Section::make('Team A')
-                    ->description('Just a test')
+                    ->description('Select a team')
                     ->schema([
                         Forms\Components\Select::make('team_a')
                             ->hidden(fn(Get $get): bool => $get('tournament_id') != null ? false : true)
@@ -90,7 +89,7 @@ class MatchMakingResource extends Resource
 
                 // Team B
                 Section::make('Team B')
-                    ->description('Just a test')
+                    ->description('Select a team')
                     ->schema([
                         Forms\Components\Select::make('team_b')
                             ->hidden(fn(Get $get): bool => $get('tournament_id') != null ? false : true)

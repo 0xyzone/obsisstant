@@ -39,7 +39,8 @@ class HeroResource extends Resource
                     ->preload(),
                 Forms\Components\FileUpload::make('hero_image_path')
                     ->image()
-                    ->required(),
+                    ->required()
+                    ->directory('assets/hero_image'),
             ]);
     }
 

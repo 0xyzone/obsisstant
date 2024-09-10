@@ -32,4 +32,17 @@ class Hero extends Model
     {
         return $this->belongsTo(Game::class);
     }
+
+    protected $hidden = [
+        'hero_image_path'
+    ];
+
+    protected $appends = [
+        'hero_image_url'
+    ];
+
+    public function getHeroImageUrlAttribute()
+    {
+        return $this->hero_image_path ? url('storage/' . $this->hero->hero_image_path) : null;
+    }
 }

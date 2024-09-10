@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MatchMaking;
+use App\Models\Team;
+use App\Models\TeamPlayer;
 use App\Models\Tournament;
+use App\Models\MatchMaking;
 use Illuminate\Http\Request;
 
 class ApiController extends Controller
@@ -13,6 +15,19 @@ class ApiController extends Controller
     }
 
     public function matchTeams(MatchMaking $id) {
-        return response()->json($id->with(['teamA', 'teamB', 'winner'])->get());
+        $teama = Team::where('id', $id->teamA->id)->first();
+        $teamb = Team::where('id', $id->teamB->id)->first();
+        $teamAmvp = TeamPlayer::where('team_id', $id->teamA->id)->where('is_mvp', true)->first();
+        $teamBmvp = TeamPlayer::where('team_id', $id->teamB->id)->where('is_mvp', true)->first();
+        return response()->json([
+            'Team A' => [
+                'name' => $teama->name,
+                'mvp' => $teamAmvp
+            ],
+            'Team B' => [
+                'name' => $teamb->name,
+                'mvp' => $teamBmvp
+            ]
+        ],200);
     }
 }

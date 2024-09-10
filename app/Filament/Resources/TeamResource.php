@@ -44,7 +44,8 @@ class TeamResource extends Resource
                     ->preload(),
                 Forms\Components\FileUpload::make('team_logo_path')
                     ->image()
-                    ->imageEditor(),
+                    ->imageEditor()
+                    ->directory('teamLogoes'),
                 Forms\Components\TextInput::make('p')
                     ->hiddenOn('create')
                     ->numeric(),

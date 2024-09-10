@@ -77,6 +77,7 @@ class TeamPlayerBWidget extends BaseWidget
                 ->label('Dmg Taken'),
                 TextInputColumn::make("fight_participation")
                 ->label('Fight Participation'),
-            ]);
+            ])
+            ->poll('1s');
     }
 }

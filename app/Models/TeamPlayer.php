@@ -31,4 +31,25 @@ class TeamPlayer extends Model
     {
         return $this->belongsTo(Hero::class);
     }
+
+    protected $hidden = [
+        'player_image_path',
+        'hero_id',
+        'hero'
+    ];
+
+    protected $appends = [
+        'player_image_url',
+        'heroDetail'
+    ];
+
+    public function getPlayerImageUrlAttribute()
+    {
+        return $this->player_image_path ? url('storage/' . $this->player_image_path) : null;
+    }
+
+    public function getHeroDetailAttribute()
+    {
+        return $this->hero ?? null;
+    }
 }
