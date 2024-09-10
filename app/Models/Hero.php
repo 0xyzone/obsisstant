@@ -43,6 +43,6 @@ class Hero extends Model
 
     public function getHeroImageUrlAttribute()
     {
-        return $this->hero_image_path ? url('storage/' . $this->hero->hero_image_path) : null;
+        return $this->hero_image_path ? url('storage/' . $this->hero_image_path) : null;
     }
 }
