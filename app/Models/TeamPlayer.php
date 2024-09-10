@@ -33,7 +33,6 @@ class TeamPlayer extends Model
     }
 
     protected $hidden = [
-        'player_image_path',
         'hero_id',
         'hero'
     ];

@@ -33,10 +33,6 @@ class Hero extends Model
         return $this->belongsTo(Game::class);
     }
 
-    protected $hidden = [
-        'hero_image_path'
-    ];
-
     protected $appends = [
         'hero_image_url'
     ];
