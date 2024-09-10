@@ -7,6 +7,7 @@ use App\Models\TeamPlayer;
 use App\Models\Tournament;
 use App\Models\MatchMaking;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ApiController extends Controller
 {
@@ -33,7 +34,9 @@ class ApiController extends Controller
 
     public function mvpAimage(MatchMaking $id) {
         $teamAmvp = TeamPlayer::where('team_id', $id->teamA->id)->where('is_mvp', true)->first();
-        $image = $teamAmvp->hero->hero_image_path;
-        return response()->file(asset('storage/'.$image));
+        $image = Storage::get($teamAmvp->hero->hero_image_path);
+        return response($image, 200, [
+            'Content-Type' => 'image/jpeg'
+        ]);
     }
 }
