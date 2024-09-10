@@ -4,14 +4,10 @@
     <title>Obsisstant - Esports Streaming Asset Organizer</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col justify-center items-center">
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center lg:justify-normal">
     <div class="container mx-auto px-4 text-center">
         <!-- Logo -->
-        <svg class="w-48 h-48 mx-auto mb-8" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="100" cy="100" r="90" fill="#4F46E5"/>
-            <path d="M70 70 L130 70 L100 130 Z" fill="white"/>
-            <text x="100" y="160" font-family="Arial" font-size="24" fill="white" text-anchor="middle">Obsisstant</text>
-        </svg>
+        <img src="{{ asset('mainLogo.png') }}" alt="Logo" class="logo max-w-64 lg:max-w-2xl mx-auto">
 
         <!-- Heading -->
         <h1 class="text-5xl font-bold mb-4">Streamline Your Esports Broadcasts</h1>
@@ -27,7 +23,7 @@
 
     <script>
         // Add a simple animation to the logo
-        const logo = document.querySelector('svg');
+        const logo = document.querySelector('.logo');
         logo.style.transition = 'transform 0.3s ease-in-out';
         logo.addEventListener('mouseover', () => {
             logo.style.transform = 'scale(1.1) rotate(5deg)';
