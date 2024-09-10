@@ -36,7 +36,7 @@ class ApiController extends Controller
         $teamAmvp = TeamPlayer::where('team_id', $id->teamA->id)->where('is_mvp', true)->first();
         $image = Storage::get($teamAmvp->hero->hero_image_path);
         return response($image, 200, [
-            'Content-Type' => 'image/jpeg'
+            'Content-Type' => 'image/png'
         ]);
     }
 }
