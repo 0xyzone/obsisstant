@@ -40,8 +40,7 @@ class HeroResource extends Resource
                 Forms\Components\FileUpload::make('hero_image_path')
                     ->image()
                     ->required()
-                    ->directory('assets/hero_image')
-                    ->visibility('public'),
+                    ->directory('assets/hero_image'),
             ]);
     }
 
