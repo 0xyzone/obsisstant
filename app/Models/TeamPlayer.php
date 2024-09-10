@@ -34,7 +34,6 @@ class TeamPlayer extends Model
 
     protected $hidden = [
         'hero_id',
-        'hero'
     ];
 
     protected $appends = [
