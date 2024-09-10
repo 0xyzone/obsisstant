@@ -94,7 +94,7 @@ class HeroResource extends Resource
         return [
             'index' => Pages\ListHeroes::route('/'),
             'create' => Pages\CreateHero::route('/create'),
-            // 'edit' => Pages\EditHero::route('/{record}/edit'),
+            'edit' => Pages\EditHero::route('/{record}/edit'),
         ];
     }
 }
