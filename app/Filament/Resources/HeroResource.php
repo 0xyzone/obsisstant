@@ -40,7 +40,8 @@ class HeroResource extends Resource
                 Forms\Components\FileUpload::make('hero_image_path')
                     ->image()
                     ->required()
-                    ->directory('assets/hero_image'),
+                    ->directory('assets/hero_image')
+                    ->visibility('public'),
             ]);
     }
 
@@ -94,7 +95,7 @@ class HeroResource extends Resource
         return [
             'index' => Pages\ListHeroes::route('/'),
             'create' => Pages\CreateHero::route('/create'),
-            'edit' => Pages\EditHero::route('/{record}/edit'),
+            // 'edit' => Pages\EditHero::route('/{record}/edit'),
         ];
     }
 }
