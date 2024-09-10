@@ -34,6 +34,7 @@ class ApiController extends Controller
     public function mvpAimage(MatchMaking $id) {
         $teamAmvp = TeamPlayer::where('team_id', $id->teamA->id)->where('is_mvp', true)->first();
         $image = $teamAmvp->hero->hero_image_path;
-        return response()->file(storage_path($image));
+        return $image;
+        // return response()->file(storage_path($image));
     }
 }
