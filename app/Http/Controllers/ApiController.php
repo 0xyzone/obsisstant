@@ -30,4 +30,10 @@ class ApiController extends Controller
             ]
         ],200);
     }
+
+    public function mvpAimage(MatchMaking $id) {
+        $teamAmvp = TeamPlayer::where('team_id', $id->teamA->id)->where('is_mvp', true)->first();
+        $image = $teamAmvp->hero->hero_image_url;
+        return $image;
+    }
 }
