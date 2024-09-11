@@ -126,6 +126,10 @@ class MatchMakingResource extends Resource
                     $teamB = Team::where('tournament_id', $record->tournament->id)->pluck('name','id');
                     return $teamB->toArray();
                 }),
+                Tables\Columns\ToggleColumn::make('active')
+                ->beforeStateUpdated(function (MatchMaking $record) {
+                    MatchMaking::where('id', '!=', $record->id)->update(['active' => false]);
+                }),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
