@@ -15,7 +15,8 @@ class ApiController extends Controller
         return response()->json($id->with(['game','teams','matchMakings'])->get());
     }
 
-    public function matchTeams(MatchMaking $id) {
+    public function matchTeams() {
+        $id = MatchMaking::where('active', true)->first();
         $teama = Team::where('id', $id->teamA->id)->first();
         $teamb = Team::where('id', $id->teamB->id)->first();
         $teamAmvp = TeamPlayer::where('team_id', $id->teamA->id)->where('is_mvp', true)->first();
