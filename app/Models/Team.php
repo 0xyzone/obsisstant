@@ -42,4 +42,13 @@ class Team extends Model
     {
         return $this->hasMany(MatchMaking::class);
     }
+
+    protected $appends = [
+        'team_logo_url'
+    ];
+
+    public function getHeroImageUrlAttribute()
+    {
+        return $this->team_logo_path ? url('storage/' . $this->team_logo_path) : null;
+    }
 }
