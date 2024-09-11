@@ -23,7 +23,7 @@ class ApiController extends Controller
         return response()->json([
             'Team A' => [
                 'name' => $teama->name,
-                'logo' => $teama->team_logo_path,
+                'logo' => $teama->team_logo_url,
                 'mvp' => $teamAmvp
             ],
             'Team B' => [

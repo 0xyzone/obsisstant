@@ -47,7 +47,7 @@ class Team extends Model
         'team_logo_url'
     ];
 
-    public function getHeroImageUrlAttribute()
+    public function getTeamLogoUrlAttribute()
     {
         return $this->team_logo_path ? url('storage/' . $this->team_logo_path) : null;
     }
