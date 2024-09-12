@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('group_teams', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('group_id')->constrained()->cascadeOnDelete();
             $table->foreignId('team_id')->constrained()->cascadeOnDelete();
             $table->boolean('qualified')->default(false);
             $table->timestamps();
