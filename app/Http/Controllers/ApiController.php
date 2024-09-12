@@ -41,17 +41,21 @@ class ApiController extends Controller
             $teamb = Team::where('id', $id->teamB->id)->first();
         }
         $teamAmvp = TeamPlayer::where('team_id', $teama->id)->where('is_mvp', true)->first();
+        $teamArooster = TeamPlayer::where('team_id', $teama->id)->where('is_playing', true)->get();
         $teamBmvp = TeamPlayer::where('team_id', $teamb->id)->where('is_mvp', true)->first();
+        $teamBrooster = TeamPlayer::where('team_id', $teamb->id)->where('is_playing', true)->get();
         return response()->json([
             'Team A' => [
                 'name' => $teama->name,
                 'logo' => $teama->team_logo_url,
-                'mvp' => $teamAmvp
+                'mvp' => $teamAmvp,
+                'rooster' => $teamArooster,
             ],
             'Team B' => [
                 'name' => $teamb->name,
                 'logo' => $teamb->team_logo_url,
-                'mvp' => $teamBmvp
+                'mvp' => $teamBmvp,
+                'rooster' => $teamBrooster,
             ],
             'Group Name' => $group->name ?? null,
             'Group Standing' => $groupTeams
