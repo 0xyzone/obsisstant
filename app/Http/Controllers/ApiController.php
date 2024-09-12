@@ -11,16 +11,29 @@ use Illuminate\Support\Facades\Storage;
 
 class ApiController extends Controller
 {
-    public function index(Tournament $id) {
-        return response()->json($id->with(['game','teams','matchMakings'])->get());
+    public function index(Tournament $id)
+    {
+        return response()->json($id->with(['game', 'teams', 'matchMakings'])->get());
     }
 
-    public function matchTeams() {
+    public function matchTeams()
+    {
         $id = MatchMaking::where('active', true)->first();
-        $teama = Team::where('id', $id->teamA->id)->first();
-        $teamb = Team::where('id', $id->teamB->id)->first();
-        $teamAmvp = TeamPlayer::where('team_id', $id->teamA->id)->where('is_mvp', true)->first();
-        $teamBmvp = TeamPlayer::where('team_id', $id->teamB->id)->where('is_mvp', true)->first();
+        $winner = $id->winning_team;
+        if ($winner != null) {
+            if ($winner == $id->team_a) {
+                $teama = Team::where('id', $id->teamA->id)->first();
+                $teamb = Team::where('id', $id->teamB->id)->first();
+            } else {
+                $teama = Team::where('id', $id->teamB->id)->first();
+                $teamb = Team::where('id', $id->teamA->id)->first();
+            }
+        } else {
+            $teama = Team::where('id', $id->teamA->id)->first();
+            $teamb = Team::where('id', $id->teamB->id)->first();
+        }
+        $teamAmvp = TeamPlayer::where('team_id', $teama->id)->where('is_mvp', true)->first();
+        $teamBmvp = TeamPlayer::where('team_id', $teamb->id)->where('is_mvp', true)->first();
         return response()->json([
             'Team A' => [
                 'name' => $teama->name,
@@ -32,14 +45,6 @@ class ApiController extends Controller
                 'logo' => $teamb->team_logo_url,
                 'mvp' => $teamBmvp
             ]
-        ],200);
-    }
-
-    public function mvpAimage(MatchMaking $id) {
-        $teamAmvp = TeamPlayer::where('team_id', $id->teamA->id)->where('is_mvp', true)->first();
-        $image = Storage::get($teamAmvp->hero->hero_image_path);
-        return response($image, 200, [
-            'Content-Type' => 'image/png'
-        ]);
+        ], 200);
     }
 }

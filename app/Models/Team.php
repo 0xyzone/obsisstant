@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\GroupTeams;
 use App\Models\Tournament;
 use App\Models\MatchMaking;
 use Illuminate\Database\Eloquent\Model;
@@ -50,5 +51,15 @@ class Team extends Model
     public function getTeamLogoUrlAttribute()
     {
         return $this->team_logo_path ? url('storage/' . $this->team_logo_path) : null;
+    }
+
+    /**
+     * Get all of the groupTeams for the Team
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function groupTeams(): HasMany
+    {
+        return $this->hasMany(GroupTeams::class);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Game;
 use App\Models\Team;
+use App\Models\Group;
 use App\Models\MatchMaking;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -42,5 +43,15 @@ class Tournament extends Model
     public function matchMakings(): HasMany
     {
         return $this->hasMany(MatchMaking::class);
+    }
+
+    /**
+     * Get all of the groups for the Tournament
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function groups(): HasMany
+    {
+        return $this->hasMany(Group::class);
     }
 }

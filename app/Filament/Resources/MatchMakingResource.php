@@ -29,7 +29,7 @@ class MatchMakingResource extends Resource
 
     protected static ?string $navigationIcon = 'phosphor-sword-duotone';
     protected static ?string $activeNavigationIcon = 'phosphor-sword-fill';
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 7;
 
     public static function canUpdate(): bool
     {
@@ -73,7 +73,7 @@ class MatchMakingResource extends Resource
                     ->description('Select a team')
                     ->schema([
                         Forms\Components\Select::make('team_a')
-                            ->hidden(fn(Get $get): bool => $get('tournament_id') != null ? false : true)
+                            ->hidden(fn(Get $get): bool => ! $get('tournament_id'))
                             ->options(function (Get $get): array {
                                 return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
                             })
@@ -92,7 +92,7 @@ class MatchMakingResource extends Resource
                     ->description('Select a team')
                     ->schema([
                         Forms\Components\Select::make('team_b')
-                            ->hidden(fn(Get $get): bool => $get('tournament_id') != null ? false : true)
+                            ->hidden(fn(Get $get): bool => ! $get('tournament_id'))
                             ->options(function (Get $get): array {
                                 return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
                             })

@@ -15,5 +15,4 @@ Route::prefix('tournament')->group(function () {
 
 Route::prefix('match')->group(function () {
     Route::get('/', [ApiController::class, 'matchTeams']);
-    Route::get('/{id}/mvpaimg', [ApiController::class, 'mvpAimage']);
 });
