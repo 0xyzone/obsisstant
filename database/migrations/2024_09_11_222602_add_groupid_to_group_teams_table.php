@@ -14,9 +14,6 @@ return new class extends Migration
         Schema::table('group_teams', function (Blueprint $table) {
             $table->foreignId('group_id')->constrained()->cascadeOnDelete()->after('team_id');
         });
-        Schema::table('groups', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('group_id');
-        });
     }
 
     /**
