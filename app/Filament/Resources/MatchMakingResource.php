@@ -29,7 +29,7 @@ class MatchMakingResource extends Resource
 
     protected static ?string $navigationIcon = 'phosphor-sword-duotone';
     protected static ?string $activeNavigationIcon = 'phosphor-sword-fill';
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 8;
 
     public static function canUpdate(): bool
     {

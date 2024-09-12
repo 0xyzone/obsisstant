@@ -84,8 +84,7 @@ class GroupResource extends Resource
                     ->bulleted()
                     ->limitList(2)
                     ->expandableLimitedList(),
-                Tables\Columns\IconColumn::make('active')
-                    ->boolean(),
+                Tables\Columns\ToggleColumn::make('active'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

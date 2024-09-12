@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Team;
+use App\Models\Group;
+use App\Models\GroupTeams;
 use App\Models\TeamPlayer;
 use App\Models\Tournament;
 use App\Models\MatchMaking;
@@ -19,6 +21,12 @@ class ApiController extends Controller
     public function matchTeams()
     {
         $id = MatchMaking::where('active', true)->first();
+        $group = Group::where('active', true)->first();
+        if($group){
+            $groupTeams = GroupTeams::where('group_id', $group->id)->with('team')->orderBy('pts', 'desc')->get();
+        }else{
+            $groupTeams = null;
+        }
         $winner = $id->winning_team;
         if ($winner != null) {
             if ($winner == $id->team_a) {
@@ -44,7 +52,9 @@ class ApiController extends Controller
                 'name' => $teamb->name,
                 'logo' => $teamb->team_logo_url,
                 'mvp' => $teamBmvp
-            ]
+            ],
+            'Group Name' => $group->name ?? null,
+            'Group Standing' => $groupTeams
         ], 200);
     }
 }

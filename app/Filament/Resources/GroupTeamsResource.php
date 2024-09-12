@@ -2,22 +2,29 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\GroupTeamsResource\Pages;
-use App\Filament\Resources\GroupTeamsResource\RelationManagers;
-use App\Models\GroupTeams;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Forms\Form;
+use App\Models\GroupTeams;
 use Filament\Tables\Table;
+use Filament\Resources\Resource;
+use Illuminate\Database\Eloquent\Model;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\QueryBuilder;
+use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\GroupTeamsResource\Pages;
+use App\Filament\Resources\GroupTeamsResource\RelationManagers;
+use Filament\Tables\Filters\QueryBuilder\Constraints\TextConstraint;
 
 class GroupTeamsResource extends Resource
 {
     protected static ?string $model = GroupTeams::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $activeNavigationIcon = 'heroicon-s-rectangle-stack';
+    protected static ?int $navigationSort = 7;
 
     public static function form(Form $form): Form
     {
@@ -38,13 +45,53 @@ class GroupTeamsResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('team.name')
-                    ->numeric()
-                    ->sortable(),
-                    Tables\Columns\TextInputColumn::make('team.w')
-                        ->numeric(),
-                Tables\Columns\IconColumn::make('qualified')
-                    ->boolean(),
+                Tables\Columns\TextColumn::make('group.tournament.name'),
+                Tables\Columns\TextColumn::make('group.name'),
+                Tables\Columns\ToggleColumn::make('qualified'),
+                Tables\Columns\TextColumn::make('team.name'),
+                Tables\Columns\TextColumn::make('team.p')
+                    ->label('P')
+                    ->numeric(),
+                Tables\Columns\TextInputColumn::make('team.w')
+                    ->label('W')
+                    ->afterStateUpdated(function ($record) {
+                        $team = $record->team;
+                        $p = $team->w + $team->l + $team->d + $team->f;
+                        $pts = ($team->w * 3) + $team->d;
+                        $team->update(['p' => $p, 'pts' => $pts]);
+                        $record->update(['pts' => $pts]);
+                    }),
+                Tables\Columns\TextInputColumn::make('team.l')
+                    ->label('L')
+                    ->afterStateUpdated(function ($record) {
+                        $team = $record->team;
+                        $p = $team->w + $team->l + $team->d + $team->f;
+                        $pts = ($team->w * 3) + $team->d;
+                        $team->update(['p' => $p, 'pts' => $pts]);
+                        $record->update(['pts' => $pts]);
+                    }),
+                Tables\Columns\TextInputColumn::make('team.d')
+                    ->label('D')
+                    ->afterStateUpdated(function ($record) {
+                        $team = $record->team;
+                        $p = $team->w + $team->l + $team->d + $team->f;
+                        $pts = ($team->w * 3) + $team->d;
+                        $team->update(['p' => $p, 'pts' => $pts]);
+                        $record->update(['pts' => $pts]);
+                    }),
+                Tables\Columns\TextInputColumn::make('team.f')
+                    ->label('F')
+                    ->afterStateUpdated(function ($record) {
+                        $team = $record->team;
+                        $p = $team->w + $team->l + $team->d + $team->f;
+                        $pts = ($team->w * 3) + $team->d;
+                        $team->update(['p' => $p, 'pts' => $pts]);
+                        $record->update(['pts' => $pts]);
+                    }),
+                Tables\Columns\TextColumn::make('team.pts')
+                    ->label('Pts.')
+                    ->sortable()
+                    ->numeric(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -53,15 +100,19 @@ class GroupTeamsResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('group.name')
-                    ->numeric()
-                    ->sortable(),
             ])
+            ->poll('1s')
             ->filters([
-                //
-            ])
+                SelectFilter::make('group.tournament.name')
+                    ->label('Tournament')
+                    ->relationship('group.tournament', 'name')
+                    ->selectablePlaceholder(false),
+                SelectFilter::make('group')
+                    ->relationship('group', 'name')
+                    ->selectablePlaceholder(false)
+            ], layout: FiltersLayout::AboveContent)
             ->actions([
-                Tables\Actions\EditAction::make(),
+                // Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
