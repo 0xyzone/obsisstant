@@ -31,10 +31,10 @@ class ApiController extends Controller
         if ($winner != null) {
             if ($winner == $id->team_a) {
                 $matchTeam = Team::where('id', $id->team_a)->first();
-                $matchMvp = TeamPlayer::where('id', $matchTeam->id)->where('is_mvp', true)->get();
+                $matchMvp = TeamPlayer::where('team_id', $matchTeam->id)->where('is_mvp', true)->get();
             } else {
                 $matchTeam = Team::where('id', $id->team_b)->first();
-                $matchMvp = TeamPlayer::where('id', $matchTeam->id)->where('is_mvp', true)->get();
+                $matchMvp = TeamPlayer::where('team_id', $matchTeam->id)->where('is_mvp', true)->get();
             }
         } else {
             $matchMvp = [];
