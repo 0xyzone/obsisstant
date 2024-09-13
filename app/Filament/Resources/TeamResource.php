@@ -75,8 +75,7 @@ class TeamResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('short_name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('team_logo_path')
-                    ->searchable(),
+                Tables\Columns\ImageColumn::make('team_logo_path'),
                 Tables\Columns\TextColumn::make('tournament.name')
                     ->numeric()
                     ->sortable(),
