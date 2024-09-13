@@ -30,16 +30,17 @@ class ApiController extends Controller
         $winner = $id->winning_team;
         if ($winner != null) {
             if ($winner == $id->team_a) {
-                $teama = Team::where('id', $id->teamA->id)->first();
-                $teamb = Team::where('id', $id->teamB->id)->first();
+                $matchTeam = Team::where('id', $id->teamA->id)->first();
+                $matchMvp = TeamPlayer::where('id', $matchTeam->id)->where('is_mvp', true)->first();
             } else {
-                $teama = Team::where('id', $id->teamB->id)->first();
-                $teamb = Team::where('id', $id->teamA->id)->first();
+                $matchTeam = Team::where('id', $id->teamA->id)->first();
+                $matchMvp = TeamPlayer::where('id', $matchTeam->id)->where('is_mvp', true)->first();
             }
         } else {
-            $teama = Team::where('id', $id->teamA->id)->first();
-            $teamb = Team::where('id', $id->teamB->id)->first();
+            $matchMvp = [];
         }
+        $teama = Team::where('id', $id->teamA->id)->first();
+        $teamb = Team::where('id', $id->teamA->id)->first();
         $teamAmvp = TeamPlayer::where('team_id', $teama->id)->where('is_mvp', true)->first();
         $teamArooster = TeamPlayer::where('team_id', $teama->id)->where('is_playing', true)->get();
         $teamBmvp = TeamPlayer::where('team_id', $teamb->id)->where('is_mvp', true)->first();
@@ -57,6 +58,7 @@ class ApiController extends Controller
                 'mvp' => $teamBmvp,
                 'rooster' => $teamBrooster,
             ],
+            'MatchMvp' => $matchMvp,
             'Group Name' => $group->name ?? null,
             'Group Standing' => $groupTeams
         ], 200);
