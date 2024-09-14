@@ -1,9 +1,14 @@
 <?php
 
+use App\Livewire\GroupScreen;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ObsController;
 
 Route::view('/', 'welcome');
+
+Route::view('/demo','control');
+
+Route::get('/group', GroupScreen::class)->name('groupScreen');
 
 // Route::view('dashboard', 'dashboard')
 //     ->middleware(['auth', 'verified'])
