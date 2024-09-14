@@ -17,7 +17,7 @@ class TeamArooster extends Component
     {
         $this->match = MatchMaking::where('active', true)->first();
         $this->team = Team::where('id', $this->match->team_a)->first();
-        $this->rooster = TeamPlayer::where('team_id', $this->match->team_a)->get();
+        $this->rooster = TeamPlayer::where('team_id', $this->match->team_a)->where('is_playing', true)->get();
     }
     public function render()
     {
