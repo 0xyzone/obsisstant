@@ -41,7 +41,7 @@ class ApiController extends Controller
             $matchTeam = [];
         }
         $teama = Team::where('id', $id->teamA->id)->first();
-        $teamb = Team::where('id', $id->teamA->id)->first();
+        $teamb = Team::where('id', $id->teamB->id)->first();
         $teamAmvp = TeamPlayer::where('team_id', $teama->id)->where('is_mvp', true)->first();
         $teamArooster = TeamPlayer::where('team_id', $teama->id)->where('is_playing', true)->get();
         $teamBmvp = TeamPlayer::where('team_id', $teamb->id)->where('is_mvp', true)->first();
