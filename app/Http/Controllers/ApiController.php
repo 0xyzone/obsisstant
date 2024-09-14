@@ -38,6 +38,7 @@ class ApiController extends Controller
             }
         } else {
             $matchMvp = [];
+            $matchTeam = [];
         }
         $teama = Team::where('id', $id->teamA->id)->first();
         $teamb = Team::where('id', $id->teamA->id)->first();
@@ -59,6 +60,7 @@ class ApiController extends Controller
                 'rooster' => $teamBrooster,
             ],
             'MatchMvp' => $matchMvp,
+            'MvpTeam' => $matchTeam,
             'Group Name' => $group->name ?? null,
             'Group Standing' => $groupTeams
         ], 200);
