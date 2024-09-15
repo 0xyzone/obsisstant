@@ -12,7 +12,7 @@ class GroupScreen extends Component
     public $groupTeams;
 
     public function mount() {
-        $this->group = Group::where('active', true)->first();
+        $this->group = Group::where('active', true)->firstOrFail();
         $this->groupTeams = GroupTeams::where('group_id', $this->group->id)->orderBy('pts', 'desc')->get();
     }
     public function render()
