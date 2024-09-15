@@ -5,7 +5,7 @@ namespace App\View\Components;
 use Illuminate\View\Component;
 use Illuminate\View\View;
 
-class Screen extends Component
+class ScreenLayout extends Component
 {
     /**
      * Get the view / contents that represents the component.

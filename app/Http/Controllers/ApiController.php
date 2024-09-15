@@ -46,6 +46,7 @@ class ApiController extends Controller
         $teamArooster = TeamPlayer::where('team_id', $teama->id)->where('is_playing', true)->get();
         $teamBmvp = TeamPlayer::where('team_id', $teamb->id)->where('is_mvp', true)->first();
         $teamBrooster = TeamPlayer::where('team_id', $teamb->id)->where('is_playing', true)->get();
+        $tournament = Tournament::where('id', $id->tournament_id)->first();
         return response()->json([
             'Team A' => [
                 'name' => $teama->name,
@@ -62,7 +63,9 @@ class ApiController extends Controller
             'MatchMvp' => $matchMvp,
             'MvpTeam' => $matchTeam,
             'Group Name' => $group->name ?? null,
-            'Group Standing' => $groupTeams
+            'Group Standing' => $groupTeams,
+            'Tournament Name' => $tournament->name,
+            'Game Logo' => $tournament->game->game_logo_url,
         ], 200);
     }
 }

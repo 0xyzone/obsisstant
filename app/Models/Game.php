@@ -20,4 +20,12 @@ class Game extends Model
     {
         return $this->hasMany(Tournament::class);
     }
+
+    public $appends = [
+        "game_logo_url",
+    ];
+
+    public function getGameLogoUrlAttribute() {
+        return $this->game_logo_path ? url('storage/' . $this->game_logo_path) : null;
+    }
 }
