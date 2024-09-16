@@ -92,27 +92,3 @@
 
     </style>
 </div>
-<button id="download-btn">Download as JPG</button>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script>
-    document.getElementById('download-btn').addEventListener('click', function() {
-        // Get the div content
-        const element = document.getElementById('output');
-
-        // Use html2canvas to capture the div as a canvas
-        html2canvas(element).then(canvas => {
-            // Convert canvas to JPEG format
-            const imgData = canvas.toDataURL('image/jpeg', 1.0);
-
-            // Create a temporary link element for downloading
-            const link = document.createElement('a');
-            link.href = imgData;
-            link.download = 'output.jpg';
-
-            // Trigger the download
-            link.click();
-        });
-    });
-
-</script>

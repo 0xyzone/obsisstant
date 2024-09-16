@@ -14,7 +14,8 @@
         "livewire/livewire": "^3.4",
         "livewire/volt": "^1.0",
         "ratchet/pawl": "^0.4.1",
-        "spatie/browsershot": "^4.3"
+        "spatie/browsershot": "^4.3",
+        "spatie/image": "^3.7"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
