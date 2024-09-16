@@ -7,12 +7,14 @@ use App\Livewire\TeamBrooster;
 use Spatie\Browsershot\Browsershot;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ObsController;
+use App\Http\Controllers\DownloadController;
 
 Route::view('/', 'welcome');
 
 Route::view('/demo', 'control');
 
 Route::get('/group', GroupScreen::class)->name('groupScreen');
+Route::get('/groupStatic', [DownloadController::class, 'groupStatic'])->name('groupScreenStatic');
 Route::get('/teamArooster', TeamArooster::class)->name('teamArooster');
 Route::get('/teamBrooster', TeamBrooster::class)->name('teamBrooster');
 
@@ -31,24 +33,10 @@ Route::get('/phpinfo', function () {
     return phpinfo();
 });
 
+Route::get('/download-image', [DownloadController::class, 'downloadImage'])->name('download-image');
+
 Route::prefix('/capture')->group(function () {
-    Route::get('/activeGroup', function () {
-        $timestamp = Carbon::now()->format('Y-m-d_H-i-s');
-        $path = public_path('images/downloadable/' . $timestamp . '.png');
-        Browsershot::url(route('groupScreen'))
-            ->waitUntilNetworkIdle()
-            ->noSandbox()  // Disable sandbox if permissions are an issue
-            ->setDelay(10000)
-            ->windowSize(1920, 1080)
-            ->fullPage()
-            ->hideBackground()
-            ->setOption('executablePath', "C:\Program Files\Google\Chrome\Application\chrome.exe")
-            ->save($path);  // Path where the image will be saved
-
-        return response()->download($path);
-
-    });
-
+    Route::get('/activeGroup', [DownloadController::class, 'downloadGroupStatic']);
 });
 
 require __DIR__ . '/auth.php';

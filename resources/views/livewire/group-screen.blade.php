@@ -1,4 +1,4 @@
-<div class="flex gap-32 items-center justify-center h-full" id="output">
+<div class="flex gap-32 items-center justify-center h-full">
     <table class="border-separate border-spacing-y-[1rem] border-spacing-x-0 max-w-xl w-full">
         <thead class="bg-pink-700 animate-fade-in-top opacity-0 text-4xl font-black text-white" style="animation-delay: 1s;">
             <th colspan="2" class="py-6">
@@ -90,5 +90,5 @@
             animation: riseUpFadeIn 0.75s ease-in-out forwards;
         }
 
-    </style>
+    </style>  
 </div>

@@ -19,10 +19,13 @@ class GroupScreen extends Component
 
     public function generateImage()
     {
-        $html = view('livewire.group-screen')->render();
+        $html = view('livewire.group-screen', [
+            'groupTeams' => $this->groupTeams,
+            'group' => $this->group
+        ])->layout('layouts.screen');
 
         // Path to save the image temporarily
-        $pathToImage = storage_path('app/public/group.png');
+        $pathToImage = 'images/something.png';
 
         // Use Browsershot to generate the image
         Browsershot::html($html)
@@ -31,7 +34,7 @@ class GroupScreen extends Component
             ->save($pathToImage);
 
         // Return the image as a download response
-        return response()->download($pathToImage, 'group.png')->deleteFileAfterSend(true);
+        return response()->download($pathToImage, 'something.png')->deleteFileAfterSend(true);
     }
     public function render()
     {
