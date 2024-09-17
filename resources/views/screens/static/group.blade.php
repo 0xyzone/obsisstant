@@ -24,7 +24,7 @@
                     @if ($team->team->team_logo_url)
                     <img src="{{ $team->team->team_logo_url }}" alt="" class="w-[5rem] object-cover ml-8">
                     @else
-                    <i class="fas fa-users w-[5rem] ml-8 text-center font-2xl fa-1.5x"></i>
+                    <i class="fas fa-users w-[5rem] ml-8 p-2 justify-center aspect-square flex items-center text-[3.5rem]"></i>
                     @endif
                     <p>{{ $team->team->name }}</p>
                 </td>
