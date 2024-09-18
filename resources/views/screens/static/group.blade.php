@@ -1,12 +1,15 @@
 <x-screen>
     <div class="flex flex-col items-center h-full relative w-full" style="background: url({{ $group->tournament->asset!= null && isset($group->tournament->asset->background) ? asset('storage/' . $group->tournament->asset->background) : '' }});">
         <div class="flex gap-6 items-center mt-10 max-w-[105rem] w-full">
-            @if ($group->tournament->asset != null && isset($group->tournament->asset->tournament_logo)) 
-                <img src="{{ asset('storage/'. $group->tournament->asset->tournament_logo) }}" alt="" class="max-w-[15rem]">
+            @if ($group->tournament->asset != null && isset($group->tournament->asset->tournament_logo))
+            <img src="{{ asset('storage/'. $group->tournament->asset->tournament_logo) }}" alt="" class="max-w-[15rem]">
             @endif
             <div class="flex flex-col text-white font-bold w-full">
                 <h1 class="text-6xl py-6 px-8 bg-pink-600 w-full">{{ $group->tournament->name }}</h1>
-                <p class="text-4xl py-4 px-8 bg-gray-800 w-max">Group Standing</p>
+                <div class="flex">
+                    <p class="text-4xl py-4 px-8 bg-gray-800 w-max">Group Standing</p>
+                    <p class="text-4xl py-4 px-8 bg-gray-200 w-max text-gray-800">{{  $group->name }}</p>
+                </div>
             </div>
         </div>
         <table class="border-separate border-spacing-y-[1rem] border-spacing-x-0 max-w-xl w-full">
