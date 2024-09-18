@@ -77,7 +77,6 @@ class TeamResource extends Resource
                     ->searchable(),
                 Tables\Columns\ImageColumn::make('team_logo_path'),
                 Tables\Columns\TextColumn::make('tournament.name')
-                    ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

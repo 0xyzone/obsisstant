@@ -7,6 +7,8 @@ use App\Filament\Resources\TournamentResource\Pages;
 use App\Filament\Resources\TournamentResource\RelationManagers;
 use App\Models\Tournament;
 use Filament\Forms;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -31,13 +33,54 @@ class TournamentResource extends Resource
                     ->maxLength(255),
                 Forms\Components\Select::make('game_id')
                     ->relationship('game', 'name')
+                    ->disabledOn('edit')
                     ->required(),
                 Forms\Components\Select::make('type')
                     ->required()
-                    ->disabledOn('edit')
+                    ->hiddenOn('edit')
                     ->options(TournamentType::class)
                     ->default('team')
                     ->disablePlaceholderSelection(),
+                Repeater::make('asset')
+                    ->relationship()
+                    ->schema([
+                        FileUpload::make('tournament_logo')
+                            ->label('Logo (1:1)')
+                            ->image()
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([
+                                '1:1',
+                            ])
+                            ->directory('tournamentAssets/logo')
+                            ->visibility('public')
+                            ->openable()
+                            ->downloadable()
+                            ->moveFiles(),
+                        FileUpload::make('background')
+                            ->label('Banner (16:9)')
+                            ->image()
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([
+                                '16:9',
+                            ])
+                            ->imageResizeMode('cover')
+                            ->imageCropAspectRatio('16:9')
+                            ->imageResizeTargetWidth('1920')
+                            ->imageResizeTargetHeight('1080')
+                            ->directory('tournamentAssets/background')
+                            ->visibility('public')
+                            ->openable()
+                            ->downloadable()
+                            ->moveFiles(),
+                        FileUpload::make('video_background')
+                            ->directory('tournamentAssets/video_background')
+                            ->columnSpanFull(),
+
+                    ])
+                    ->defaultItems(1)
+                    ->columns(2)
+                    ->maxItems(1)
+                    ->columnSpanFull()
             ]);
     }
 
@@ -46,18 +89,18 @@ class TournamentResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                ->label('ID')
-                ->alignRight()
-                ->width('10px'),
+                    ->label('ID')
+                    ->alignRight()
+                    ->width('10px'),
                 Tables\Columns\TextInputColumn::make('name')
-                ->searchable()
-                ->extraAttributes([
-                    'class' => 'w-full'
-                ]),
+                    ->searchable()
+                    ->extraAttributes([
+                        'class' => 'w-full'
+                    ]),
                 Tables\Columns\BadgeColumn::make('type')
-                ->extraAttributes([
-                    'class' => 'capitalize'
-                ]),
+                    ->extraAttributes([
+                        'class' => 'capitalize'
+                    ]),
                 Tables\Columns\ImageColumn::make('game.game_logo_path'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

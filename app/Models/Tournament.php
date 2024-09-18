@@ -6,7 +6,9 @@ use App\Models\Game;
 use App\Models\Team;
 use App\Models\Group;
 use App\Models\MatchMaking;
+use App\Models\TournamentAsset;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -53,5 +55,15 @@ class Tournament extends Model
     public function groups(): HasMany
     {
         return $this->hasMany(Group::class);
+    }
+
+    /**
+     * Get the asset associated with the Tournament
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function asset(): HasOne
+    {
+        return $this->hasOne(TournamentAsset::class);
     }
 }

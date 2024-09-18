@@ -14,8 +14,9 @@ return new class extends Migration
         Schema::create('tournament_assets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tournament_id')->constrained()->cascadeOnDelete();
-            $table->string('tournaent_logo')->nullable();
+            $table->string('tournament_logo')->nullable();
             $table->string('background')->nullable();
+            $table->string('video_background')->nullable();
             $table->timestamps();
         });
     }
