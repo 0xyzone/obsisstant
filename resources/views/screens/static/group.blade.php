@@ -1,7 +1,9 @@
 <x-screen>
-    <div class="flex gap-32 items-center justify-center h-full relative" style="background: url({{ $group->tournament->asset->background ? asset('storage/' . $group->tournament->asset->background) : '' }});">
+    <div class="flex gap-32 items-center justify-center h-full relative" style="background: url({{ $group->tournament->asset!= null && isset($group->tournament->asset->background) ? asset('storage/' . $group->tournament->asset->background) : '' }});">
         <div class="absolute top-10 left-16 flex gap-6 items-center">
-            <img src="{{ asset('storage/'. $group->tournament->asset->tournament_logo) }}" alt="" class="max-w-[15rem]">
+            @if ($group->tournament->asset != null && isset($group->tournament->asset->tournament_logo)) 
+                <img src="{{ asset('storage/'. $group->tournament->asset->tournament_logo) }}" alt="" class="max-w-[15rem]">
+            @endif
             <div class="flex flex-col text-white font-bold">
                 <h1 class="text-6xl py-6 px-8 bg-pink-600">{{ $group->tournament->name }}</h1>
                 <p class="text-4xl py-4 px-8 bg-gray-800 w-max">Group Standing</p>
