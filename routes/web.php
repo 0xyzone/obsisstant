@@ -15,6 +15,7 @@ Route::view('/demo', 'control');
 
 Route::get('/group', GroupScreen::class)->name('groupScreen');
 Route::get('/groupStatic', [DownloadController::class, 'groupStatic'])->name('groupScreenStatic');
+Route::get('/matchStatic', [DownloadController::class, 'Match1080Static'])->name('matchScreenStatic');
 Route::get('/teamArooster', TeamArooster::class)->name('teamArooster');
 Route::get('/teamBrooster', TeamBrooster::class)->name('teamBrooster');
 

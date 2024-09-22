@@ -14,11 +14,13 @@ use Filament\Tables\Table;
 use App\Models\MatchMaking;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Actions\Action;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\MatchMakingResource\Pages;
 use App\Filament\Resources\MatchMakingResource\RelationManagers;
@@ -48,7 +50,7 @@ class MatchMakingResource extends Resource
                         'unique' => 'Match for this :attribute has already been created.',
                     ])
                     ->live()
-                    ->columnSpan(6)
+                    ->columnSpan(5)
                     ->disabledOn('edit'),
                 Forms\Components\Select::make('winning_team')
                     ->hidden(fn(Get $get): bool => ($get('team_a') != null && $get('team_b') != null) ? false : true)
@@ -69,11 +71,26 @@ class MatchMakingResource extends Resource
                         $record->save();
                     })
                     ->columnSpan(2),
+                Actions::make([
+                    Action::make('Reset')
+                        ->label('Reset MP')
+                        ->icon('heroicon-m-backspace')
+                        ->action(function ($record, Set $set) {
+                            $record->teamA_match_point = 0;
+                            $record->teamB_match_point = 0;
+                            $set('teamA_match_point', 0);
+                            $set('teamB_match_point', 0);
+                            $record->save();
+                        })
+                        ->extraAttributes([
+                            'class' => 'w-full h-full py-6'
+                        ]),
+                ]),
                 Section::make('Team A')
                     ->description('Select a team')
                     ->schema([
                         Forms\Components\Select::make('team_a')
-                            ->hidden(fn(Get $get): bool => ! $get('tournament_id'))
+                            ->hidden(fn(Get $get): bool => !$get('tournament_id'))
                             ->options(function (Get $get): array {
                                 return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
                             })
@@ -83,16 +100,28 @@ class MatchMakingResource extends Resource
                                     $record->team_a = $get('team_a');
                                     $record->save();
                                 }
-                            }),
+                            })
+                            ->columnSpan(5),
+                        TextInput::make('teamA_match_point')
+                            ->label('MP')
+                            ->numeric()
+                            ->live()
+                            ->afterStateUpdated(function ($state, $record) {
+                                if ($record) {
+                                    $record->teamA_match_point = $state;
+                                    $record->save();
+                                }
+                            })
                     ])
-                    ->columnSpan(4),
+                    ->columnSpan(4)
+                    ->columns(6),
 
                 // Team B
                 Section::make('Team B')
                     ->description('Select a team')
                     ->schema([
                         Forms\Components\Select::make('team_b')
-                            ->hidden(fn(Get $get): bool => ! $get('tournament_id'))
+                            ->hidden(fn(Get $get): bool => !$get('tournament_id'))
                             ->options(function (Get $get): array {
                                 return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
                             })
@@ -102,9 +131,21 @@ class MatchMakingResource extends Resource
                                     $record->team_b = $get('team_b');
                                     $record->save();
                                 }
-                            }),
+                            })
+                            ->columnSpan(5),
+                        TextInput::make('teamB_match_point')
+                            ->label('MP')
+                            ->numeric()
+                            ->live()
+                            ->afterStateUpdated(function ($state, $record) {
+                                if ($record) {
+                                    $record->teamB_match_point = $state;
+                                    $record->save();
+                                }
+                            })
                     ])
-                    ->columnSpan(4),
+                    ->columnSpan(4)
+                    ->columns(6),
             ])
             ->columns(8);
     }
@@ -117,19 +158,19 @@ class MatchMakingResource extends Resource
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\SelectColumn::make('team_a')
-                ->options(function ($record) {
-                    $team = Team::where('tournament_id', $record->tournament->id)->pluck('name','id');
-                    return $team->toArray();
-                }),
+                    ->options(function ($record) {
+                        $team = Team::where('tournament_id', $record->tournament->id)->pluck('name', 'id');
+                        return $team->toArray();
+                    }),
                 Tables\Columns\SelectColumn::make('team_b')
-                ->options(function ($record) {
-                    $teamB = Team::where('tournament_id', $record->tournament->id)->pluck('name','id');
-                    return $teamB->toArray();
-                }),
+                    ->options(function ($record) {
+                        $teamB = Team::where('tournament_id', $record->tournament->id)->pluck('name', 'id');
+                        return $teamB->toArray();
+                    }),
                 Tables\Columns\ToggleColumn::make('active')
-                ->beforeStateUpdated(function (MatchMaking $record) {
-                    MatchMaking::where('id', '!=', $record->id)->update(['active' => false]);
-                }),
+                    ->beforeStateUpdated(function (MatchMaking $record) {
+                        MatchMaking::where('id', '!=', $record->id)->update(['active' => false]);
+                    }),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

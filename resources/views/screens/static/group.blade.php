@@ -1,5 +1,5 @@
 <x-screen>
-    <div class="flex flex-col items-center h-full relative w-full" style="background: url({{ $group->tournament->asset!= null && isset($group->tournament->asset->background) ? asset('storage/' . $group->tournament->asset->background) : '' }});">
+    <div class="flex flex-col items-center h-full relative w-full" style="background: url({{ $group->tournament->asset!= null && isset($group->tournament->asset->background) ?  asset('storage/' . $group->tournament->asset->background) : '' }});">
         <div class="flex gap-6 items-center mt-10 max-w-[105rem] w-full">
             @if ($group->tournament->asset != null && isset($group->tournament->asset->tournament_logo))
             <img src="{{ asset('storage/'. $group->tournament->asset->tournament_logo) }}" alt="" class="max-w-[15rem]">

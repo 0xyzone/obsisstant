@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Group;
 use App\Models\GroupTeams;
+use App\Models\MatchMaking;
 use Illuminate\Http\Request;
 use Spatie\Browsershot\Browsershot;
 
@@ -32,5 +33,12 @@ class DownloadController extends Controller
             return response($image)
             ->header('Content-Type', 'image/jpeg');
         // return response()->download($path)->deleteFileAfterSend(true);
+    }
+
+    public function Match1080Static() {
+        $match = MatchMaking::where('active', true)->with(['teamA', 'teamB'])->firstOrFail();
+
+        return view('screens.static.match_1080p', compact('match'));
+
     }
 }

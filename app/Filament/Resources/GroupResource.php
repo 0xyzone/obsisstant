@@ -84,7 +84,6 @@ class GroupResource extends Resource
                     ->bulleted()
                     ->limitList(2)
                     ->expandableLimitedList(),
-                Tables\Columns\TextInputColumn::make('groupTeams.team.id'),
                 Tables\Columns\ToggleColumn::make('active'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

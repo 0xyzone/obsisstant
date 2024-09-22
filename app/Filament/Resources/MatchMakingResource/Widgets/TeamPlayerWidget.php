@@ -44,20 +44,25 @@ class TeamPlayerWidget extends BaseWidget
                 }),
                 TextInputColumn::make("kills")
                 ->label('K')
+                ->type('number')
                 ->alignCenter(),
                 TextInputColumn::make("deaths")
                 ->label('D')
+                ->type('number')
                 ->alignCenter(),
                 TextInputColumn::make("assists")
                 ->label('A')
+                ->type('number')
                 ->alignCenter(),
                 TextInputColumn::make("net_worth")
                 ->label('Gold')
+                ->type('number')
                 ->alignCenter()
                 ->extraAttributes([
                     'class' => 'w-28'
                 ]),
                 SelectColumn::make('hero_id')
+                ->label('Hero')
                 ->options(function ($record) {
                     $game = $record->team->tournament->game_id;
                     $heroes= Hero::where('game_id', $game)->pluck('name', 'id');
@@ -67,12 +72,16 @@ class TeamPlayerWidget extends BaseWidget
                     'class' => 'w-max'
                 ]),
                 TextInputColumn::make("hero_damage")
+                ->type('number')
                 ->label('Total Dmg'),
                 TextInputColumn::make("turret_damage")
+                ->type('number')
                 ->label('Turret Dmg'),
                 TextInputColumn::make("damage_taken")
+                ->type('number')
                 ->label('Dmg Taken'),
                 TextInputColumn::make("fight_participation")
+                ->type('number')
                 ->label('Fight Participation'),
             ])
             ->poll('1s');
