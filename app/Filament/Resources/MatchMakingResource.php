@@ -104,7 +104,6 @@ class MatchMakingResource extends Resource
                             ->columnSpan(5),
                         TextInput::make('teamA_match_point')
                             ->label('MP')
-                            ->numeric()
                             ->live()
                             ->afterStateUpdated(function ($state, $record) {
                                 if ($record) {
@@ -135,7 +134,6 @@ class MatchMakingResource extends Resource
                             ->columnSpan(5),
                         TextInput::make('teamB_match_point')
                             ->label('MP')
-                            ->numeric()
                             ->live()
                             ->afterStateUpdated(function ($state, $record) {
                                 if ($record) {
