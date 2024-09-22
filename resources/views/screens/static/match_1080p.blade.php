@@ -17,9 +17,9 @@
                 <img src="{{ $match->teamA->team_logo_url }}" alt="{{ $match->teamA->name }}_logo" class="aspect-square object-contain">
                 <span class="text-xl text-center text-white font-bold px-8 py-2 w-full" style="background-color: {{ $leftWin . 'cc' }};">{{ $match->teamA->name }}</span>
             </div>
-            <span class="text-5xl text-white font-bold px-8 py-2 rounded-2xl" style="background-color: {{ $leftWin . 'cc' }};">{{ $match->teamA_match_point }}</span>
+            <span class="text-5xl text-white font-bold rounded-2xl aspect-square w-1/12 flex justify-center items-center" style="background-color: {{ $leftWin . 'cc' }};">{{ $match->teamA_match_point }}</span>
             <span class="text-5xl text-white font-bold mb-2">:</span>
-            <span class="text-5xl text-white font-bold px-8 py-2 rounded-2xl" style="background-color: {{ $rightWin . 'cc' }};">{{ $match->teamB_match_point }}</span>
+            <span class="text-5xl text-white font-bold rounded-2xl aspect-square w-1/12 flex justify-center items-center" style="background-color: {{ $rightWin . 'cc' }};">{{ $match->teamB_match_point }}</span>
             <div class="w-4/12 flex flex-col items-center border-4 rounded-2xl overflow-hidden shrink-0" style="border-color: {{$rightWin}};">
                 <img src="{{ $match->teamB->team_logo_url }}" alt="{{ $match->teamB->name }}_logo" class="aspect-square object-contain">
                 <span class="text-xl text-center text-white font-bold px-8 py-2 w-full" style="background-color: {{ $rightWin . 'cc' }};">{{ $match->teamB->name }}</span>
