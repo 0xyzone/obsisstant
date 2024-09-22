@@ -2,19 +2,21 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Forms;
+use Filament\Tables;
+use Filament\Forms\Form;
+use App\Models\Tournament;
+use Filament\Tables\Table;
 use App\Enums\TournamentType;
+use Filament\Resources\Resource;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\FileUpload;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\ColorPicker;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\TournamentResource\Pages;
 use App\Filament\Resources\TournamentResource\RelationManagers;
-use App\Models\Tournament;
-use Filament\Forms;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class TournamentResource extends Resource
 {
@@ -41,6 +43,21 @@ class TournamentResource extends Resource
                     ->options(TournamentType::class)
                     ->default('team')
                     ->disablePlaceholderSelection(),
+                Repeater::make('themes')
+                    ->relationship()
+                    ->schema([
+                        ColorPicker::make('primary_color')
+                        ->live(),
+                        ColorPicker::make('secondary_color')
+                        ->live(),
+                        ColorPicker::make('acsent_color')
+                        ->label('Accent Color')
+                        ->live(),
+                    ])
+                    ->maxItems(1)
+                    ->columns(3)
+                    ->defaultItems(1)
+                    ->columnSpanFull(),
                 Repeater::make('asset')
                     ->relationship()
                     ->schema([
@@ -102,6 +119,24 @@ class TournamentResource extends Resource
                         'class' => 'capitalize'
                     ]),
                 Tables\Columns\ImageColumn::make('game.game_logo_path'),
+                Tables\Columns\ColorColumn::make('themes.primary_color')
+                    ->label('Primary Color')
+                    ->copyable()
+                    ->copyMessage('Color code copied')
+                    ->copyMessageDuration(1500)
+                    ->alignCenter(),
+                Tables\Columns\ColorColumn::make('themes.secondary_color')
+                    ->label('Secondary Color')
+                    ->copyable()
+                    ->copyMessage('Color code copied')
+                    ->copyMessageDuration(1500)
+                    ->alignCenter(),
+                Tables\Columns\ColorColumn::make('themes.acsent_color')
+                    ->label('Accent Color')
+                    ->copyable()
+                    ->copyMessage('Color code copied')
+                    ->copyMessageDuration(1500)
+                    ->alignCenter(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

@@ -31,7 +31,7 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased">
+<body class="font-sans antialiased !leading-[0.75]">
     <div class="w-[1080px] h-[1080px]" id="capture">
         {{ $slot }}
     </div>

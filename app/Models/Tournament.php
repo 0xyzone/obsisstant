@@ -66,4 +66,14 @@ class Tournament extends Model
     {
         return $this->hasOne(TournamentAsset::class);
     }
+
+    /**
+     * Get all of the themes for the Tournament
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function themes(): HasMany
+    {
+        return $this->hasMany(TournamentTheme::class);
+    }
 }
