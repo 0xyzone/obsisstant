@@ -5,16 +5,25 @@ namespace App\Livewire;
 use App\Models\Group;
 use Livewire\Component;
 use App\Models\GroupTeams;
+use App\Models\TournamentTheme;
 use Spatie\Browsershot\Browsershot;
 
 class GroupScreen extends Component
 {
     public $group;
     public $groupTeams;
+    public $primary;
+    public $secondary;
+    public $accent;
 
     public function mount() {
         $this->group = Group::where('active', true)->firstOrFail();
         $this->groupTeams = GroupTeams::where('group_id', $this->group->id)->orderBy('pts', 'desc')->get();
+        
+        $tournamentTheme = TournamentTheme::where('tournament_id', $this->group->tournament_id)->first();
+        $this->primary = $tournamentTheme->primary_color;
+        $this->secondary = $tournamentTheme->secondary_color;
+        $this->accent = $tournamentTheme->ascent_color;
     }
 
     public function generateImage()

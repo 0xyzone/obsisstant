@@ -1,6 +1,6 @@
 <div class="flex gap-32 items-center justify-center h-full">
     <table class="border-separate border-spacing-y-[1rem] border-spacing-x-0 max-w-xl w-full">
-        <thead class="bg-pink-700 animate-fade-in-top opacity-0 text-4xl font-black text-white" style="animation-delay: 1s;">
+        <thead class="animate-fade-in-top opacity-0 text-4xl font-black text-white" style="animation-delay: 1s; background-color: {{ $primary }};">
             <th colspan="2" class="py-6">
                 <p class="skew-x-12">Team</p>
             </th>
@@ -15,7 +15,7 @@
         @foreach ($groupTeams as $team)
         <tr class="animate-rise-up opacity-0 {{ $team->qualified == true ? "bg-gradient-to-tl from-lime-500/60 to-lime-200" : "bg-gradient-to-tl from-slate-400/60 to-slate-100" }} bg-white text-4xl font-bold skew-x-12 transform" style="animation-delay: {{ 1.2 + $loop->iteration * 0.3 }}s;">
             <td class="relative !bg-transparent">
-                <div class="px-8 py-4 bg-pink-700 text-white absolute top-1/2 transform -translate-y-1/2 -left-10 shadow-[10px_10px_12px_-2px_rgb(0_0_0_/_0.5)]">
+                <div class="px-8 py-4 text-white absolute top-1/2 transform -translate-y-1/2 -left-10 shadow-[10px_10px_12px_-2px_rgb(0_0_0_/_0.5)]" style="background-color: {{ $primary }};">
                     <p class="skew-x-12 font-bold text-4xl">{{ $loop->iteration }}</p>
                 </div>
             </td>

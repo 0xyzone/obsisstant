@@ -50,8 +50,17 @@ class MatchMakingResource extends Resource
                         'unique' => 'Match for this :attribute has already been created.',
                     ])
                     ->live()
-                    ->columnSpan(5)
+                    ->columnSpan(3)
                     ->disabledOn('edit'),
+                Forms\Components\TextInput::make('match_number')
+                    ->required()
+                    ->columnSpan(2)
+                    ->label('Match Title')
+                    ->afterStateUpdated(function ($state, $record) {
+                        $record->match_number = $state;
+                        $record->save();
+                    })
+                    ->live(),
                 Forms\Components\Select::make('winning_team')
                     ->hidden(fn(Get $get): bool => ($get('team_a') != null && $get('team_b') != null) ? false : true)
                     ->options(function (Get $get): array {

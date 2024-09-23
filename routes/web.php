@@ -19,25 +19,8 @@ Route::get('/matchStatic', [DownloadController::class, 'Match1080Static'])->name
 Route::get('/teamArooster', TeamArooster::class)->name('teamArooster');
 Route::get('/teamBrooster', TeamBrooster::class)->name('teamBrooster');
 
-// Route::view('dashboard', 'dashboard')
-//     ->middleware(['auth', 'verified'])
-//     ->name('dashboard');
-
-// Route::view('profile', 'profile')
-//     ->middleware(['auth'])
-//     ->name('profile');
-
-Route::get('/start-streaming', [ObsController::class, 'startStreaming']);
-Route::get('/stop-streaming', [ObsController::class, 'stopStreaming']);
-
 Route::get('/phpinfo', function () {
     return phpinfo();
-});
-
-Route::get('/download-image', [DownloadController::class, 'downloadImage'])->name('download-image');
-
-Route::prefix('/capture')->group(function () {
-    Route::get('/activeGroup', [DownloadController::class, 'downloadGroupStatic']);
 });
 
 require __DIR__ . '/auth.php';

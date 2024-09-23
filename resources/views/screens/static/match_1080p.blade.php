@@ -1,5 +1,5 @@
 <x-screen1080>
-    <div class="w-full h-full" style="background: url({{ $match->tournament->asset != null && isset($match->tournament->asset->background) ? asset('storage/' . $match->tournament->asset->background) : '' }});">
+    <div class="w-full h-full" style="background: url({{ $match->tournament->asset != null && isset($match->tournament->asset->square_bg) ? asset('storage/' . $match->tournament->asset->square_bg) : '' }});">
         <div class="flex gap-6 items-center pt-10 w-11/12 mx-auto">
             @if ($match->tournament->asset != null && isset($match->tournament->asset->tournament_logo))
             <img src="{{ asset('storage/'. $match->tournament->asset->tournament_logo) }}" alt="" class="max-w-[15rem]">
@@ -8,6 +8,9 @@
                 <h1 class="text-4xl px-8 py-4 leading-none w-full align-top" style="background-color: {{ $primary }};">{{ $match->tournament->name }}</h1>
                 <div class="flex">
                     <p class="text-2xl py-4 px-8 w-max" style="background-color: {{ $secondary }};">Match Results</p>
+                    @if ($match->match_number) 
+                        <p class="text-2xl py-4 px-8 w-max text-[#333]" style="background-color: #ccc;">{{ $match->match_number }}</p>
+                    @endif
                 </div>
             </div>
         </div>
@@ -24,6 +27,10 @@
                 <img src="{{ $match->teamB->team_logo_url }}" alt="{{ $match->teamB->name }}_logo" class="aspect-square object-contain">
                 <span class="text-xl text-center text-white font-bold px-8 py-2 w-full" style="background-color: {{ $rightWin . 'cc' }};">{{ $match->teamB->name }}</span>
             </div>
+        </div>
+
+        <div class="flex justify-center">
+            <img src="{{ $match->tournament->game->game_logo_url }}" alt="" class="max-w-[10rem] mt-20">
         </div>
 
     </div>

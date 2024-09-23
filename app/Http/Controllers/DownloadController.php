@@ -11,29 +11,16 @@ use Spatie\Browsershot\Browsershot;
 
 class DownloadController extends Controller
 {
-    public function downloadImage()
-    {
-        $pathToImage = public_path('images/downloadable/group.png');
-        return response()->download($pathToImage);
-    }
 
     public function groupStatic() {
         $group = Group::where('active', true)->firstOrFail();
         $groupTeams = GroupTeams::where('group_id', $group->id)->orderBy('pts', 'desc')->get();
+        $tournamentTheme = TournamentTheme::where('tournament_id', $group->tournament_id)->first();
+        $primary = $tournamentTheme->primary_color;
+        $secondary = $tournamentTheme->secondary_color;
+        $accent = $tournamentTheme->ascent_color;
 
-        return view('screens.static.group', compact('group','groupTeams'));
-    }
-
-    public function downloadGroupStatic() {
-        
-        $path = public_path('images/downloadable/output.jpg');
-        $image = Browsershot::url(route('groupScreenStatic'))
-            ->fullPage()
-            ->setOption('executablePath', "C:\Program Files\Google\Chrome\Application\chrome.exe")
-            ->screenshot();  // Path where the image will be saved
-            return response($image)
-            ->header('Content-Type', 'image/jpeg');
-        // return response()->download($path)->deleteFileAfterSend(true);
+        return view('screens.static.group', compact('group','groupTeams', 'primary', 'secondary', 'accent'));
     }
 
     public function Match1080Static() {

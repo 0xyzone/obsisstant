@@ -47,12 +47,15 @@ class TournamentResource extends Resource
                     ->relationship()
                     ->schema([
                         ColorPicker::make('primary_color')
-                        ->live(),
+                            ->rgba()
+                            ->live(),
                         ColorPicker::make('secondary_color')
-                        ->live(),
+                            ->rgba()
+                            ->live(),
                         ColorPicker::make('acsent_color')
-                        ->label('Accent Color')
-                        ->live(),
+                            ->label('Accent Color')
+                            ->rgba()
+                            ->live(),
                     ])
                     ->maxItems(1)
                     ->columns(3)
@@ -63,12 +66,25 @@ class TournamentResource extends Resource
                     ->schema([
                         FileUpload::make('tournament_logo')
                             ->label('Logo (1:1)')
+                            ->panelAspectRatio('1:1')
                             ->image()
                             ->imageEditor()
                             ->imageEditorAspectRatios([
                                 '1:1',
                             ])
                             ->directory('tournamentAssets/logo')
+                            ->visibility('public')
+                            ->openable()
+                            ->downloadable()
+                            ->moveFiles(),
+                        FileUpload::make('square_bg')
+                            ->panelAspectRatio('1:1')
+                            ->directory('tournamentAssets/square_bg')
+                            ->image()
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([
+                                '1:1',
+                            ])
                             ->visibility('public')
                             ->openable()
                             ->downloadable()
@@ -91,7 +107,9 @@ class TournamentResource extends Resource
                             ->moveFiles(),
                         FileUpload::make('video_background')
                             ->directory('tournamentAssets/video_background')
-                            ->columnSpanFull(),
+                            ->openable()
+                            ->downloadable()
+                            ->moveFiles(),
 
                     ])
                     ->defaultItems(1)
