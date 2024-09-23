@@ -91,6 +91,7 @@ class MatchMakingResource extends Resource
                             $set('teamB_match_point', 0);
                             $record->save();
                         })
+                        ->requiresConfirmation()
                         ->extraAttributes([
                             'class' => 'w-full h-full py-6'
                         ]),
