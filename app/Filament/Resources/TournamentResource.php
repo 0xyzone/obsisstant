@@ -8,12 +8,17 @@ use Filament\Forms\Form;
 use App\Models\Tournament;
 use Filament\Tables\Table;
 use App\Enums\TournamentType;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
+use Filament\Resources\Pages\Page;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ColorEntry;
+use Filament\Infolists\Components\ImageEntry;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\TournamentResource\Pages;
 use App\Filament\Resources\TournamentResource\RelationManagers;
@@ -25,6 +30,24 @@ class TournamentResource extends Resource
     protected static ?string $navigationIcon = 'phosphor-trophy-duotone';
     protected static ?string $activeNavigationIcon = 'phosphor-trophy-fill';
     protected static ?int $navigationSort = 3;
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                TextEntry::make('name'),
+                ImageEntry::make('game.game_logo_path')
+                ->label('')
+                ->width("auto")
+                ->height(100),
+                ColorEntry::make('themes.primary_color')
+                ->label('Primary'),
+                ColorEntry::make('themes.secondary_color')
+                ->label('Secondary'),
+                ColorEntry::make('themes.acsent_color')
+                ->label('Accent'),
+            ]);
+    }
 
     public static function form(Form $form): Form
     {
@@ -169,6 +192,7 @@ class TournamentResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -192,7 +216,16 @@ class TournamentResource extends Resource
         return [
             'index' => Pages\ListTournaments::route('/'),
             'create' => Pages\CreateTournament::route('/create'),
-            // 'edit' => Pages\EditTournament::route('/{record}/edit'),
+            'edit' => Pages\EditTournament::route('/{record}/edit'),
+            'view' => Pages\ViewTournaments::route('/{record}'),
         ];
+    }
+
+    public static function getRecordSubNavigation(Page $page): array
+    {
+        return $page->generateNavigationItems([
+            Pages\ViewTournaments::class,
+            Pages\EditTournament::class,
+        ]);
     }
 }

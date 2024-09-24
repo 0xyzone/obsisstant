@@ -7,17 +7,22 @@ use App\Models\Team;
 use Filament\Tables;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use App\Models\MatchLog;
 use Filament\Forms\Form;
 use App\Models\TeamPlayer;
 use App\Models\Tournament;
 use Filament\Tables\Table;
 use App\Models\MatchMaking;
+use Illuminate\Support\Arr;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Section;
+use Filament\Support\Enums\ActionSize;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Actions\Action;
@@ -50,7 +55,7 @@ class MatchMakingResource extends Resource
                         'unique' => 'Match for this :attribute has already been created.',
                     ])
                     ->live()
-                    ->columnSpan(3)
+                    ->columnSpan(2)
                     ->disabledOn('edit'),
                 Forms\Components\TextInput::make('match_number')
                     ->required()
@@ -91,11 +96,96 @@ class MatchMakingResource extends Resource
                             $set('teamB_match_point', 0);
                             $record->save();
                         })
+                        ->size(ActionSize::Large)
                         ->requiresConfirmation()
                         ->extraAttributes([
-                            'class' => 'w-full h-full py-6'
+                            'class' => 'h-full'
                         ]),
-                ]),
+                    Action::make('Save')
+                        ->label('Save log')
+                        ->icon('heroicon-m-folder')
+                        ->size(ActionSize::Large)
+                        ->outlined()
+                        ->action(function ($record) {
+                            $teamA = $record->teamA->name;
+                            $teamB = $record->teamB->name;
+                            $teamArooster = $record->teamA->teamPlayers->toArray();
+                            $teamBrooster = $record->teamB->teamPlayers->toArray();
+                            $iterationA = 1;
+                            $iterationB = 1;
+                            $aRooster = [];
+                            $bRooster = [];
+                            foreach ($teamArooster as $player) {
+                                $aRooster[] = [
+                                    'p' . $iterationA++ => [
+                                        'name' => $player['name'],
+                                        'is_mvp' => $player['is_mvp'],
+                                        'k' => $player['kills'],
+                                        'd' => $player['deaths'],
+                                        'a' => $player['assists'],
+                                        'g' => $player['net_worth'],
+                                        'hero' => TeamPlayer::where('id', $player['id'])->first()->hero->name,
+                                        'hero_damage' => $player['hero_damage'],
+                                        'turret_damage' => $player['turret_damage'],
+                                        'damage_taken' => $player['damage_taken'],
+                                        'fight_participation' => $player['fight_participation'],
+                                    ],
+                                ];
+                            };
+
+                            foreach ($teamBrooster as $player) {
+                                $bRooster[] = [
+                                    'p' . $iterationB++ => [
+                                        'name' => $player['name'],
+                                        'is_mvp' => $player['is_mvp'],
+                                        'k' => $player['kills'],
+                                        'd' => $player['deaths'],
+                                        'a' => $player['assists'],
+                                        'g' => $player['net_worth'],
+                                        'hero' => TeamPlayer::where('id', $player['id'])->first()->hero->name,
+                                        'hero_damage' => $player['hero_damage'],
+                                        'turret_damage' => $player['turret_damage'],
+                                        'damage_taken' => $player['damage_taken'],
+                                        'fight_participation' => $player['fight_participation'],
+                                    ],
+                                ];
+                            };
+                            $data = [
+                                "tournament" => $record->tournament->name,
+                                "teamA" => [
+                                    "name" => $record->teamA->name,
+                                    "mp" => $record->teamA_match_point,
+                                    "rooster" => $aRooster
+                                ],
+                                "teamB" => [
+                                    "name" => $record->teamB->name,
+                                    "mp" => $record->teamB_match_point,
+                                    "rooster" => $bRooster
+                                ],
+                            ];
+
+                            $log = MatchLog::updateOrCreate(
+                                ['match_title' => $record->match_number],
+                                [
+                                    'tournament_id' => $record->tournament_id,
+                                    'team_a' => $record->team_a,
+                                    'team_b' => $record->team_b,
+                                    'data' => json_encode($data)
+                                ]
+                            );
+                            if ($log) {
+                                Notification::make()
+                                    ->title('Saved successfully')
+                                    ->success()
+                                    ->send();
+                            }
+                        })
+                        ->extraAttributes([
+                            'class' => 'h-full'
+                        ])
+                ])
+                    ->columns(2)
+                    ->columnSpan(2),
                 Section::make('Team A')
                     ->description('Select a team')
                     ->schema([
