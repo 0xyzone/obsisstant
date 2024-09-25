@@ -16,7 +16,7 @@
                     $playerData = reset($player); // Get the inner player data object (e.g., p1, p2)
 
                     @endphp
-                    <x-playerRooster :playerData=$playerData></x-playerRooster>
+                    <x-playerRooster :playerData=$playerData :getRecord=$getRecord></x-playerRooster>
                     @endforeach
                 </div>
             </div>
@@ -31,7 +31,7 @@
                     $playerData = reset($player); // Get the inner player data object (e.g., p1, p2)
 
                     @endphp
-                    <x-playerRooster :playerData=$playerData></x-playerRooster>
+                    <x-playerRooster :playerData=$playerData :getRecord=$getRecord></x-playerRooster>
                     @endforeach
                 </div>
             </div>
