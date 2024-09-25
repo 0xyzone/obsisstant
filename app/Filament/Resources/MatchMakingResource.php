@@ -189,8 +189,8 @@ class MatchMakingResource extends Resource
                 ])
                     ->extraAttributes(['class' => 'flex justify-end'])
                     ->hidden(fn(Get $get): bool => !$get('tournament_id'))
-                ->columns(2)
-                ->columnSpan(2),
+                    ->columns(2)
+                    ->columnSpan(2),
                 Section::make('Team A')
                     ->description('Select a team')
                     ->schema([
@@ -258,6 +258,7 @@ class MatchMakingResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('id'),
                 Tables\Columns\TextColumn::make('match_number')

@@ -37,15 +37,15 @@ class TournamentResource extends Resource
             ->schema([
                 TextEntry::make('name'),
                 ImageEntry::make('game.game_logo_path')
-                ->label('')
-                ->width("auto")
-                ->height(100),
+                    ->label('')
+                    ->width("auto")
+                    ->height(100),
                 ColorEntry::make('themes.primary_color')
-                ->label('Primary'),
+                    ->label('Primary'),
                 ColorEntry::make('themes.secondary_color')
-                ->label('Secondary'),
+                    ->label('Secondary'),
                 ColorEntry::make('themes.acsent_color')
-                ->label('Accent'),
+                    ->label('Accent'),
             ]);
     }
 
@@ -149,6 +149,7 @@ class TournamentResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('ID')
