@@ -195,6 +195,7 @@ class MatchMakingResource extends Resource
                     ->description('Select a team')
                     ->schema([
                         Forms\Components\Select::make('team_a')
+                            ->label('Choose a team')
                             ->options(function (Get $get): array {
                                 return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
                             })
@@ -209,6 +210,7 @@ class MatchMakingResource extends Resource
                         TextInput::make('teamA_match_point')
                             ->label('MP')
                             ->live()
+                            ->extraAttributes(['title' => 'Match Point'])
                             ->hiddenOn('create')
                             ->afterStateUpdated(function ($state, $record) {
                                 if ($record) {
@@ -226,6 +228,7 @@ class MatchMakingResource extends Resource
                     ->description('Select a team')
                     ->schema([
                         Forms\Components\Select::make('team_b')
+                            ->label('Choose a team')
                             ->options(function (Get $get): array {
                                 return Team::where('tournament_id', $get('tournament_id'))->pluck('name', 'id')->toArray();
                             })
@@ -241,6 +244,7 @@ class MatchMakingResource extends Resource
                             ->label('MP')
                             ->hiddenOn('create')
                             ->live()
+                            ->extraAttributes(['title' => 'Match Point'])
                             ->afterStateUpdated(function ($state, $record) {
                                 if ($record) {
                                     $record->teamB_match_point = $state;

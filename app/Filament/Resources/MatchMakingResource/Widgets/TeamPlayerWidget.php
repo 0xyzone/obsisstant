@@ -28,7 +28,7 @@ class TeamPlayerWidget extends BaseWidget
             ->query(
                 TeamPlayer::query()->where('team_id', $record->teamA->id)
             )
-            ->heading('Team A Players')
+            ->heading(fn () => $record->teamA->name . ' players')
             ->paginated(false)
             ->deferLoading()
             ->columns([
