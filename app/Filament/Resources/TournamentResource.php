@@ -90,6 +90,8 @@ class TournamentResource extends Resource
                         FileUpload::make('tournament_logo')
                             ->label('Logo (1:1)')
                             ->panelAspectRatio('1:1')
+                            ->panelLayout('integrated')
+                            ->imagePreviewHeight('250')
                             ->image()
                             ->imageEditor()
                             ->imageEditorAspectRatios([
@@ -102,6 +104,8 @@ class TournamentResource extends Resource
                             ->moveFiles(),
                         FileUpload::make('square_bg')
                             ->panelAspectRatio('1:1')
+                            ->panelLayout('integrated')
+                            ->imagePreviewHeight('250')
                             ->directory('tournamentAssets/square_bg')
                             ->image()
                             ->imageEditor()

@@ -19,7 +19,7 @@ class TeamImporter extends Importer
                 ->rules(['required', 'max:255']),
             ImportColumn::make('short_name')
                 ->requiredMapping()
-                ->rules(['required', 'max:255']),
+                ->rules(['max:255']),
             ImportColumn::make('tournament')
                 ->label('Tournament ID')
                 ->requiredMapping()
