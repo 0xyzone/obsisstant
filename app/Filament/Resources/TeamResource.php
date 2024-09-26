@@ -46,24 +46,6 @@ class TeamResource extends Resource
                     ->image()
                     ->imageEditor()
                     ->directory('teamLogoes'),
-                Forms\Components\TextInput::make('p')
-                    ->hiddenOn('create')
-                    ->numeric(),
-                Forms\Components\TextInput::make('w')
-                    ->hiddenOn('create')
-                    ->numeric(),
-                Forms\Components\TextInput::make('l')
-                    ->hiddenOn('create')
-                    ->numeric(),
-                Forms\Components\TextInput::make('d')
-                    ->hiddenOn('create')
-                    ->numeric(),
-                Forms\Components\TextInput::make('f')
-                    ->hiddenOn('create')
-                    ->numeric(),
-                Forms\Components\TextInput::make('pts')
-                    ->hiddenOn('create')
-                    ->numeric(),
             ]);
     }
 
@@ -73,13 +55,16 @@ class TeamResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('id'),
+                Tables\Columns\ImageColumn::make('team_logo_path')
+                ->label(''),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('short_name')
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('team_logo_path'),
                 Tables\Columns\TextColumn::make('tournament.name')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('teamPlayers.name')
+                ->listWithLineBreaks(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

@@ -81,6 +81,6 @@ class TeamPlayerBWidget extends BaseWidget
                 ->type('number')
                 ->label('Fight Participation'),
             ])
-            ->poll('1s');
+            ->poll('10s');
     }
 }
