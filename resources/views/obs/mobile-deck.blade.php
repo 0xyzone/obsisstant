@@ -236,11 +236,12 @@
                     <div style="font-size: 0.75rem; color: var(--muted);">Mobile Wireless Stream Deck</div>
                 </div>
 
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                <div style="display: flex; flex-wrap: wrap; gap: 0.625rem; align-items: center;">
                     <x-reverb-status-pill />
                     <span id="studio-status" class="status-pill {{ $studio->isOnline() ? 'status-pill--online' : '' }}">
                         {{ strtoupper($studio->status) }}
                     </span>
+                    <a href="{{ route('knowledge-base') }}" style="color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500;">Docs</a>
                     <a href="{{ url('/admin/obs-control-deck') }}" style="color: var(--gold); text-decoration: none; font-size: 0.85rem; font-weight: 500;">Admin Deck</a>
                 </div>
             </header>

@@ -43,6 +43,7 @@ class ObsStudioResource extends Resource
         return $schema
             ->components([
                 Section::make('OBS Studio Connection Profile')
+                    ->columnSpanFull()
                     ->columns(2)
                     ->schema([
                         TextInput::make('name')

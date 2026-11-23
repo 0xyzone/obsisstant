@@ -760,6 +760,7 @@
                 <nav class="nav-actions" aria-label="Changelog navigation">
                     <x-reverb-status-pill />
                     <a class="nav-link" href="{{ url('/') }}">Home</a>
+                    <a class="nav-link" href="{{ route('knowledge-base') }}">Knowledge Base</a>
                     <a class="nav-link" href="{{ url('/admin') }}">Admin Panel</a>
                 </nav>
             </header>

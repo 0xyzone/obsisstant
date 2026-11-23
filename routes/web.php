@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ChangelogController;
+use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ObsMobileDeckController;
 use App\Http\Controllers\ObsOverlayController;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', LandingController::class)->name('home');
 
 Route::get('/changelog', ChangelogController::class)->name('changelog');
+
+Route::get('/knowledge-base', KnowledgeBaseController::class)->name('knowledge-base');
 
 // Public token-scoped Browser Source overlay endpoint for OBS Studio
 Route::get('/screens/{token}', [ObsOverlayController::class, 'show'])->name('obs.screen.show');

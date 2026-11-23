@@ -1294,6 +1294,7 @@
                             <li><a href="{{ route('home') }}" aria-current="page">Overview</a></li>
                             <li><a href="#features">Architecture</a></li>
                             <li><a href="#overlays">Overlays</a></li>
+                            <li><a href="{{ route('knowledge-base') }}">Knowledge Base</a></li>
                             <li><a href="{{ route('changelog') }}">Changelog</a></li>
                             <li><a href="{{ url('/admin/obs-control-deck') }}" class="nav-cta">Control Deck</a></li>
                         </ul>
@@ -1551,6 +1552,7 @@
             <div class="footer-links">
                 <a href="{{ url('/admin') }}">Admin Panel</a>
                 <a href="{{ route('obs.deck.index') }}">Mobile Deck</a>
+                <a href="{{ route('knowledge-base') }}">Knowledge Base</a>
                 <a href="{{ route('changelog') }}">Changelog</a>
             </div>
         </footer>

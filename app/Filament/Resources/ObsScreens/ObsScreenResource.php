@@ -50,6 +50,7 @@ class ObsScreenResource extends Resource
         return $schema
             ->components([
                 Section::make('Screen Identity & OBS Scene Mapping')
+                    ->columnSpanFull()
                     ->columns(2)
                     ->schema([
                         Select::make('obs_studio_id')
@@ -115,6 +116,7 @@ class ObsScreenResource extends Resource
                     ]),
 
                 Section::make('Overlay Content & Live Widgets')
+                    ->columnSpanFull()
                     ->columns(2)
                     ->schema([
                         TextInput::make('state.badge_text')
@@ -162,6 +164,7 @@ class ObsScreenResource extends Resource
                     ]),
 
                 Section::make('Glassmorphism Theme')
+                    ->columnSpanFull()
                     ->columns(3)
                     ->collapsed()
                     ->schema([

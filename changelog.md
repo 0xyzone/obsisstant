@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.5.0] - 2026-11-23 | type: minor
+
+> Guided OBS WebSocket v5 Macro Builder with synced studio pickers and modular Markdown Knowledge Base across public docs and Filament panel
+
+### Added
+- Guided OBS Macro Builder (ObsRequestCatalog & ObsMacroResource): Grouped searchable OBS WebSocket v5 request picker, dynamic synced Scene/Audio Input/Scene Item dropdowns with custom manual override, typed boolean/numeric payload inputs, and Custom OBS command fallback
+- Modular Markdown Knowledge Base (docs/knowledge-base/*.md, KnowledgeBaseService, /knowledge-base, /admin/knowledge-base): Five Markdown operator guides plus a searchable OBS WebSocket v5 Command Reference table accessible on both public pages and Filament admin sidebar
+
+### Fixed
+- Full-width Filament resource form layout: Added columnSpanFull() across top-level Sections in ObsMacroResource, ObsScreenResource, and ObsStudioResource to eliminate empty half-width column gaps
+
 ## [v1.4.0] - 2026-11-23 | type: minor
 
 > Unslop landing page with purposeful motion, cross-app brand version pills, and live top-bar Reverb server status
