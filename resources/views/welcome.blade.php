@@ -7,6 +7,7 @@
         <meta name="description" content="Real-time wireless OBS Studio deck, hardware relay agent, and live Browser Source overlays synced via Laravel Reverb.">
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=poppins:400,500,600&display=swap" rel="stylesheet">
+        <x-dev-hot-reload />
         <style>
             :root {
                 color-scheme: dark;
@@ -1296,7 +1297,7 @@
                             <li><a href="#overlays">Overlays</a></li>
                             <li><a href="{{ route('knowledge-base') }}">Knowledge Base</a></li>
                             <li><a href="{{ route('changelog') }}">Changelog</a></li>
-                            <li><a href="{{ url('/admin/obs-control-deck') }}" class="nav-cta">Control Deck</a></li>
+                            <li><a href="{{ route('studio.index') }}" class="nav-cta">Control Center</a></li>
                         </ul>
                     </nav>
                 </div>
@@ -1320,7 +1321,7 @@
                     </p>
 
                     <div class="hero-actions" data-enter style="--enter-order: 3;">
-                        <a href="{{ url('/admin/obs-control-deck') }}" class="btn btn-primary">Open control deck</a>
+                        <a href="{{ route('studio.index') }}" class="btn btn-primary">Launch Studio Center</a>
                         <a href="{{ route('obs.deck.index') }}" class="btn btn-secondary">Mobile wireless deck</a>
                     </div>
 
@@ -1540,8 +1541,8 @@
                         </p>
                     </div>
                     <div class="hero-actions" style="margin-block-start: 0;">
-                        <a href="{{ url('/admin/obs-control-deck') }}" class="btn btn-primary">Launch admin deck</a>
-                        <a href="{{ route('changelog') }}" class="btn btn-secondary">Release notes v{{ $currentVersion }}</a>
+                        <a href="{{ route('studio.index') }}" class="btn btn-primary">Launch Control Center</a>
+                        <a href="{{ url('/admin/obs-control-deck') }}" class="btn btn-secondary">Admin Panel</a>
                     </div>
                 </div>
             </section>

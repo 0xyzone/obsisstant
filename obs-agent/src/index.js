@@ -56,9 +56,16 @@ function emptyLiveState() {
         currentProgramScene: null,
         currentPreviewScene: null,
         studioModeEnabled: false,
+        videoDimensions: {
+            width: 1920,
+            height: 1080,
+        },
         scenes: [],
         sceneItems: [],
+        sceneItemsByScene: {},
         audioInputs: [],
+        allInputs: [],
+        inputKinds: [],
         outputs: {
             streaming: false,
             recording: false,
@@ -80,6 +87,16 @@ class StudioWorker {
         this.stopped = false;
         this.reconnectTimer = null;
         this.statsTimer = null;
+        this.refreshDebounceTimer = null;
+        this.previewTimer = null;
+        this.previewInFlight = false;
+        this.previewConfig = {
+            active: false,
+            sceneName: null,
+            intervalMs: 650,
+            width: 960,
+            expiresAt: 0,
+        };
         this.commandChannel = null;
         this.liveState = emptyLiveState();
         this.signature = this.buildSignature(this.studio);
@@ -135,7 +152,9 @@ class StudioWorker {
             return sceneItems.map((item) => ({
                 sceneItemId: item.sceneItemId,
                 sourceName: item.sourceName,
+                sourceType: item.sourceType ?? null,
                 inputKind: item.inputKind ?? null,
+                sceneItemIndex: item.sceneItemIndex ?? 0,
                 sceneItemEnabled: Boolean(item.sceneItemEnabled),
                 sceneItemLocked: Boolean(item.sceneItemLocked),
                 sceneItemTransform: item.sceneItemTransform ?? {},
@@ -145,21 +164,44 @@ class StudioWorker {
         }
     }
 
-    async hydrateAudioInputs() {
-        if (!this.obsConnected) {
-            return [];
-        }
-        try {
-            const { inputs } = await this.obs.call('GetInputList');
-            const results = [];
+    async hydrateAllScenesItems(scenes) {
+        const byScene = {};
 
+        for (const scene of scenes) {
+            const sName = scene?.sceneName;
+            if (!sName) {
+                continue;
+            }
+            byScene[sName] = await this.hydrateSceneItems(sName);
+        }
+
+        return byScene;
+    }
+
+    async hydrateInputsMetadata() {
+        if (!this.obsConnected) {
+            return { allInputs: [], audioInputs: [], inputKinds: [] };
+        }
+
+        try {
+            const [{ inputs }, kindsRes] = await Promise.all([
+                this.obs.call('GetInputList'),
+                this.obs.call('GetInputKindList', { unversioned: false }).catch(() => ({ inputKinds: [] })),
+            ]);
+
+            const allInputs = inputs.map((input) => ({
+                inputName: input.inputName,
+                inputKind: input.inputKind,
+            }));
+
+            const audioInputs = [];
             for (const input of inputs) {
                 try {
                     const [{ inputMuted }, vol] = await Promise.all([
                         this.obs.call('GetInputMute', { inputName: input.inputName }),
                         this.obs.call('GetInputVolume', { inputName: input.inputName }),
                     ]);
-                    results.push({
+                    audioInputs.push({
                         inputName: input.inputName,
                         inputKind: input.inputKind,
                         inputMuted: Boolean(inputMuted),
@@ -171,9 +213,13 @@ class StudioWorker {
                 }
             }
 
-            return results;
+            return {
+                allInputs,
+                audioInputs,
+                inputKinds: Array.isArray(kindsRes?.inputKinds) ? kindsRes.inputKinds : [],
+            };
         } catch {
-            return [];
+            return { allInputs: [], audioInputs: [], inputKinds: [] };
         }
     }
 
@@ -183,13 +229,14 @@ class StudioWorker {
         }
 
         try {
-            const [version, sceneList, studioMode, streamStatus, recordStatus, stats] = await Promise.all([
+            const [version, sceneList, studioMode, streamStatus, recordStatus, stats, videoSettings] = await Promise.all([
                 this.obs.call('GetVersion'),
                 this.obs.call('GetSceneList'),
                 this.obs.call('GetStudioModeEnabled'),
                 this.obs.call('GetStreamStatus'),
                 this.obs.call('GetRecordStatus'),
                 this.obs.call('GetStats'),
+                this.obs.call('GetVideoSettings').catch(() => null),
             ]);
 
             let virtualCam = false;
@@ -207,10 +254,11 @@ class StudioWorker {
                 // Replay buffer may be disabled
             }
 
+            const scenes = sceneList.scenes ?? [];
             const programScene = sceneList.currentProgramSceneName ?? null;
-            const [sceneItems, audioInputs] = await Promise.all([
-                this.hydrateSceneItems(programScene),
-                this.hydrateAudioInputs(),
+            const [sceneItemsByScene, inputMeta] = await Promise.all([
+                this.hydrateAllScenesItems(scenes),
+                this.hydrateInputsMetadata(),
             ]);
 
             this.liveState = {
@@ -219,9 +267,16 @@ class StudioWorker {
                 currentProgramScene: programScene,
                 currentPreviewScene: sceneList.currentPreviewSceneName ?? null,
                 studioModeEnabled: Boolean(studioMode.studioModeEnabled),
-                scenes: sceneList.scenes ?? [],
-                sceneItems,
-                audioInputs,
+                videoDimensions: {
+                    width: Number(videoSettings?.baseWidth || 1920),
+                    height: Number(videoSettings?.baseHeight || 1080),
+                },
+                scenes,
+                sceneItems: programScene ? (sceneItemsByScene[programScene] ?? []) : [],
+                sceneItemsByScene,
+                audioInputs: inputMeta.audioInputs,
+                allInputs: inputMeta.allInputs,
+                inputKinds: inputMeta.inputKinds,
                 outputs: {
                     streaming: Boolean(streamStatus.outputActive),
                     streamTimecode: streamStatus.outputTimecode ?? null,
@@ -244,6 +299,92 @@ class StudioWorker {
         } catch (error) {
             console.error(`${this.logPrefix()} State hydration error:`, error.message);
         }
+    }
+
+    scheduleRefreshAllState(delayMs = 150) {
+        if (this.stopped || !this.obsConnected) {
+            return;
+        }
+        if (this.refreshDebounceTimer) {
+            clearTimeout(this.refreshDebounceTimer);
+        }
+        this.refreshDebounceTimer = setTimeout(() => {
+            this.refreshDebounceTimer = null;
+            this.refreshAllState();
+        }, delayMs);
+    }
+
+    stopPreviewLoop() {
+        this.previewConfig.active = false;
+        if (this.previewTimer) {
+            clearInterval(this.previewTimer);
+            this.previewTimer = null;
+        }
+    }
+
+    async captureAndUploadPreviewFrame() {
+        if (this.stopped || !this.obsConnected || !this.previewConfig.active || this.previewInFlight) {
+            return;
+        }
+        if (Date.now() > this.previewConfig.expiresAt) {
+            this.stopPreviewLoop();
+            return;
+        }
+
+        const targetScene = this.previewConfig.sceneName || this.liveState.currentProgramScene;
+        if (!targetScene) {
+            return;
+        }
+
+        this.previewInFlight = true;
+        try {
+            const shot = await this.obs.call('GetSourceScreenshot', {
+                sourceName: targetScene,
+                imageFormat: 'jpeg',
+                imageWidth: Math.min(1920, Math.max(320, Number(this.previewConfig.width || 960))),
+                imageCompressionQuality: 65,
+            });
+
+            if (shot?.imageData) {
+                await apiRequest('/api/obs-agent/preview-frame', 'POST', {
+                    studio_id: this.studio.id,
+                    scene_name: targetScene,
+                    image_data: shot.imageData,
+                });
+            }
+        } catch {
+            // Skip frame if scene temporarily unavailable
+        } finally {
+            this.previewInFlight = false;
+        }
+    }
+
+    handleSetPreviewStream(data) {
+        const active = Boolean(data?.active);
+        if (!active) {
+            this.stopPreviewLoop();
+            return { active: false };
+        }
+
+        const intervalMs = Math.min(5000, Math.max(350, Number(data?.intervalMs || 650)));
+        this.previewConfig = {
+            active: true,
+            sceneName: data?.sceneName || null,
+            intervalMs,
+            width: Number(data?.width || 960),
+            expiresAt: Date.now() + 35000,
+        };
+
+        if (this.previewTimer) {
+            clearInterval(this.previewTimer);
+        }
+
+        this.captureAndUploadPreviewFrame();
+        this.previewTimer = setInterval(() => {
+            this.captureAndUploadPreviewFrame();
+        }, intervalMs);
+
+        return { active: true, sceneName: this.previewConfig.sceneName, intervalMs };
     }
 
     async handlePushBrowserScreen(data) {
@@ -321,6 +462,13 @@ class StudioWorker {
 
             if (requestType === 'obsisstant.PushBrowserScreen') {
                 responseData = await this.handlePushBrowserScreen(requestData);
+            } else if (requestType === 'obsisstant.FetchInputSettings') {
+                const settingsRes = await this.obs.call('GetInputSettings', {
+                    inputName: requestData.inputName,
+                });
+                responseData = settingsRes ?? {};
+            } else if (requestType === 'obsisstant.SetPreviewStream') {
+                responseData = this.handleSetPreviewStream(requestData);
             } else if (requestType === 'obsisstant.ExecuteBatch') {
                 responseData = await this.obs.callBatch(requestData.requests || []);
                 await this.refreshAllState();
@@ -329,7 +477,7 @@ class StudioWorker {
                 responseData = { refreshed: true };
             } else {
                 responseData = (await this.obs.call(requestType, requestData)) ?? {};
-                setTimeout(() => this.refreshAllState(), 150);
+                this.scheduleRefreshAllState(150);
             }
 
             await apiRequest(`/api/obs-agent/commands/${uuid}/ack`, 'POST', {
@@ -354,10 +502,13 @@ class StudioWorker {
     bindObsEvents() {
         this.obs.on('CurrentProgramSceneChanged', async ({ sceneName }) => {
             this.liveState.currentProgramScene = sceneName;
-            this.liveState.sceneItems = await this.hydrateSceneItems(sceneName);
+            const items = await this.hydrateSceneItems(sceneName);
+            this.liveState.sceneItems = items;
+            this.liveState.sceneItemsByScene[sceneName] = items;
             await this.pushState({
                 currentProgramScene: sceneName,
-                sceneItems: this.liveState.sceneItems,
+                sceneItems: items,
+                sceneItemsByScene: this.liveState.sceneItemsByScene,
             });
         });
 
@@ -371,18 +522,37 @@ class StudioWorker {
             await this.pushState({ studioModeEnabled: this.liveState.studioModeEnabled });
         });
 
-        this.obs.on('SceneListChanged', async ({ scenes }) => {
-            this.liveState.scenes = scenes;
-            await this.pushState({ scenes });
+        this.obs.on('SceneListChanged', async () => {
+            this.scheduleRefreshAllState(120);
         });
 
+        this.obs.on('SceneNameChanged', async () => {
+            this.scheduleRefreshAllState(120);
+        });
+
+        this.obs.on('SceneItemCreated', () => this.scheduleRefreshAllState(120));
+        this.obs.on('SceneItemRemoved', () => this.scheduleRefreshAllState(120));
+        this.obs.on('SceneItemListReindexed', () => this.scheduleRefreshAllState(120));
+        this.obs.on('SceneItemTransformChanged', () => this.scheduleRefreshAllState(250));
+        this.obs.on('SceneItemLockStateChanged', () => this.scheduleRefreshAllState(120));
+        this.obs.on('InputCreated', () => this.scheduleRefreshAllState(150));
+        this.obs.on('InputRemoved', () => this.scheduleRefreshAllState(150));
+        this.obs.on('InputNameChanged', () => this.scheduleRefreshAllState(150));
+        this.obs.on('InputSettingsChanged', () => this.scheduleRefreshAllState(200));
+
         this.obs.on('SceneItemEnableStateChanged', async ({ sceneName, sceneItemId, sceneItemEnabled }) => {
+            const currentList = this.liveState.sceneItemsByScene[sceneName] || [];
+            const updatedList = currentList.map((item) =>
+                item.sceneItemId === sceneItemId ? { ...item, sceneItemEnabled } : item
+            );
+            this.liveState.sceneItemsByScene[sceneName] = updatedList;
+
+            const partial = { sceneItemsByScene: this.liveState.sceneItemsByScene };
             if (sceneName === this.liveState.currentProgramScene) {
-                this.liveState.sceneItems = this.liveState.sceneItems.map((item) =>
-                    item.sceneItemId === sceneItemId ? { ...item, sceneItemEnabled } : item
-                );
-                await this.pushState({ sceneItems: this.liveState.sceneItems });
+                this.liveState.sceneItems = updatedList;
+                partial.sceneItems = updatedList;
             }
+            await this.pushState(partial);
         });
 
         this.obs.on('InputMuteStateChanged', async ({ inputName, inputMuted }) => {
@@ -533,6 +703,11 @@ class StudioWorker {
 
     async stop() {
         this.stopped = true;
+        this.stopPreviewLoop();
+        if (this.refreshDebounceTimer) {
+            clearTimeout(this.refreshDebounceTimer);
+            this.refreshDebounceTimer = null;
+        }
         if (this.reconnectTimer) {
             clearTimeout(this.reconnectTimer);
             this.reconnectTimer = null;

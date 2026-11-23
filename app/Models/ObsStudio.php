@@ -141,9 +141,59 @@ class ObsStudio extends Model
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function getSceneItems(): array
+    public function getSceneItems(?string $sceneName = null): array
     {
+        if ($sceneName !== null && $sceneName !== '') {
+            $byScene = $this->live_state['sceneItemsByScene'] ?? [];
+            if (is_array($byScene) && array_key_exists($sceneName, $byScene) && is_array($byScene[$sceneName])) {
+                return $byScene[$sceneName];
+            }
+        }
+
         return $this->live_state['sceneItems'] ?? [];
+    }
+
+    /**
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    public function getSceneItemsByScene(): array
+    {
+        $byScene = $this->live_state['sceneItemsByScene'] ?? [];
+
+        return is_array($byScene) ? $byScene : [];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAllInputs(): array
+    {
+        $inputs = $this->live_state['allInputs'] ?? [];
+
+        return is_array($inputs) ? $inputs : [];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getInputKinds(): array
+    {
+        $kinds = $this->live_state['inputKinds'] ?? [];
+
+        return is_array($kinds) ? array_values($kinds) : [];
+    }
+
+    /**
+     * @return array{width: int, height: int}
+     */
+    public function getVideoDimensions(): array
+    {
+        $dims = $this->live_state['videoDimensions'] ?? [];
+
+        return [
+            'width' => max(320, (int) ($dims['width'] ?? 1920)),
+            'height' => max(180, (int) ($dims['height'] ?? 1080)),
+        ];
     }
 
     /**

@@ -7,6 +7,7 @@
         <meta name="description" content="Setup instructions, Broadcast Macro automation, Overlay Studio reference, and searchable OBS WebSocket v5 commands.">
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=poppins:400,500,600&display=swap" rel="stylesheet">
+        <x-dev-hot-reload />
         <style>
             :root {
                 color-scheme: dark;

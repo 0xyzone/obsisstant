@@ -41,6 +41,7 @@ class ObsCommandAcknowledged implements ShouldBroadcastNow
             'studio_id' => $this->commandLog->obs_studio_id,
             'request_type' => $this->commandLog->request_type,
             'status' => $this->commandLog->status,
+            'has_response_data' => $this->commandLog->response_data !== null,
             'error_message' => $this->commandLog->error_message,
             'executed_at' => $this->commandLog->executed_at?->toIso8601String(),
         ];

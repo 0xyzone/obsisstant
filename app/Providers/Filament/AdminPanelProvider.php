@@ -52,6 +52,10 @@ class AdminPanelProvider extends PanelProvider
                 fn () => view('filament.components.obsidian-styles'),
             )
             ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn () => view('components.dev-hot-reload'),
+            )
+            ->renderHook(
                 PanelsRenderHook::BODY_START,
                 fn () => view('filament.components.obsidian-backdrop'),
             )
@@ -76,6 +80,10 @@ class AdminPanelProvider extends PanelProvider
                 fn () => view('filament.components.mobile-bottom-dock'),
             )
             ->navigationItems([
+                NavigationItem::make('Studio Control Center')
+                    ->url('/studio')
+                    ->icon(Heroicon::OutlinedComputerDesktop)
+                    ->sort(0),
                 NavigationItem::make('Mobile Deck')
                     ->url('/deck', shouldOpenInNewTab: true)
                     ->icon(Heroicon::OutlinedDevicePhoneMobile)

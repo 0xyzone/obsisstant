@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.6.0] - 2026-11-23 | type: minor
+
+> Standalone /studio Control Center with full Scene/Source CRUD, interactive 16:9 Live View stage, and HTTPS Vite hot-reload
+
+### Added
+- Standalone Studio Control Center (/studio): Dedicated full-screen 3-column broadcast director workspace outside Filament with scene create/rename/delete, source layer stacking, drag-and-resize 16:9 canvas builder, live settings JSON inspector, audio mixer, and overlay push controls
+- Multi-mode Live View & obs-agent v1.6 upgrades: Expanded obs-agent telemetry (sceneItemsByScene, allInputs, inputKinds, videoDimensions), on-demand OBS pixel snapshot feed (GetSourceScreenshot via /api/obs-agent/preview-frame + ObsPreviewFrameUpdated), and local OBS Virtual Cam WebRTC preview option
+- Vite HTTPS Live Auto-Reload (vite.config.js, scripts/run_vite.sh, x-dev-hot-reload): Configured Vite dev server with MAMP ob.crt/ob.key TLS on port 5173 and safe local-only hot-reload client across Landing, Studio, Knowledge Base, Changelog, Mobile Deck, and Filament panels
+
 ## [v1.5.0] - 2026-11-23 | type: minor
 
 > Guided OBS WebSocket v5 Macro Builder with synced studio pickers and modular Markdown Knowledge Base across public docs and Filament panel

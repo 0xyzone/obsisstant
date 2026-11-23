@@ -14,8 +14,8 @@
                     <h2 id="studios-heading" class="obs-panel-title">Studio roster</h2>
                     <p class="obs-panel-sub">Active OBS relays, program scenes, and stream output readiness.</p>
                 </div>
-                <a href="{{ route('filament.admin.pages.obs-control-deck') }}" class="obs-action-primary">
-                    Open control deck
+                <a href="{{ route('studio.index') }}" class="obs-action-primary">
+                    Launch studio center
                 </a>
             </div>
 

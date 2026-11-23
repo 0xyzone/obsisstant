@@ -327,37 +327,47 @@ class ObsControlDeck extends Page
 
     protected function getHeaderActions(): array
     {
+        $actions = [
+            Action::make('openStudioWorkspace')
+                ->label('Launch Control Center')
+                ->icon(Heroicon::OutlinedComputerDesktop)
+                ->color('primary')
+                ->url(fn (): string => $this->getStudio()
+                    ? route('studio.show', ['studio' => $this->getStudio()->slug])
+                    : route('studio.index')),
+        ];
+
         $relay = app(ObsLocalRelayService::class);
         if (! $relay->isLocalControlAvailable()) {
-            return [];
+            return $actions;
         }
 
         $status = $relay->status();
 
-        return [
-            Action::make('localRelay')
-                ->label($status['running'] ? 'Restart local relay' : 'Start local relay')
-                ->icon($status['running'] ? Heroicon::OutlinedArrowPath : Heroicon::OutlinedPlay)
-                ->color($status['running'] ? 'gray' : 'primary')
-                ->action(function () use ($relay, $status): void {
-                    $result = $status['running'] ? $relay->restart() : $relay->start();
-                    $fresh = $relay->status();
+        $actions[] = Action::make('localRelay')
+            ->label($status['running'] ? 'Restart local relay' : 'Start local relay')
+            ->icon($status['running'] ? Heroicon::OutlinedArrowPath : Heroicon::OutlinedPlay)
+            ->color($status['running'] ? 'gray' : 'warning')
+            ->action(function () use ($relay, $status): void {
+                $result = $status['running'] ? $relay->restart() : $relay->start();
+                $fresh = $relay->status();
 
-                    if ($fresh['running']) {
-                        Notification::make()
-                            ->success()
-                            ->title('Workspace Relay active')
-                            ->body("obs-agent synced automatically ({$result}).")
-                            ->send();
-                    } else {
-                        Notification::make()
-                            ->danger()
-                            ->title('Could not start Workspace Relay')
-                            ->body($result ?: 'Check storage/logs/obs-agent.log for details.')
-                            ->send();
-                    }
-                }),
-        ];
+                if ($fresh['running']) {
+                    Notification::make()
+                        ->success()
+                        ->title('Workspace Relay active')
+                        ->body("obs-agent synced automatically ({$result}).")
+                        ->send();
+                } else {
+                    Notification::make()
+                        ->danger()
+                        ->title('Could not start Workspace Relay')
+                        ->body($result ?: 'Check storage/logs/obs-agent.log for details.')
+                        ->send();
+                }
+            });
+
+        return $actions;
     }
 
     protected function syncSelectedScreenFields(): void

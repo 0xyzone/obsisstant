@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\ObsCommandAcknowledged;
+use App\Events\ObsPreviewFrameUpdated;
 use App\Events\ObsStudioStateUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\ObsCommandLog;
@@ -10,6 +11,7 @@ use App\Models\ObsStudio;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Pusher\Pusher;
 
 class ObsAgentController extends Controller
@@ -115,7 +117,7 @@ class ObsAgentController extends Controller
         $mergedState = array_replace_recursive($studio->live_state ?? [], $validated['live_state']);
 
         // Replace collection arrays directly so deleted/reordered scenes, items, or inputs don't linger
-        foreach (['scenes', 'sceneItems', 'audioInputs'] as $listKey) {
+        foreach (['scenes', 'sceneItems', 'sceneItemsByScene', 'audioInputs', 'allInputs', 'inputKinds', 'videoDimensions'] as $listKey) {
             if (array_key_exists($listKey, $validated['live_state'])) {
                 $mergedState[$listKey] = $validated['live_state'][$listKey];
             }
@@ -135,6 +137,51 @@ class ObsAgentController extends Controller
         return response()->json([
             'ok' => true,
             'status' => $freshStudio->status,
+        ]);
+    }
+
+    public function uploadPreviewFrame(Request $request): JsonResponse
+    {
+        $studio = $this->resolveStudio($request);
+
+        $validated = $request->validate([
+            'studio_id' => ['nullable', 'integer'],
+            'scene_name' => ['required', 'string', 'max:255'],
+            'image_data' => ['required', 'string', 'max:1500000'],
+        ]);
+
+        $rawData = $validated['image_data'];
+        $mime = 'image/jpeg';
+        $base64 = $rawData;
+
+        if (preg_match('/^data:(image\/(?:jpeg|jpg|png|webp));base64,(.+)$/i', $rawData, $matches)) {
+            $mime = strtolower($matches[1]) === 'image/jpg' ? 'image/jpeg' : strtolower($matches[1]);
+            $base64 = $matches[2];
+        }
+
+        $binary = base64_decode($base64, true);
+        if ($binary === false || $binary === '') {
+            return response()->json(['message' => 'Invalid preview image payload.'], 422);
+        }
+
+        $version = (string) round(microtime(true) * 1000);
+
+        Cache::put("obs.preview.frame.{$studio->id}", [
+            'mime' => $mime,
+            'bytes' => $binary,
+            'scene_name' => $validated['scene_name'],
+            'version' => $version,
+        ], now()->addSeconds(45));
+
+        event(new ObsPreviewFrameUpdated(
+            studioId: $studio->id,
+            sceneName: $validated['scene_name'],
+            frameVersion: $version,
+        ));
+
+        return response()->json([
+            'ok' => true,
+            'version' => $version,
         ]);
     }
 
