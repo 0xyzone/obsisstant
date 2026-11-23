@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.10.4] - 2026-11-24 | type: macro
+
+> Harden run_reverb.sh for cPanel Linux hosts and add doctor diagnostics
+
+### Fixed
+- Expand PHP CLI discovery (EasyApache, CloudLinux Alt-PHP, php-cli, cgi-fcgi safe check, optional REVERB_PHP_BIN)
+- Add stdin redirection, disown, startup crash detection, watchdog logging, and a doctor subcommand in scripts/run_reverb.sh
+
 ## [v1.10.3] - 2026-11-23 | type: macro
 
 > Include /usr/local/bin/php in run_reverb.sh CLI lookup for cPanel cron jobs
