@@ -38,8 +38,18 @@ do
     fi
 done
 
-REVERB_BIND_HOST="${REVERB_SERVER_HOST:-127.0.0.1}"
-REVERB_BIND_PORT="${REVERB_SERVER_PORT:-8080}"
+read_env_var() {
+    local KEY="$1"
+    if [ -f "$APP_DIR/.env" ]; then
+        grep -E "^${KEY}=" "$APP_DIR/.env" | tail -n 1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r' | xargs
+    fi
+}
+
+ENV_REVERB_HOST=$(read_env_var "REVERB_SERVER_HOST")
+ENV_REVERB_PORT=$(read_env_var "REVERB_SERVER_PORT")
+
+REVERB_BIND_HOST="${REVERB_SERVER_HOST:-${ENV_REVERB_HOST:-127.0.0.1}}"
+REVERB_BIND_PORT="${REVERB_SERVER_PORT:-${ENV_REVERB_PORT:-8080}}"
 ACTION="${1:-watchdog}"
 
 case "$ACTION" in

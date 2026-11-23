@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\ChangelogService;
 use App\Services\Obs\ObsCommandService;
 use App\Services\Obs\ObsMediaStorageService;
+use App\Services\ReverbStatusService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -69,7 +70,7 @@ class StudioControlCenterController extends Controller
             'screens' => $screens,
             'macros' => $macros,
             'recentLogs' => $recentLogs,
-            'echoConfig' => config('filament.broadcasting.echo'),
+            'echoConfig' => ReverbStatusService::clientEchoConfig(),
             'mediaStoragePath' => app(ObsMediaStorageService::class)->resolveConfiguredDirectory($studio, $user),
         ]);
     }

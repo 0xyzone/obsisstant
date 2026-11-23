@@ -6,6 +6,7 @@ use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\Register;
 use App\Filament\Widgets\ObsStatsOverview;
 use App\Filament\Widgets\ObsStudioWorkspaceWidget;
+use App\Services\ReverbStatusService;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -41,7 +42,7 @@ class AdminPanelProvider extends PanelProvider
             ->darkMode(true, isForced: true)
             ->font('Poppins')
             ->monoFont('Poppins')
-            ->broadcasting()
+            ->broadcasting(static fn (): bool => ReverbStatusService::isConfigured())
             ->maxContentWidth('full')
             ->sidebarWidth('16.5rem')
             ->sidebarCollapsibleOnDesktop()

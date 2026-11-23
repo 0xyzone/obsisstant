@@ -170,4 +170,75 @@ class ObsidianUiThemeTest extends TestCase
             ->assertDontSee('sm:grid-cols-5')
             ->assertDontSee('lg:grid-cols-2');
     }
+
+    public function test_reverb_status_requires_reverb_driver_credentials_and_authentic_reverb_server(): void
+    {
+        $server = stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        $this->assertNotFalse($server, "Failed to bind ephemeral socket: {$errstr}");
+
+        $address = stream_socket_get_name($server, false);
+        $this->assertIsString($address);
+        [, $port] = explode(':', $address);
+        $portInt = (int) $port;
+
+        try {
+            // 1. Even with an open TCP port, BROADCAST_CONNECTION=log must report offline and disable client Echo
+            config([
+                'broadcasting.default' => 'log',
+                'reverb.servers.reverb.host' => '127.0.0.1',
+                'reverb.servers.reverb.port' => $portInt,
+                'reverb.apps.apps.0.app_id' => '',
+                'reverb.apps.apps.0.key' => '',
+                'reverb.apps.apps.0.secret' => '',
+            ]);
+
+            $service = new ReverbStatusService(0.15);
+            $status = $service->status();
+
+            $this->assertFalse($status['active']);
+            $this->assertSame('Reverb offline', $status['label']);
+            $this->assertStringContainsString('log', $status['reason']);
+            $this->assertNull(ReverbStatusService::clientEchoConfig());
+
+            // 2. Empty Reverb credentials with BROADCAST_CONNECTION=reverb must still report offline
+            config([
+                'broadcasting.default' => 'reverb',
+                'reverb.apps.apps.0.app_id' => '',
+                'reverb.apps.apps.0.key' => '',
+                'reverb.apps.apps.0.secret' => '',
+            ]);
+
+            $statusMissingCreds = $service->status();
+            $this->assertFalse($statusMissingCreds['active']);
+            $this->assertSame('Reverb offline', $statusMissingCreds['label']);
+            $this->assertNull(ReverbStatusService::clientEchoConfig());
+
+            // 3. Valid credentials pointing at a non-Reverb TCP port must not produce a false-positive "Reverb active"
+            config([
+                'broadcasting.default' => 'reverb',
+                'reverb.apps.apps.0.app_id' => '950876',
+                'reverb.apps.apps.0.key' => 'obsktest1234',
+                'reverb.apps.apps.0.secret' => 'obsstestsecret',
+                'broadcasting.connections.reverb.options.host' => '127.0.0.1',
+                'broadcasting.connections.reverb.options.port' => $portInt,
+                'broadcasting.connections.reverb.options.scheme' => 'http',
+            ]);
+
+            $statusNonReverb = $service->status();
+            $this->assertFalse($statusNonReverb['active']);
+            $this->assertSame('Reverb offline', $statusNonReverb['label']);
+            $this->assertIsArray(ReverbStatusService::clientEchoConfig());
+
+            // Filament panel must not initialize window.Echo when Reverb key/driver is inactive
+            config(['broadcasting.default' => 'log', 'reverb.apps.apps.0.key' => '']);
+            $user = User::factory()->create();
+            $this->actingAs($user)
+                ->get('/admin/obs-control-deck')
+                ->assertOk()
+                ->assertSee('Reverb offline')
+                ->assertDontSee('broadcaster: \'reverb\'', false);
+        } finally {
+            fclose($server);
+        }
+    }
 }

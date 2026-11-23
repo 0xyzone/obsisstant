@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.10.2] - 2026-11-23 | type: macro
+
+> Fix false-positive Reverb status badge, suppress unconfigured Filament Echo errors, and load .env in run_reverb.sh
+
+### Fixed
+- Require BROADCAST_CONNECTION=reverb, non-empty Reverb credentials, and an authenticated Reverb API response before showing Reverb active
+- Disable Filament Echo script initialization when Reverb broadcasting is inactive and load REVERB_SERVER_HOST/PORT from .env in run_reverb.sh
+
 ## [v1.10.1] - 2026-11-23 | type: macro
 
 > Fix Studio scene item transforms reverting after updating in OBS

@@ -10,7 +10,7 @@
         'is-offline' => ! $isActive,
     ]) }}
     data-reverb-status="{{ $isActive ? 'active' : 'offline' }}"
-    title="{{ $isActive ? 'Laravel Reverb WebSocket server is listening' : 'Laravel Reverb WebSocket server is not reachable' }} ({{ $reverbStatus['host'] }}:{{ $reverbStatus['port'] }})"
+    title="{{ $reverbStatus['reason'] ?? ($isActive ? 'Laravel Reverb WebSocket server is listening' : 'Laravel Reverb WebSocket server is not reachable') }} ({{ $reverbStatus['host'] }}:{{ $reverbStatus['port'] }})"
     aria-label="Reverb server status: {{ $isActive ? 'active' : 'offline' }}"
 >
     <span class="obs-reverb-dot" aria-hidden="true"></span>

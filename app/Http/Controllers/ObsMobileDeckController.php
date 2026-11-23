@@ -7,6 +7,7 @@ use App\Models\ObsScreen;
 use App\Models\ObsStudio;
 use App\Models\User;
 use App\Services\Obs\ObsCommandService;
+use App\Services\ReverbStatusService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -55,7 +56,7 @@ class ObsMobileDeckController extends Controller
             'studios' => $studios,
             'screens' => $screens,
             'macros' => $macros,
-            'echoConfig' => config('filament.broadcasting.echo'),
+            'echoConfig' => ReverbStatusService::clientEchoConfig(),
         ]);
     }
 

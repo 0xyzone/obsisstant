@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ObsScreen;
+use App\Services\ReverbStatusService;
 use Illuminate\Contracts\View\View;
 
 class ObsOverlayController extends Controller
@@ -17,7 +18,7 @@ class ObsOverlayController extends Controller
             'screen' => $screen,
             'theme' => $screen->getMergedTheme(),
             'state' => $screen->getMergedState(),
-            'echoConfig' => config('filament.broadcasting.echo'),
+            'echoConfig' => ReverbStatusService::clientEchoConfig(),
         ]);
     }
 }
