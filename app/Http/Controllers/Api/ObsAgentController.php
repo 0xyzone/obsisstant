@@ -8,6 +8,7 @@ use App\Events\ObsStudioStateUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\ObsCommandLog;
 use App\Models\ObsStudio;
+use App\Services\Obs\ObsCommandService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -264,7 +265,7 @@ class ObsAgentController extends Controller
             ->map(fn (ObsCommandLog $log): array => [
                 'command_uuid' => $log->command_uuid,
                 'request_type' => $log->request_type,
-                'request_data' => $log->request_data ?? [],
+                'request_data' => ObsCommandService::normalizeRequestDataForJson($log->request_data),
             ])
             ->values();
 

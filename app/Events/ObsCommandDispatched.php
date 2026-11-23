@@ -3,6 +3,7 @@
 namespace App\Events;
 
 use App\Models\ObsCommandLog;
+use App\Services\Obs\ObsCommandService;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -40,7 +41,7 @@ class ObsCommandDispatched implements ShouldBroadcastNow
             'command_uuid' => $this->commandLog->command_uuid,
             'studio_id' => $this->commandLog->obs_studio_id,
             'request_type' => $this->commandLog->request_type,
-            'request_data' => $this->commandLog->request_data ?? [],
+            'request_data' => ObsCommandService::normalizeRequestDataForJson($this->commandLog->request_data),
             'dispatched_at' => now()->toIso8601String(),
         ];
     }

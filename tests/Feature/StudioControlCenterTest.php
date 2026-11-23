@@ -81,9 +81,65 @@ class StudioControlCenterTest extends TestCase
             ->assertSee('create-collection-dialog')
             ->assertSee('stage-canvas')
             ->assertSee('add-source-dialog')
+            ->assertSee('add-source-dynamic-fields')
             ->assertSee('rename-scene-dialog')
+            ->assertSee('delete-source-dialog')
+            ->assertSee('visual-settings-fields')
+            ->assertSee('rename-source-input')
+            ->assertSee('Width (px)')
+            ->assertSee('Height (px)')
+            ->assertSee('Delete Source')
+            ->assertSee('INPUT_KIND_CATALOG')
             ->assertSee('Host Camera')
             ->assertDontSee('@vite/client', false);
+    }
+
+    public function test_studio_snapshot_and_empty_object_json_serialization_work_correctly(): void
+    {
+        $user = User::factory()->create();
+        $studio = ObsStudio::factory()->online()->create([
+            'name' => 'Snapshot Studio',
+            'agent_token' => 'snapshot-token-999',
+            'live_state' => [
+                'currentProgramScene' => 'Bg',
+                'scenes' => [['sceneName' => 'Bg']],
+            ],
+        ]);
+
+        $this->get(route('studio.snapshot', ['studio' => $studio->slug]))->assertRedirect();
+
+        $log = ObsCommandLog::create([
+            'obs_studio_id' => $studio->id,
+            'command_uuid' => '00000000-0000-0000-0000-000000000123',
+            'request_type' => 'CreateInput',
+            'request_data' => [
+                'sceneName' => 'Bg',
+                'inputName' => 'Clean Source',
+                'inputKind' => 'browser_source',
+                'inputSettings' => [],
+                'sceneItemEnabled' => true,
+            ],
+            'status' => 'dispatched',
+        ]);
+
+        $broadcastJson = json_encode((new ObsCommandDispatched($log))->broadcastWith());
+        $this->assertStringContainsString('"inputSettings":{}', (string) $broadcastJson);
+        $this->assertStringNotContainsString('"inputSettings":[]', (string) $broadcastJson);
+
+        $bootstrapRes = $this->withHeader('Authorization', 'Bearer snapshot-token-999')
+            ->get(route('api.obs-agent.bootstrap'))
+            ->assertOk();
+
+        $this->assertStringContainsString('"inputSettings":{}', (string) $bootstrapRes->getContent());
+        $this->assertStringNotContainsString('"inputSettings":[]', (string) $bootstrapRes->getContent());
+
+        $this->actingAs($user)
+            ->getJson(route('studio.snapshot', ['studio' => $studio->slug]))
+            ->assertOk()
+            ->assertJsonPath('status', 'online')
+            ->assertJsonPath('is_online', true)
+            ->assertJsonPath('live_state.currentProgramScene', 'Bg')
+            ->assertJsonPath('recent_logs.0.request_type', 'CreateInput');
     }
 
     public function test_environment_favicons_switch_between_white_local_and_gold_production_symbols(): void

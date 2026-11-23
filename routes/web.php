@@ -21,6 +21,7 @@ Route::get('/screens/{token}', [ObsOverlayController::class, 'show'])->name('obs
 Route::middleware('auth')->group(function (): void {
     Route::get('/studio', [StudioControlCenterController::class, 'index'])->name('studio.index');
     Route::get('/studio/{studio:slug}', [StudioControlCenterController::class, 'show'])->name('studio.show');
+    Route::get('/studio/{studio:slug}/snapshot', [StudioControlCenterController::class, 'snapshot'])->name('studio.snapshot');
     Route::post('/studio/{studio:slug}/command', [StudioControlCenterController::class, 'dispatchCommand'])->name('studio.command');
     Route::get('/studio/{studio:slug}/commands/{commandUuid}', [StudioControlCenterController::class, 'commandResult'])->name('studio.command-result');
     Route::post('/studio/{studio:slug}/macro/{macro}', [StudioControlCenterController::class, 'runMacro'])->name('studio.macro');

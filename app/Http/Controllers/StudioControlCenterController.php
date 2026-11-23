@@ -60,6 +60,34 @@ class StudioControlCenterController extends Controller
         ]);
     }
 
+    public function snapshot(ObsStudio $studio): JsonResponse
+    {
+        $recentLogs = ObsCommandLog::query()
+            ->where('obs_studio_id', $studio->id)
+            ->latest('id')
+            ->limit(15)
+            ->get(['id', 'command_uuid', 'request_type', 'status', 'error_message', 'created_at'])
+            ->map(static fn (ObsCommandLog $log): array => [
+                'command_uuid' => $log->command_uuid,
+                'request_type' => $log->request_type,
+                'status' => $log->status,
+                'error_message' => $log->error_message,
+                'created_at' => $log->created_at?->diffForHumans(),
+            ])
+            ->values();
+
+        $frame = Cache::get("obs.preview.frame.{$studio->id}");
+
+        return response()->json([
+            'status' => $studio->status,
+            'is_online' => $studio->isOnline(),
+            'live_state' => $studio->live_state ?? [],
+            'recent_logs' => $recentLogs,
+            'preview_version' => is_array($frame) ? ($frame['version'] ?? null) : null,
+            'preview_scene' => is_array($frame) ? ($frame['scene_name'] ?? null) : null,
+        ]);
+    }
+
     public function dispatchCommand(Request $request, ObsStudio $studio, ObsCommandService $commandService): JsonResponse
     {
         $validated = $request->validate([

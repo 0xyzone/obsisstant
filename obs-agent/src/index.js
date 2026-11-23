@@ -457,8 +457,41 @@ class StudioWorker {
         return { sceneName, inputName, sceneItemId, url };
     }
 
+    normalizeObsPayload(requestType, rawData) {
+        const data = rawData && typeof rawData === 'object' && !Array.isArray(rawData)
+            ? { ...rawData }
+            : {};
+
+        if (requestType === 'CreateInput' || requestType === 'SetInputSettings') {
+            if (!data.inputSettings || typeof data.inputSettings !== 'object' || Array.isArray(data.inputSettings)) {
+                data.inputSettings = {};
+            }
+        }
+
+        if (requestType === 'SetSceneItemTransform') {
+            if (!data.sceneItemTransform || typeof data.sceneItemTransform !== 'object' || Array.isArray(data.sceneItemTransform)) {
+                data.sceneItemTransform = {};
+            }
+            if (data.sceneItemId !== undefined) {
+                data.sceneItemId = Number(data.sceneItemId);
+            }
+        }
+
+        if (['SetSceneItemEnabled', 'SetSceneItemLocked', 'SetSceneItemIndex', 'RemoveSceneItem'].includes(requestType)) {
+            if (data.sceneItemId !== undefined) {
+                data.sceneItemId = Number(data.sceneItemId);
+            }
+            if (data.sceneItemIndex !== undefined) {
+                data.sceneItemIndex = Number(data.sceneItemIndex);
+            }
+        }
+
+        return data;
+    }
+
     async executeCommand(payload) {
         const { command_uuid: uuid, request_type: requestType, request_data: requestData = {} } = payload;
+        const normalizedData = this.normalizeObsPayload(requestType, requestData);
         console.log(`${this.logPrefix()} Executing ${requestType} (${uuid})`);
 
         try {
@@ -469,23 +502,29 @@ class StudioWorker {
             let responseData = {};
 
             if (requestType === 'obsisstant.PushBrowserScreen') {
-                responseData = await this.handlePushBrowserScreen(requestData);
+                responseData = await this.handlePushBrowserScreen(normalizedData);
             } else if (requestType === 'obsisstant.FetchInputSettings') {
                 const settingsRes = await this.obs.call('GetInputSettings', {
-                    inputName: requestData.inputName,
+                    inputName: normalizedData.inputName,
                 });
                 responseData = settingsRes ?? {};
             } else if (requestType === 'obsisstant.SetPreviewStream') {
-                responseData = this.handleSetPreviewStream(requestData);
+                responseData = this.handleSetPreviewStream(normalizedData);
             } else if (requestType === 'obsisstant.ExecuteBatch') {
-                responseData = await this.obs.callBatch(requestData.requests || []);
+                const batch = Array.isArray(normalizedData.requests)
+                    ? normalizedData.requests.map((step) => ({
+                          requestType: step.requestType,
+                          requestData: this.normalizeObsPayload(step.requestType, step.requestData),
+                      }))
+                    : [];
+                responseData = await this.obs.callBatch(batch);
                 await this.refreshAllState();
             } else if (requestType === 'obsisstant.RefreshAllState') {
                 await this.refreshAllState();
                 responseData = { refreshed: true };
             } else {
-                responseData = (await this.obs.call(requestType, requestData)) ?? {};
-                this.scheduleRefreshAllState(150);
+                responseData = (await this.obs.call(requestType, normalizedData)) ?? {};
+                this.scheduleRefreshAllState(120);
             }
 
             await apiRequest(`/api/obs-agent/commands/${uuid}/ack`, 'POST', {

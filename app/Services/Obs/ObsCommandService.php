@@ -10,9 +10,45 @@ use App\Models\ObsScreen;
 use App\Models\ObsStudio;
 use App\Models\User;
 use Illuminate\Support\Str;
+use stdClass;
 
 class ObsCommandService
 {
+    /**
+     * Ensure empty associative payloads (such as inputSettings or sceneItemTransform)
+     * serialize to JSON objects `{}` instead of JSON arrays `[]` for OBS WebSocket v5.
+     *
+     * @param  array<string, mixed>|null  $data
+     */
+    public static function normalizeRequestDataForJson(?array $data): stdClass
+    {
+        if (! is_array($data) || $data === []) {
+            return new stdClass;
+        }
+
+        $normalized = [];
+
+        foreach ($data as $key => $value) {
+            if (in_array((string) $key, ['inputSettings', 'sceneItemTransform'], true) && $value === []) {
+                $normalized[$key] = new stdClass;
+            } elseif ((string) $key === 'requests' && is_array($value)) {
+                $normalized[$key] = array_map(static function (mixed $req): mixed {
+                    if (is_array($req)) {
+                        $req['requestData'] = self::normalizeRequestDataForJson(
+                            is_array($req['requestData'] ?? null) ? $req['requestData'] : []
+                        );
+                    }
+
+                    return $req;
+                }, $value);
+            } else {
+                $normalized[$key] = $value;
+            }
+        }
+
+        return (object) $normalized;
+    }
+
     /**
      * @param  array<string, mixed>  $requestData
      */

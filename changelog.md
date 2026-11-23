@@ -7,6 +7,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.8.0] - 2026-11-23 | type: minor
+
+> Visual per-source OBS properties editor, human-readable input kind labels, empty JSON object payload fixes, and reliable action acknowledgment with live snapshot fallback
+
+### Added
+- Visual Source Properties Editor (/studio): Auto-loads live OBS properties upon selection and renders type-aware UI controls including color picker with alpha opacity (ABGR integer conversion), browser URL/dimensions/FPS and cache refresh, image/media paths and playback toggles, and text properties, keeping raw JSON under an Advanced disclosure
+- Contextual Source Lifecycle Controls: Human-friendly Add Source dialog with typed fields per OBS input kind, inline Rename Source (SetInputName), intuitive Width/Height (px) transform sizing, and clear Remove from Scene vs Delete Source Permanently actions
+- Live Control Center Snapshot Sync (GET /studio/{studio}/snapshot): Command acknowledgment polling, success/error toast feedback, live Recent Command Log refresh, and snapshot preview fallback
+
+### Fixed
+- CreateInput & Empty Payload JSON Serialization: Preserved empty PHP arrays as JSON {} in ObsCommandService, ObsCommandDispatched broadcasts, obs-agent bootstrap, and obs-agent normalizeObsPayload so OBS WebSocket v5 never rejects inputSettings
+- Input Kind Dropdown Labels & Transform Sizing: Replaced raw snake_case OBS input kinds with readable labels across UI dropdowns and computed aspect-safe scaleX/scaleY or bounds updates cleanly from pixel width and height
+
 ## [v1.7.0] - 2026-11-23 | type: minor
 
 > Environment-aware white/gold favicons, ASCII preview frame cache fix with default OBS Live View, and Scene Collection switch/create
