@@ -27,7 +27,9 @@ class ObsidianUiThemeTest extends TestCase
             ->assertSee('EVERY OBS')
             ->assertSee('Starting Soon')
             ->assertSee('Lower Thirds')
-            ->assertSee('syne:700,800')
+            ->assertSee('poppins:300,400,500,600,700,800')
+            ->assertSee('#CDAD69')
+            ->assertSee('#F4E185')
             ->assertSee('/admin/obs-control-deck')
             ->assertSee(route('obs.deck.index'))
             ->assertSee(route('changelog'));
@@ -40,7 +42,7 @@ class ObsidianUiThemeTest extends TestCase
         $response->assertOk()
             ->assertSee('CONTROL ACCESS')
             ->assertSee('filament-obs-theme.css')
-            ->assertSee('syne:700,800')
+            ->assertSee('poppins:300,400,500,600,700,800')
             ->assertSee('dark', false);
     }
 

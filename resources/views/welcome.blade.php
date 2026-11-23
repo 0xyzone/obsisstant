@@ -3,35 +3,41 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-        <title>{{ config('app.name', 'Obsisstant') }} · Obsidian Broadcast Control</title>
+        <title>{{ config('app.name', 'Obsisstant') }} · Metallic Gold OBS Studio Control</title>
         <meta name="description" content="Control multi-studio OBS Studio rigs, push real-time Reverb screen overlays, and trigger broadcast macros from any desktop or mobile deck.">
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=syne:700,800|plus-jakarta-sans:400,500,600,700|jetbrains-mono:500,600&display=swap" rel="stylesheet">
+        <link href="https://fonts.bunny.net/css?family=poppins:300,400,500,600,700,800&display=swap" rel="stylesheet">
         <style>
             :root {
                 color-scheme: dark;
-                --bg-void: #050506;
-                --bg-obsidian: #0a0907;
-                --surface-glass: rgba(17, 15, 11, 0.72);
-                --surface-glass-strong: rgba(23, 20, 14, 0.88);
-                --surface-pill: rgba(255, 255, 255, 0.045);
-                --gold-bright: #ffd700;
-                --gold-300: #ffe680;
-                --gold-400: #f5c451;
-                --gold-500: #d4af37;
-                --border-gold: rgba(255, 215, 0, 0.28);
-                --border-gold-strong: rgba(255, 215, 0, 0.56);
-                --border-subtle: rgba(255, 255, 255, 0.1);
-                --text-primary: #faf6ec;
-                --text-secondary: #d4ccb8;
-                --text-muted: #9e9582;
-                --font-display: 'Syne', ui-sans-serif, system-ui, sans-serif;
-                --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-                --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+                --slate-deep: #292C31;
+                --bg-void: #070706;
+                --bronze-smoked: #2D1F11;
+                --gold-antique: #89612B;
+                --gold-satin: #AC8B56;
+                --gold-lustre: #CDAD69;
+                --gold-specular: #F4E185;
+                --surface-glass: linear-gradient(155deg, rgba(41, 44, 49, 0.54) 0%, rgba(7, 7, 6, 0.80) 52%, rgba(45, 31, 17, 0.56) 100%);
+                --surface-glass-strong: linear-gradient(155deg, rgba(41, 44, 49, 0.70) 0%, rgba(7, 7, 6, 0.88) 54%, rgba(45, 31, 17, 0.68) 100%);
+                --gold-foil: linear-gradient(135deg, #89612B 0%, #CDAD69 24%, #F4E185 50%, #CDAD69 76%, #AC8B56 100%);
+                --gold-button: linear-gradient(135deg, #F4E185 0%, #CDAD69 44%, #AC8B56 80%, #89612B 100%);
+                --border-gold: rgba(205, 173, 105, 0.36);
+                --border-gold-strong: rgba(244, 225, 133, 0.62);
+                --border-subtle: rgba(172, 139, 86, 0.22);
+                --text-primary: #FAF7EE;
+                --text-secondary: #D8CEBA;
+                --text-muted: #A99F8D;
+                --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
                 --radius-card: 1.5rem;
                 --radius-pill: 9999px;
-                --shadow-glass: 0 24px 60px -20px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 230, 128, 0.16);
-                --shadow-gold-glow: 0 16px 40px -14px rgba(255, 215, 0, 0.45);
+                --shadow-glass:
+                    0 24px 60px -20px rgba(0, 0, 0, 0.94),
+                    inset 0 1px 0 rgba(244, 225, 133, 0.22),
+                    inset 0 -1px 0 rgba(137, 97, 43, 0.2);
+                --shadow-gold:
+                    0 14px 32px -12px rgba(205, 173, 105, 0.44),
+                    inset 0 1px 0 rgba(255, 249, 219, 0.72),
+                    inset 0 -2px 0 rgba(45, 31, 17, 0.42);
             }
 
             *,
@@ -53,7 +59,7 @@
                 min-block-size: 100dvb;
                 background-color: var(--bg-void);
                 color: var(--text-primary);
-                line-height: 1.55;
+                line-height: 1.6;
                 position: relative;
                 overflow-x: clip;
                 text-align: start;
@@ -65,10 +71,11 @@
                 z-index: 0;
                 pointer-events: none;
                 background:
-                    radial-gradient(circle at 12% 10%, rgba(255, 215, 0, 0.22), transparent 38%),
-                    radial-gradient(circle at 86% 16%, rgba(212, 175, 55, 0.16), transparent 44%),
-                    radial-gradient(circle at 50% 85%, rgba(245, 196, 81, 0.1), transparent 52%),
-                    linear-gradient(180deg, #090806 0%, #050506 100%);
+                    radial-gradient(circle at 12% 10%, rgba(244, 225, 133, 0.14), transparent 36%),
+                    radial-gradient(circle at 86% 18%, rgba(137, 97, 43, 0.22), transparent 44%),
+                    radial-gradient(circle at 22% 84%, rgba(45, 31, 17, 0.56), transparent 48%),
+                    radial-gradient(circle at 76% 78%, rgba(41, 44, 49, 0.45), transparent 48%),
+                    linear-gradient(180deg, #0a0908 0%, #070706 100%);
             }
 
             .ambient-grid {
@@ -76,10 +83,10 @@
                 inset: 0;
                 z-index: 0;
                 pointer-events: none;
-                opacity: 0.24;
+                opacity: 0.2;
                 background-image:
-                    linear-gradient(to right, rgba(255, 215, 0, 0.08) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(255, 215, 0, 0.08) 1px, transparent 1px);
+                    linear-gradient(to right, rgba(205, 173, 105, 0.08) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(205, 173, 105, 0.08) 1px, transparent 1px);
                 background-size: 48px 48px;
                 mask-image: radial-gradient(ellipse at 50% 24%, black 12%, transparent 78%);
             }
@@ -96,13 +103,13 @@
                 gap: clamp(2.5rem, 1.5rem + 3vw, 4.75rem);
             }
 
-            /* Navigation Bar following responsive popover guidance */
+            /* Frosted Metallic Glass Navigation Bar */
             .site-header {
                 position: sticky;
                 inset-block-start: max(0.75rem, env(safe-area-inset-top));
                 z-index: 40;
                 border-radius: 1.35rem;
-                background: rgba(12, 11, 8, 0.78);
+                background: linear-gradient(95deg, rgba(41, 44, 49, 0.65), rgba(7, 7, 6, 0.84) 55%, rgba(45, 31, 17, 0.65));
                 -webkit-backdrop-filter: blur(22px) saturate(150%);
                 backdrop-filter: blur(22px) saturate(150%);
                 border: 1px solid var(--border-gold);
@@ -140,28 +147,34 @@
                 inline-size: 2.5rem;
                 block-size: 2.5rem;
                 border-radius: 0.9rem;
-                background: linear-gradient(135deg, rgba(255, 215, 0, 0.28), rgba(158, 115, 20, 0.22));
+                background: linear-gradient(135deg, rgba(244, 225, 133, 0.22), rgba(137, 97, 43, 0.28));
                 border: 1px solid var(--border-gold-strong);
-                color: var(--gold-bright);
-                box-shadow: inset 0 1px 0 rgba(255, 240, 175, 0.4);
+                color: var(--gold-specular);
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.5);
             }
 
             .brand-name {
-                font-family: var(--font-display);
-                font-size: 1.15rem;
-                font-weight: 800;
-                letter-spacing: -0.02em;
+                font-family: var(--font-sans);
+                font-size: 1.05rem;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+                background: var(--gold-foil);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
             }
 
             .version-tag {
-                font-family: var(--font-mono);
+                font-family: var(--font-sans);
+                font-variant-numeric: tabular-nums;
                 font-size: 0.7rem;
                 font-weight: 600;
-                color: var(--gold-bright);
-                background: rgba(255, 215, 0, 0.12);
+                letter-spacing: 0.04em;
+                color: var(--gold-specular);
+                background: rgba(137, 97, 43, 0.26);
                 border: 1px solid var(--border-gold);
                 border-radius: var(--radius-pill);
-                padding: 0.2rem 0.55rem;
+                padding: 0.22rem 0.6rem;
             }
 
             .site-nav {
@@ -179,8 +192,8 @@
                 padding: 0.45rem 0.95rem;
                 border-radius: var(--radius-pill);
                 border: 1px solid var(--border-gold);
-                background: rgba(255, 215, 0, 0.1);
-                color: var(--gold-300);
+                background: rgba(137, 97, 43, 0.22);
+                color: var(--gold-specular);
                 font: inherit;
                 font-size: 0.85rem;
                 font-weight: 600;
@@ -201,7 +214,7 @@
                 list-style: none;
                 overflow: auto;
                 border-radius: 1.25rem;
-                background: rgba(14, 12, 9, 0.94);
+                background: linear-gradient(155deg, rgba(41, 44, 49, 0.92), rgba(7, 7, 6, 0.95), rgba(45, 31, 17, 0.9));
                 -webkit-backdrop-filter: blur(24px) saturate(160%);
                 backdrop-filter: blur(24px) saturate(160%);
                 border: 1px solid var(--border-gold-strong);
@@ -210,7 +223,7 @@
             }
 
             .site-menu::backdrop {
-                background: rgba(0, 0, 0, 0.45);
+                background: rgba(7, 7, 6, 0.55);
                 backdrop-filter: blur(4px);
             }
 
@@ -252,22 +265,23 @@
                 padding: 0.45rem 0.9rem;
                 border-radius: var(--radius-pill);
                 text-decoration: none;
-                font-size: 0.86rem;
-                font-weight: 600;
+                font-size: 0.85rem;
+                font-weight: 500;
                 color: var(--text-secondary);
                 border: 1px solid transparent;
                 transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
             }
 
             .nav-link:hover {
-                color: var(--gold-300);
-                background: rgba(255, 215, 0, 0.08);
+                color: var(--gold-specular);
+                background: rgba(205, 173, 105, 0.12);
             }
 
             .nav-link[aria-current="page"] {
-                color: var(--gold-bright);
-                background: rgba(255, 215, 0, 0.14);
+                color: var(--gold-specular);
+                background: linear-gradient(135deg, rgba(244, 225, 133, 0.16), rgba(137, 97, 43, 0.24));
                 border-color: var(--border-gold);
+                font-weight: 600;
             }
 
             .nav-cta {
@@ -276,19 +290,21 @@
                 justify-content: center;
                 gap: 0.45rem;
                 min-block-size: 2.55rem;
-                padding: 0.5rem 1.15rem;
+                padding: 0.5rem 1.2rem;
                 border-radius: var(--radius-pill);
                 text-decoration: none;
-                font-size: 0.85rem;
-                font-weight: 700;
-                color: #080705;
-                background: linear-gradient(135deg, var(--gold-bright), var(--gold-400));
-                box-shadow: var(--shadow-gold-glow);
-                transition: transform 0.18s ease, box-shadow 0.2s ease;
+                font-size: 0.84rem;
+                font-weight: 600;
+                color: #070706;
+                background: var(--gold-button);
+                border: 1px solid rgba(244, 225, 133, 0.72);
+                box-shadow: var(--shadow-gold);
+                transition: transform 0.18s ease, filter 0.18s ease;
             }
 
             .nav-cta:hover {
                 transform: translateY(-1px);
+                filter: brightness(1.06);
             }
 
             .site-header.is-wide .menu-button {
@@ -319,11 +335,11 @@
             }
 
             :is(a, button, [tabindex]):focus-visible {
-                outline: 2px solid var(--gold-bright);
+                outline: 2px solid var(--gold-specular);
                 outline-offset: 3px;
             }
 
-            /* Hero Layout & Kinetic Display Typography */
+            /* Hero Section — Clean Poppins High-Contrast Typography */
             .hero-grid {
                 display: grid;
                 grid-template-columns: minmax(0, 1fr);
@@ -333,7 +349,7 @@
 
             @media (min-width: 62rem) {
                 .hero-grid {
-                    grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr);
+                    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
                 }
             }
 
@@ -342,40 +358,39 @@
                 align-items: center;
                 gap: 0.55rem;
                 min-block-size: 2rem;
-                padding: 0.3rem 0.85rem;
+                padding: 0.3rem 0.9rem;
                 border-radius: var(--radius-pill);
-                background: rgba(255, 215, 0, 0.1);
+                background: linear-gradient(135deg, rgba(41, 44, 49, 0.6), rgba(45, 31, 17, 0.6));
                 border: 1px solid var(--border-gold);
-                font-family: var(--font-mono);
                 font-size: 0.72rem;
                 font-weight: 600;
                 letter-spacing: 0.08em;
                 text-transform: uppercase;
-                color: var(--gold-300);
+                color: var(--gold-specular);
             }
 
             .eyebrow-dot {
                 inline-size: 0.5rem;
                 block-size: 0.5rem;
                 border-radius: 50%;
-                background: var(--gold-bright);
-                box-shadow: 0 0 12px var(--gold-bright);
+                background: var(--gold-specular);
+                box-shadow: 0 0 12px var(--gold-lustre);
             }
 
             .hero-display {
-                margin: 1rem 0 0;
-                font-family: var(--font-display);
-                font-size: clamp(2.85rem, 1.45rem + 5.6vw, 6.65rem);
-                font-weight: 800;
-                line-height: 0.92;
-                letter-spacing: -0.04em;
+                margin: 1.1rem 0 0;
+                font-family: var(--font-sans);
+                font-size: clamp(2.85rem, 1.5rem + 5vw, 6.25rem);
+                font-weight: 700;
+                line-height: 0.98;
+                letter-spacing: -0.035em;
                 text-wrap: balance;
                 color: var(--text-primary);
             }
 
             .hero-display .gold-accent {
                 display: block;
-                background: linear-gradient(125deg, #fff5c0 0%, #ffd700 45%, #d4af37 100%);
+                background: var(--gold-foil);
                 -webkit-background-clip: text;
                 background-clip: text;
                 color: transparent;
@@ -384,7 +399,8 @@
             .hero-lead {
                 margin: 1.35rem 0 0;
                 max-inline-size: 54ch;
-                font-size: clamp(1rem, 0.94rem + 0.35vw, 1.2rem);
+                font-size: clamp(0.98rem, 0.92rem + 0.3vw, 1.15rem);
+                font-weight: 400;
                 line-height: 1.65;
                 color: var(--text-secondary);
                 text-wrap: pretty;
@@ -403,15 +419,16 @@
                 justify-content: center;
                 gap: 0.5rem;
                 min-block-size: 3.15rem;
-                padding: 0.75rem 1.45rem;
+                padding: 0.75rem 1.5rem;
                 border-radius: var(--radius-pill);
-                background: linear-gradient(135deg, var(--gold-bright), var(--gold-400));
-                color: #080705;
+                background: var(--gold-button);
+                border: 1px solid rgba(244, 225, 133, 0.74);
+                color: #070706;
                 text-decoration: none;
                 font-family: var(--font-sans);
-                font-size: 0.95rem;
-                font-weight: 700;
-                box-shadow: var(--shadow-gold-glow);
+                font-size: 0.92rem;
+                font-weight: 600;
+                box-shadow: var(--shadow-gold);
                 transition: transform 0.18s ease, filter 0.18s ease;
             }
 
@@ -428,22 +445,21 @@
                 min-block-size: 3.15rem;
                 padding: 0.75rem 1.35rem;
                 border-radius: var(--radius-pill);
-                background: rgba(255, 255, 255, 0.05);
-                -webkit-backdrop-filter: blur(14px);
-                backdrop-filter: blur(14px);
+                background: linear-gradient(150deg, rgba(41, 44, 49, 0.62), rgba(7, 7, 6, 0.78));
+                -webkit-backdrop-filter: blur(16px);
+                backdrop-filter: blur(16px);
                 border: 1px solid var(--border-gold);
                 color: var(--text-primary);
                 text-decoration: none;
                 font-family: var(--font-sans);
-                font-size: 0.92rem;
-                font-weight: 600;
-                transition: background-color 0.2s ease, border-color 0.2s ease;
+                font-size: 0.9rem;
+                font-weight: 500;
+                transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
             }
 
             .btn-glass:hover {
-                background: rgba(255, 215, 0, 0.12);
                 border-color: var(--border-gold-strong);
-                color: var(--gold-300);
+                color: var(--gold-specular);
             }
 
             .hero-kpi-strip {
@@ -454,43 +470,48 @@
             }
 
             .kpi-cell {
-                padding: 0.9rem 1rem;
+                padding: 0.95rem 1.05rem;
                 border-radius: 1.25rem;
                 background: var(--surface-glass);
-                -webkit-backdrop-filter: blur(16px);
-                backdrop-filter: blur(16px);
-                border: 1px solid rgba(255, 215, 0, 0.22);
+                -webkit-backdrop-filter: blur(18px);
+                backdrop-filter: blur(18px);
+                border: 1px solid var(--border-gold);
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.18);
             }
 
             .kpi-value {
-                font-family: var(--font-display);
+                font-family: var(--font-sans);
+                font-variant-numeric: tabular-nums;
                 font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
-                font-weight: 800;
+                font-weight: 700;
                 line-height: 1.05;
-                color: var(--gold-bright);
+                background: var(--gold-foil);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
             }
 
             .kpi-label {
                 margin-block-start: 0.25rem;
-                font-family: var(--font-mono);
                 font-size: 0.68rem;
-                letter-spacing: 0.06em;
+                font-weight: 600;
+                letter-spacing: 0.08em;
                 text-transform: uppercase;
-                color: var(--text-muted);
+                color: var(--gold-satin);
             }
 
-            /* Interactive Mobile Device Glass Card */
+            /* Interactive Glass Mobile Deck Card */
             .phone-shell {
                 border-radius: 2.2rem;
-                padding: 1.1rem;
-                background: linear-gradient(165deg, rgba(28, 24, 15, 0.9), rgba(10, 9, 7, 0.92));
-                -webkit-backdrop-filter: blur(26px) saturate(160%);
-                backdrop-filter: blur(26px) saturate(160%);
+                padding: 1.15rem;
+                background: var(--surface-glass-strong);
+                -webkit-backdrop-filter: blur(26px) saturate(155%);
+                backdrop-filter: blur(26px) saturate(155%);
                 border: 1px solid var(--border-gold-strong);
                 box-shadow:
-                    0 34px 80px -24px rgba(0, 0, 0, 0.95),
-                    0 0 60px -24px rgba(255, 215, 0, 0.28),
-                    inset 0 1px 0 rgba(255, 238, 160, 0.28);
+                    0 34px 80px -24px rgba(0, 0, 0, 0.96),
+                    0 0 60px -26px rgba(205, 173, 105, 0.26),
+                    inset 0 1px 0 rgba(244, 225, 133, 0.34);
                 display: grid;
                 gap: 0.95rem;
             }
@@ -507,14 +528,14 @@
                 display: inline-flex;
                 align-items: center;
                 gap: 0.4rem;
-                padding: 0.25rem 0.65rem;
+                padding: 0.26rem 0.7rem;
                 border-radius: var(--radius-pill);
-                font-family: var(--font-mono);
                 font-size: 0.68rem;
                 font-weight: 600;
-                background: rgba(255, 215, 0, 0.14);
+                letter-spacing: 0.05em;
+                background: rgba(137, 97, 43, 0.28);
                 border: 1px solid var(--border-gold);
-                color: var(--gold-300);
+                color: var(--gold-specular);
             }
 
             .monitor-stage {
@@ -523,10 +544,11 @@
                 border-radius: 1.25rem;
                 overflow: hidden;
                 background:
-                    radial-gradient(circle at 20% 20%, rgba(255, 215, 0, 0.24), transparent 55%),
-                    linear-gradient(145deg, #15120c, #070708);
-                border: 1px solid rgba(255, 215, 0, 0.3);
-                padding: 0.9rem;
+                    radial-gradient(circle at 18% 20%, rgba(244, 225, 133, 0.16), transparent 52%),
+                    radial-gradient(circle at 86% 80%, rgba(45, 31, 17, 0.72), transparent 58%),
+                    linear-gradient(145deg, #1b1d20, #070706);
+                border: 1px solid var(--border-gold);
+                padding: 0.95rem;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
@@ -543,35 +565,34 @@
                 display: inline-flex;
                 align-items: center;
                 gap: 0.35rem;
-                padding: 0.2rem 0.6rem;
+                padding: 0.2rem 0.65rem;
                 border-radius: var(--radius-pill);
-                background: rgba(255, 215, 0, 0.2);
-                border: 1px solid var(--border-gold-strong);
-                font-family: var(--font-mono);
+                background: var(--gold-button);
                 font-size: 0.65rem;
                 font-weight: 700;
-                color: var(--gold-bright);
+                letter-spacing: 0.05em;
+                color: #070706;
             }
 
             .monitor-scene-title {
                 margin: 0.35rem 0 0;
-                font-family: var(--font-display);
-                font-size: clamp(1.35rem, 1rem + 1vw, 1.85rem);
-                font-weight: 800;
-                line-height: 1.05;
+                font-family: var(--font-sans);
+                font-size: clamp(1.3rem, 1rem + 0.95vw, 1.75rem);
+                font-weight: 700;
+                line-height: 1.08;
                 color: var(--text-primary);
             }
 
             .monitor-lower-third {
                 border-radius: 0.9rem;
-                padding: 0.55rem 0.8rem;
-                background: rgba(10, 9, 7, 0.8);
+                padding: 0.55rem 0.85rem;
+                background: rgba(7, 7, 6, 0.82);
                 border: 1px solid var(--border-gold);
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
                 gap: 0.65rem;
-                transition: opacity 0.2s ease, transform 0.2s ease;
+                transition: opacity 0.2s ease;
             }
 
             .monitor-lower-third.is-hidden {
@@ -585,11 +606,11 @@
             }
 
             .deck-pad {
-                min-block-size: 3.35rem;
-                padding: 0.65rem 0.8rem;
+                min-block-size: 3.4rem;
+                padding: 0.65rem 0.85rem;
                 border-radius: 1rem;
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                background: rgba(255, 255, 255, 0.045);
+                border: 1px solid rgba(172, 139, 86, 0.24);
+                background: linear-gradient(155deg, rgba(41, 44, 49, 0.45), rgba(7, 7, 6, 0.72));
                 color: var(--text-primary);
                 font: inherit;
                 font-size: 0.82rem;
@@ -599,28 +620,28 @@
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
-                gap: 0.25rem;
-                transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.15s ease;
+                gap: 0.2rem;
+                transition: border-color 0.18s ease, background 0.18s ease, transform 0.15s ease;
             }
 
             .deck-pad:hover {
-                border-color: var(--border-gold);
-                background: rgba(255, 215, 0, 0.1);
+                border-color: var(--gold-lustre);
             }
 
             .deck-pad.is-active {
-                background: linear-gradient(135deg, rgba(255, 215, 0, 0.28), rgba(212, 175, 55, 0.16));
-                border-color: var(--gold-bright);
-                color: var(--gold-300);
+                background: linear-gradient(135deg, rgba(244, 225, 133, 0.22), rgba(137, 97, 43, 0.3));
+                border-color: var(--gold-specular);
+                color: var(--gold-specular);
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.35);
             }
 
             .deck-pad-sub {
-                font-family: var(--font-mono);
-                font-size: 0.64rem;
+                font-size: 0.65rem;
+                font-weight: 500;
                 color: var(--text-muted);
             }
 
-            /* Section Headers — Big Creative Sans Typography */
+            /* Section Headers */
             .section-head {
                 display: flex;
                 flex-wrap: wrap;
@@ -631,27 +652,26 @@
             }
 
             .section-index {
-                font-family: var(--font-mono);
                 font-size: 0.72rem;
                 font-weight: 600;
-                letter-spacing: 0.12em;
+                letter-spacing: 0.1em;
                 text-transform: uppercase;
-                color: var(--gold-bright);
+                color: var(--gold-lustre);
             }
 
             .section-title {
                 margin: 0.35rem 0 0;
-                font-family: var(--font-display);
-                font-size: clamp(2.1rem, 1.3rem + 3vw, 4.1rem);
-                font-weight: 800;
-                line-height: 0.98;
+                font-family: var(--font-sans);
+                font-size: clamp(2.05rem, 1.35rem + 2.8vw, 3.85rem);
+                font-weight: 700;
+                line-height: 1.04;
                 letter-spacing: -0.03em;
                 text-wrap: balance;
             }
 
             .section-aside {
                 max-inline-size: 40ch;
-                font-size: 0.92rem;
+                font-size: 0.9rem;
                 color: var(--text-muted);
                 text-wrap: pretty;
                 margin: 0;
@@ -678,8 +698,8 @@
                 border-radius: var(--radius-card);
                 padding: clamp(1.25rem, 1rem + 1vw, 1.85rem);
                 background: var(--surface-glass);
-                -webkit-backdrop-filter: blur(22px) saturate(145%);
-                backdrop-filter: blur(22px) saturate(145%);
+                -webkit-backdrop-filter: blur(24px) saturate(145%);
+                backdrop-filter: blur(24px) saturate(145%);
                 border: 1px solid var(--border-gold);
                 box-shadow: var(--shadow-glass);
                 display: flex;
@@ -689,20 +709,19 @@
             }
 
             .card-kicker {
-                font-family: var(--font-mono);
                 font-size: 0.7rem;
                 font-weight: 600;
                 letter-spacing: 0.08em;
                 text-transform: uppercase;
-                color: var(--gold-400);
+                color: var(--gold-lustre);
             }
 
             .card-heading {
                 margin: 0.45rem 0 0;
-                font-family: var(--font-display);
-                font-size: clamp(1.45rem, 1.15rem + 1.1vw, 2.15rem);
+                font-family: var(--font-sans);
+                font-size: clamp(1.4rem, 1.15rem + 1vw, 2rem);
                 font-weight: 700;
-                line-height: 1.08;
+                line-height: 1.14;
                 letter-spacing: -0.02em;
                 text-wrap: balance;
             }
@@ -710,7 +729,7 @@
             .card-copy {
                 margin: 0.6rem 0 0;
                 max-inline-size: 56ch;
-                font-size: 0.94rem;
+                font-size: 0.92rem;
                 color: var(--text-secondary);
                 text-wrap: pretty;
             }
@@ -725,13 +744,13 @@
                 display: inline-flex;
                 align-items: center;
                 gap: 0.35rem;
-                padding: 0.3rem 0.7rem;
+                padding: 0.28rem 0.72rem;
                 border-radius: var(--radius-pill);
-                font-family: var(--font-mono);
                 font-size: 0.7rem;
-                color: var(--gold-300);
-                background: rgba(255, 215, 0, 0.09);
-                border: 1px solid rgba(255, 215, 0, 0.25);
+                font-weight: 500;
+                color: var(--gold-specular);
+                background: rgba(137, 97, 43, 0.22);
+                border: 1px solid rgba(205, 173, 105, 0.32);
             }
 
             /* 7 Overlay Presets Interactive Explorer */
@@ -757,21 +776,22 @@
                 min-block-size: 2.55rem;
                 padding: 0.45rem 0.95rem;
                 border-radius: var(--radius-pill);
-                border: 1px solid rgba(255, 255, 255, 0.14);
-                background: rgba(255, 255, 255, 0.04);
+                border: 1px solid rgba(172, 139, 86, 0.28);
+                background: rgba(41, 44, 49, 0.45);
                 color: var(--text-secondary);
                 font: inherit;
                 font-size: 0.82rem;
-                font-weight: 600;
+                font-weight: 500;
                 cursor: pointer;
-                transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+                transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
             }
 
             .preset-tab[aria-selected="true"] {
-                background: linear-gradient(135deg, var(--gold-bright), var(--gold-400));
-                border-color: var(--gold-bright);
-                color: #080705;
-                font-weight: 700;
+                background: var(--gold-button);
+                border-color: rgba(244, 225, 133, 0.72);
+                color: #070706;
+                font-weight: 600;
+                box-shadow: var(--shadow-gold);
             }
 
             .preset-stage {
@@ -794,9 +814,9 @@
                 overflow: hidden;
                 border: 1px solid var(--border-gold-strong);
                 background:
-                    radial-gradient(circle at 18% 22%, rgba(255, 215, 0, 0.25), transparent 50%),
-                    radial-gradient(circle at 82% 80%, rgba(212, 175, 55, 0.18), transparent 55%),
-                    #070708;
+                    radial-gradient(circle at 18% 22%, rgba(244, 225, 133, 0.18), transparent 48%),
+                    radial-gradient(circle at 82% 80%, rgba(137, 97, 43, 0.28), transparent 54%),
+                    linear-gradient(155deg, #292C31 0%, #070706 60%, #2D1F11 100%);
                 padding: clamp(1rem, 2.5vw, 1.75rem);
                 display: flex;
                 flex-direction: column;
@@ -805,17 +825,17 @@
 
             .preset-headline {
                 margin: 0.4rem 0 0;
-                font-family: var(--font-display);
-                font-size: clamp(1.5rem, 1.15rem + 1.8vw, 2.75rem);
-                font-weight: 800;
-                line-height: 1.02;
-                letter-spacing: -0.03em;
+                font-family: var(--font-sans);
+                font-size: clamp(1.45rem, 1.15rem + 1.6vw, 2.6rem);
+                font-weight: 700;
+                line-height: 1.06;
+                letter-spacing: -0.025em;
                 color: var(--text-primary);
             }
 
             .preset-subheadline {
                 margin: 0.4rem 0 0;
-                font-size: 0.92rem;
+                font-size: 0.9rem;
                 color: var(--text-secondary);
             }
 
@@ -824,8 +844,8 @@
                 border-radius: 2rem;
                 padding: clamp(1.75rem, 1.2rem + 2.5vw, 3.25rem);
                 background:
-                    radial-gradient(circle at 85% 20%, rgba(255, 215, 0, 0.25), transparent 45%),
-                    linear-gradient(145deg, rgba(24, 20, 12, 0.92), rgba(9, 8, 7, 0.94));
+                    radial-gradient(circle at 85% 20%, rgba(244, 225, 133, 0.18), transparent 44%),
+                    linear-gradient(150deg, rgba(41, 44, 49, 0.72), rgba(7, 7, 6, 0.92), rgba(45, 31, 17, 0.72));
                 -webkit-backdrop-filter: blur(24px);
                 backdrop-filter: blur(24px);
                 border: 1px solid var(--border-gold-strong);
@@ -839,10 +859,10 @@
 
             .cta-title {
                 margin: 0;
-                font-family: var(--font-display);
-                font-size: clamp(2rem, 1.3rem + 2.8vw, 3.85rem);
-                font-weight: 800;
-                line-height: 0.98;
+                font-family: var(--font-sans);
+                font-size: clamp(1.95rem, 1.3rem + 2.6vw, 3.65rem);
+                font-weight: 700;
+                line-height: 1.04;
                 letter-spacing: -0.03em;
                 text-wrap: balance;
             }
@@ -854,8 +874,8 @@
                 justify-content: space-between;
                 gap: 0.85rem;
                 padding-block-start: 1.25rem;
-                border-block-start: 1px solid rgba(255, 215, 0, 0.16);
-                font-size: 0.82rem;
+                border-block-start: 1px solid var(--border-subtle);
+                font-size: 0.8rem;
                 color: var(--text-muted);
             }
 
@@ -868,6 +888,13 @@
                 .kpi-cell {
                     border: 1px solid CanvasText;
                     background: Canvas;
+                    color: CanvasText;
+                }
+
+                .hero-display .gold-accent,
+                .brand-name,
+                .kpi-value {
+                    background: none;
                     color: CanvasText;
                 }
 
@@ -986,7 +1013,7 @@
                     <aside class="phone-shell" aria-label="Interactive mobile deck preview">
                         <div class="phone-notch-row">
                             <span class="phone-pill">
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                     <circle cx="12" cy="12" r="8"/>
                                 </svg>
                                 <span>REVERB LIVE SYNC</span>
@@ -1007,7 +1034,7 @@
 
                             <div class="monitor-lower-third" id="preview-lower-third">
                                 <div>
-                                    <div style="font-weight:700;font-size:0.86rem;color:var(--gold-300);" id="preview-guest">Super Admin</div>
+                                    <div style="font-weight:600;font-size:0.86rem;color:var(--gold-specular);" id="preview-guest">Super Admin</div>
                                     <div style="font-size:0.72rem;color:var(--text-muted);" id="preview-role">Host · Obsisstant Studio</div>
                                 </div>
                                 <span class="version-tag" id="preview-lt-state">VISIBLE</span>
@@ -1093,10 +1120,10 @@
 
                         <article class="glass-card span-6">
                             <div>
-                                <span class="card-kicker">Filament v5 Obsidian Cockpit</span>
+                                <span class="card-kicker">Filament v5 Metallic Cockpit</span>
                                 <h3 class="card-heading">All Studios, Screens, Macros &amp; Audit Logs Unified.</h3>
                                 <p class="card-copy">
-                                    Full desktop and mobile command panel styled in pure obsidian glass and bright gold with real-time telemetry, FPS/CPU stats, and instant alert triggers.
+                                    Full desktop and mobile command panel styled in smoked-bronze glass and brushed metallic gold with real-time telemetry, FPS/CPU stats, and instant alert triggers.
                                 </p>
                             </div>
                             <div class="chip-row">
@@ -1149,14 +1176,14 @@
 
                                 <div class="monitor-lower-third">
                                     <div>
-                                        <div style="font-weight:700;font-size:0.88rem;color:var(--gold-300);" id="preset-guest">{{ $firstPreset['state']['guest_name'] ?? 'Obsisstant Live' }}</div>
+                                        <div style="font-weight:600;font-size:0.88rem;color:var(--gold-specular);" id="preset-guest">{{ $firstPreset['state']['guest_name'] ?? 'Obsisstant Live' }}</div>
                                         <div style="font-size:0.74rem;color:var(--text-muted);" id="preset-role">{{ $firstPreset['state']['guest_role'] ?? 'Studio Production' }}</div>
                                     </div>
                                     <span class="version-tag" id="preset-extra">{{ ! empty($firstPreset['state']['show_countdown']) ? 'TIMER ACTIVE' : (! empty($firstPreset['state']['show_webcam_frame']) ? 'CAM FRAME' : 'REVERB SYNC') }}</span>
                                 </div>
                             </div>
 
-                            <div class="glass-card" style="height:auto;">
+                            <div class="glass-card">
                                 <div>
                                     <span class="card-kicker" id="preset-side-type">{{ $firstPreset['key'] ?? 'starting_soon' }}</span>
                                     <h3 class="card-heading" id="preset-side-title">{{ $firstPreset['label'] }}</h3>
@@ -1189,7 +1216,7 @@
 
             <footer class="footer-bar">
                 <span>Obsisstant Broadcast Control Suite · Version {{ $currentVersion }}</span>
-                <span>Obsidian Black &amp; Bright Gold Glass System</span>
+                <span>Metallic Gold &amp; Smoked Charcoal Glass System</span>
             </footer>
         </div>
 

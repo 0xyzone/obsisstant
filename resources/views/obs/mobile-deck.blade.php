@@ -6,17 +6,17 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>{{ $studio->name }} · Mobile Control Deck</title>
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=syne:700,800|plus-jakarta-sans:400,500,600,700|jetbrains-mono:500,600&display=swap" rel="stylesheet">
+        <link href="https://fonts.bunny.net/css?family=poppins:300,400,500,600,700,800&display=swap" rel="stylesheet">
         <style>
             :root {
                 color-scheme: dark;
-                --bg: #050506;
-                --glass: rgba(17, 15, 11, 0.76);
-                --border-gold: rgba(255, 215, 0, 0.28);
-                --gold: #ffd700;
-                --gold-strong: #f5c451;
-                --text: #faf6ec;
-                --muted: #9e9582;
+                --bg: #070706;
+                --glass: linear-gradient(155deg, rgba(41, 44, 49, 0.56) 0%, rgba(7, 7, 6, 0.82) 55%, rgba(45, 31, 17, 0.54) 100%);
+                --border-gold: rgba(205, 173, 105, 0.36);
+                --gold: #F4E185;
+                --gold-strong: #CDAD69;
+                --text: #FAF7EE;
+                --muted: #A99F8D;
             }
 
             *, *::before, *::after { box-sizing: border-box; }
@@ -24,11 +24,12 @@
                 margin: 0;
                 min-block-size: 100dvb;
                 background:
-                    radial-gradient(circle at 14% 10%, rgba(255, 215, 0, 0.2), transparent 44%),
-                    radial-gradient(circle at 86% 84%, rgba(212, 175, 55, 0.14), transparent 50%),
-                    #050506;
+                    radial-gradient(circle at 14% 10%, rgba(244, 225, 133, 0.14), transparent 40%),
+                    radial-gradient(circle at 86% 20%, rgba(137, 97, 43, 0.22), transparent 46%),
+                    radial-gradient(circle at 30% 85%, rgba(45, 31, 17, 0.52), transparent 50%),
+                    #070706;
                 color: var(--text);
-                font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+                font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
             }
 
             .shell {
@@ -140,7 +141,7 @@
         <div class="shell">
             <header class="glass topbar">
                 <div>
-                    <div style="font-family: 'Syne', ui-sans-serif, system-ui, sans-serif; font-size: clamp(1.35rem, 1.05rem + 1.2vw, 2rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; color: var(--gold);">{{ $studio->name }}</div>
+                    <div style="font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif; font-size: clamp(1.35rem, 1.05rem + 1.2vw, 2rem); font-weight: 700; line-height: 1.08; letter-spacing: -0.025em; background: linear-gradient(135deg, #89612B 0%, #CDAD69 26%, #F4E185 52%, #CDAD69 78%, #AC8B56 100%); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ $studio->name }}</div>
                     <div style="font-size: 0.76rem; color: var(--muted);">Mobile Wireless Stream Deck</div>
                 </div>
 

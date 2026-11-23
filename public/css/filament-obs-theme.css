@@ -1,38 +1,43 @@
 /* ==========================================================================
-   Obsisstant — Filament v5 Obsidian Black & Bright Gold Glassmorphism Theme
-   100% Sans Typography (Syne Display + Plus Jakarta Sans UI + JetBrains Mono)
+   Obsisstant — Filament v5 Metallic Gold & Charcoal Glassmorphism Theme
+   Clean Geometric Sans Typography: Poppins (300–800)
+   Palette: #292C31 · #070706 · #2D1F11 · #89612B · #AC8B56 · #CDAD69 · #F4E185
    ========================================================================== */
 
 :root {
     color-scheme: dark;
-    --obs-void: #050506;
-    --obs-obsidian: #0a0907;
-    --obs-glass: rgba(16, 14, 10, 0.72);
-    --obs-glass-strong: rgba(22, 18, 12, 0.86);
-    --obs-glass-elevated: rgba(28, 23, 15, 0.9);
-    --obs-gold-bright: #ffd700;
-    --obs-gold-300: #ffe680;
-    --obs-gold-400: #f5c451;
-    --obs-gold-500: #d4af37;
-    --obs-gold-border: rgba(255, 215, 0, 0.26);
-    --obs-gold-border-strong: rgba(255, 215, 0, 0.56);
-    --obs-gold-hairline: rgba(255, 215, 0, 0.14);
-    --obs-text-primary: #faf6ec;
-    --obs-text-secondary: #d4ccb8;
-    --obs-text-muted: #9e9582;
-    --obs-font-display: 'Syne', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-    --obs-font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-    --obs-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --obs-slate: #292C31;
+    --obs-void: #070706;
+    --obs-bronze: #2D1F11;
+    --obs-gold-antique: #89612B;
+    --obs-gold-satin: #AC8B56;
+    --obs-gold-lustre: #CDAD69;
+    --obs-gold-specular: #F4E185;
+    --obs-glass: linear-gradient(155deg, rgba(41, 44, 49, 0.54) 0%, rgba(7, 7, 6, 0.80) 52%, rgba(45, 31, 17, 0.56) 100%);
+    --obs-glass-strong: linear-gradient(155deg, rgba(41, 44, 49, 0.70) 0%, rgba(7, 7, 6, 0.88) 54%, rgba(45, 31, 17, 0.68) 100%);
+    --obs-gold-foil: linear-gradient(135deg, #89612B 0%, #CDAD69 24%, #F4E185 50%, #CDAD69 76%, #AC8B56 100%);
+    --obs-gold-btn: linear-gradient(135deg, #F4E185 0%, #CDAD69 44%, #AC8B56 80%, #89612B 100%);
+    --obs-gold-border: rgba(205, 173, 105, 0.36);
+    --obs-gold-border-strong: rgba(244, 225, 133, 0.62);
+    --obs-gold-hairline: rgba(172, 139, 86, 0.22);
+    --obs-text-primary: #FAF7EE;
+    --obs-text-secondary: #D8CEBA;
+    --obs-text-muted: #A99F8D;
+    --obs-font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
     --obs-shadow-glass:
-        0 24px 55px -20px rgba(0, 0, 0, 0.92),
-        inset 0 1px 0 rgba(255, 232, 140, 0.16);
-    --obs-shadow-gold: 0 14px 34px -12px rgba(255, 215, 0, 0.42);
+        0 24px 60px -20px rgba(0, 0, 0, 0.94),
+        inset 0 1px 0 rgba(244, 225, 133, 0.22),
+        inset 0 -1px 0 rgba(137, 97, 43, 0.2);
+    --obs-shadow-gold:
+        0 14px 32px -12px rgba(205, 173, 105, 0.44),
+        inset 0 1px 0 rgba(255, 249, 219, 0.72),
+        inset 0 -2px 0 rgba(45, 31, 17, 0.42);
 }
 
 html.fi,
 body.fi-body {
     --font-family: var(--obs-font-sans);
-    --font-family-mono: var(--obs-font-mono);
+    --font-family-mono: var(--obs-font-sans);
     --font-family-serif: var(--obs-font-sans);
     background-color: var(--obs-void);
     color: var(--obs-text-primary);
@@ -40,7 +45,7 @@ body.fi-body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* Fixed obsidian & luminous gold ambient layer behind frosted surfaces */
+/* Layered void-black, charcoal-slate, and smoked-bronze metallic backdrop */
 .obs-ambient-bg {
     position: fixed;
     inset: 0;
@@ -48,10 +53,11 @@ body.fi-body {
     pointer-events: none;
     overflow: hidden;
     background:
-        radial-gradient(circle at 12% 8%, rgba(255, 215, 0, 0.2), transparent 38%),
-        radial-gradient(circle at 88% 16%, rgba(212, 175, 55, 0.14), transparent 44%),
-        radial-gradient(circle at 52% 92%, rgba(245, 196, 81, 0.1), transparent 50%),
-        linear-gradient(180deg, #090806 0%, #050506 100%);
+        radial-gradient(circle at 12% 10%, rgba(244, 225, 133, 0.14), transparent 36%),
+        radial-gradient(circle at 86% 18%, rgba(137, 97, 43, 0.22), transparent 44%),
+        radial-gradient(circle at 22% 84%, rgba(45, 31, 17, 0.56), transparent 48%),
+        radial-gradient(circle at 76% 78%, rgba(41, 44, 49, 0.45), transparent 48%),
+        linear-gradient(180deg, #0a0908 0%, #070706 100%);
 }
 
 .obs-ambient-grid {
@@ -59,11 +65,11 @@ body.fi-body {
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    opacity: 0.22;
+    opacity: 0.2;
     background-image:
-        linear-gradient(to right, rgba(255, 215, 0, 0.08) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 215, 0, 0.08) 1px, transparent 1px);
-    background-size: 46px 46px;
+        linear-gradient(to right, rgba(205, 173, 105, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(205, 173, 105, 0.08) 1px, transparent 1px);
+    background-size: 48px 48px;
     mask-image: radial-gradient(ellipse at 50% 25%, black 14%, transparent 78%);
 }
 
@@ -86,34 +92,37 @@ body.fi-body {
 .obs-brand-emblem {
     display: grid;
     place-items: center;
-    inline-size: 2.25rem;
-    block-size: 2.25rem;
+    inline-size: 2.3rem;
+    block-size: 2.3rem;
     flex-shrink: 0;
     border-radius: 0.85rem;
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(158, 115, 20, 0.2));
+    background: linear-gradient(135deg, rgba(244, 225, 133, 0.22), rgba(137, 97, 43, 0.28));
     border: 1px solid var(--obs-gold-border-strong);
-    color: var(--obs-gold-bright);
-    box-shadow: inset 0 1px 0 rgba(255, 240, 175, 0.4);
+    color: var(--obs-gold-specular);
+    box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.48), 0 8px 20px -10px rgba(205, 173, 105, 0.45);
 }
 
 .obs-brand-wordmark {
-    font-family: var(--obs-font-display);
-    font-size: 1.05rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: var(--obs-text-primary);
+    font-family: var(--obs-font-sans);
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: var(--obs-gold-foil);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
-/* Creative Sans Typography: huge sculptural headings + compact clean labels */
+/* Clean Poppins Typography with Creative Scale Contrast */
 .fi-header-heading,
 .fi-simple-header-heading {
-    font-family: var(--obs-font-display);
-    font-size: clamp(2rem, 1.35rem + 2.3vw, 3.6rem);
-    font-weight: 800;
-    line-height: 0.98;
-    letter-spacing: -0.035em;
+    font-family: var(--obs-font-sans);
+    font-size: clamp(2rem, 1.35rem + 2.3vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.03em;
     text-wrap: balance;
-    background: linear-gradient(125deg, #faf6ec 15%, #ffe680 68%, #ffd700 100%);
+    background: linear-gradient(135deg, #FAF7EE 20%, #F4E185 62%, #CDAD69 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -123,16 +132,17 @@ body.fi-body {
 .fi-simple-header-subheading,
 .fi-section-header-description {
     max-inline-size: 62ch;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
+    font-weight: 400;
     color: var(--obs-text-secondary);
     text-wrap: pretty;
 }
 
 .fi-section-header-heading,
 .fi-modal-heading {
-    font-family: var(--obs-font-display);
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-family: var(--obs-font-sans);
+    font-weight: 600;
+    letter-spacing: -0.015em;
     color: var(--obs-text-primary);
 }
 
@@ -140,27 +150,29 @@ body.fi-body {
 .fi-sidebar-group-label,
 .fi-ta-header-cell-label,
 .fi-wi-stats-overview-stat-label {
-    font-family: var(--obs-font-mono);
-    font-size: 0.7rem;
+    font-family: var(--obs-font-sans);
+    font-size: 0.68rem;
+    font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--obs-text-muted);
+    color: var(--obs-gold-satin);
 }
 
 /* Topbar Glass Shell */
 .fi-topbar {
-    background: rgba(11, 10, 8, 0.74) !important;
-    -webkit-backdrop-filter: blur(22px) saturate(150%);
-    backdrop-filter: blur(22px) saturate(150%);
+    background: rgba(14, 14, 13, 0.72) !important;
+    background-image: linear-gradient(90deg, rgba(41, 44, 49, 0.35), rgba(7, 7, 6, 0.72), rgba(45, 31, 17, 0.35)) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(145%);
+    backdrop-filter: blur(22px) saturate(145%);
     border-block-end: 1px solid var(--obs-gold-border) !important;
-    box-shadow: 0 12px 32px -18px rgba(0, 0, 0, 0.85);
+    box-shadow: 0 14px 36px -20px rgba(0, 0, 0, 0.9), inset 0 -1px 0 rgba(205, 173, 105, 0.14);
 }
 
-/* Sidebar Glass Rail & Mobile Frosted Drawer */
+/* Sidebar Glass Rail & Mobile Drawer */
 .fi-sidebar {
-    background: rgba(11, 10, 8, 0.8) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(155%);
-    backdrop-filter: blur(24px) saturate(155%);
+    background: linear-gradient(180deg, rgba(41, 44, 49, 0.45) 0%, rgba(7, 7, 6, 0.85) 55%, rgba(45, 31, 17, 0.45) 100%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    backdrop-filter: blur(24px) saturate(150%);
     border-inline-end: 1px solid var(--obs-gold-border) !important;
 }
 
@@ -176,22 +188,22 @@ body.fi-body {
 }
 
 .fi-sidebar-item-btn:hover {
-    background: rgba(255, 215, 0, 0.08) !important;
-    border-color: rgba(255, 215, 0, 0.22);
+    background: rgba(205, 173, 105, 0.1) !important;
+    border-color: rgba(205, 173, 105, 0.28);
 }
 
 .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.22), rgba(212, 175, 55, 0.1)) !important;
+    background: linear-gradient(135deg, rgba(244, 225, 133, 0.2), rgba(137, 97, 43, 0.22)) !important;
     border: 1px solid var(--obs-gold-border-strong);
-    box-shadow: inset 0 1px 0 rgba(255, 240, 170, 0.22);
+    box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.35);
 }
 
 .fi-sidebar-item.fi-active .fi-sidebar-item-label,
 .fi-sidebar-item.fi-active .fi-sidebar-item-icon {
-    color: var(--obs-gold-bright) !important;
+    color: var(--obs-gold-specular) !important;
 }
 
-/* Frosted Glass Cards, Tables, Widgets, Login Panel & Modals */
+/* Frosted Metallic Glass Cards, Tables, Widgets, Login Panel & Modals */
 .fi-section,
 .fi-wi-stats-overview-stat,
 .fi-wi-account-widget .fi-section,
@@ -202,35 +214,12 @@ body.fi-body {
 .fi-fo-tabs,
 .fi-in-tabs {
     background: var(--obs-glass) !important;
-    -webkit-backdrop-filter: blur(22px) saturate(145%);
-    backdrop-filter: blur(22px) saturate(145%);
+    -webkit-backdrop-filter: blur(24px) saturate(145%);
+    backdrop-filter: blur(24px) saturate(145%);
     border: 1px solid var(--obs-gold-border) !important;
     border-radius: 1.5rem !important;
     box-shadow: var(--obs-shadow-glass) !important;
     --tw-ring-shadow: 0 0 #0000 !important;
-}
-
-input[type="range"] {
-    accent-color: var(--obs-gold-bright);
-}
-
-.obs-deck-input {
-    border-radius: 0.9rem !important;
-    background: rgba(8, 7, 5, 0.78) !important;
-    border: 1px solid rgba(255, 215, 0, 0.28) !important;
-    color: var(--obs-text-primary) !important;
-}
-
-.obs-deck-input:focus {
-    border-color: var(--obs-gold-bright) !important;
-    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.16) !important;
-    outline: none;
-}
-
-.obs-deck-subcard {
-    border-radius: 1rem;
-    background: rgba(12, 10, 7, 0.65);
-    border: 1px solid rgba(255, 215, 0, 0.2);
 }
 
 .fi-simple-main {
@@ -241,12 +230,16 @@ input[type="range"] {
 
 /* Huge Display Telemetry Values inside Dashboard Widgets */
 .fi-wi-stats-overview-stat-value {
-    font-family: var(--obs-font-display) !important;
+    font-family: var(--obs-font-sans) !important;
+    font-variant-numeric: tabular-nums;
     font-size: clamp(2rem, 1.45rem + 1.4vw, 2.85rem) !important;
-    font-weight: 800 !important;
-    line-height: 1.02 !important;
+    font-weight: 700 !important;
+    line-height: 1.05 !important;
     letter-spacing: -0.03em;
-    color: var(--obs-gold-bright) !important;
+    background: var(--obs-gold-foil);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
 }
 
 .fi-wi-stats-overview-stat-description {
@@ -257,24 +250,25 @@ input[type="range"] {
 /* Table Refinement */
 .fi-ta-header-ctn,
 .fi-ta-table thead {
-    background: rgba(255, 215, 0, 0.045) !important;
+    background: rgba(45, 31, 17, 0.38) !important;
     border-block-end: 1px solid var(--obs-gold-hairline) !important;
 }
 
 .fi-ta-row {
-    border-block-end-color: rgba(255, 215, 0, 0.09) !important;
+    border-block-end-color: rgba(172, 139, 86, 0.14) !important;
     transition: background-color 0.16s ease;
 }
 
 .fi-ta-row:hover {
-    background-color: rgba(255, 215, 0, 0.06) !important;
+    background-color: rgba(205, 173, 105, 0.08) !important;
 }
 
-/* Pill Touch-Friendly Buttons & Luminous Gold Primary Action */
+/* Pill Touch-Friendly Buttons & Brushed Metallic Gold Primary Action */
 .fi-btn {
     border-radius: 9999px !important;
-    min-block-size: 2.5rem;
-    font-weight: 700 !important;
+    min-block-size: 2.55rem;
+    font-family: var(--obs-font-sans) !important;
+    font-weight: 600 !important;
     transition: transform 0.15s ease, filter 0.18s ease, border-color 0.18s ease;
 }
 
@@ -284,41 +278,66 @@ input[type="range"] {
 
 .fi-btn.fi-color-primary,
 .fi-btn.fi-color-warning {
-    background: linear-gradient(135deg, #ffd700 0%, #f5c451 100%) !important;
-    color: #080705 !important;
-    border: 1px solid rgba(255, 240, 175, 0.65) !important;
+    background: var(--obs-gold-btn) !important;
+    color: #070706 !important;
+    border: 1px solid rgba(244, 225, 133, 0.7) !important;
     box-shadow: var(--obs-shadow-gold) !important;
 }
 
 .fi-btn.fi-color-gray,
 .fi-btn.fi-outlined {
-    background: rgba(255, 255, 255, 0.05) !important;
+    background: linear-gradient(145deg, rgba(41, 44, 49, 0.55), rgba(7, 7, 6, 0.72)) !important;
     color: var(--obs-text-primary) !important;
-    border: 1px solid rgba(255, 215, 0, 0.25) !important;
+    border: 1px solid rgba(205, 173, 105, 0.34) !important;
 }
 
 .fi-btn.fi-color-gray:hover {
     border-color: var(--obs-gold-border-strong) !important;
-    color: var(--obs-gold-300) !important;
+    color: var(--obs-gold-specular) !important;
 }
 
 /* Badges & Inputs */
 .fi-badge {
     border-radius: 9999px !important;
-    font-family: var(--obs-font-mono);
+    font-family: var(--obs-font-sans);
+    font-variant-numeric: tabular-nums;
     font-weight: 600 !important;
 }
 
 .fi-input-wrp {
     border-radius: 0.95rem !important;
-    background: rgba(8, 7, 5, 0.78) !important;
-    border: 1px solid rgba(255, 215, 0, 0.24) !important;
+    background: rgba(7, 7, 6, 0.76) !important;
+    border: 1px solid rgba(172, 139, 86, 0.34) !important;
     --tw-ring-shadow: 0 0 #0000 !important;
 }
 
 .fi-input-wrp:focus-within {
-    border-color: var(--obs-gold-bright) !important;
-    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.16) !important;
+    border-color: var(--obs-gold-specular) !important;
+    box-shadow: 0 0 0 3px rgba(205, 173, 105, 0.22) !important;
+}
+
+input[type="range"] {
+    accent-color: var(--obs-gold-lustre);
+}
+
+.obs-deck-input {
+    border-radius: 0.9rem !important;
+    background: rgba(7, 7, 6, 0.78) !important;
+    border: 1px solid rgba(205, 173, 105, 0.34) !important;
+    color: var(--obs-text-primary) !important;
+    font-family: var(--obs-font-sans);
+}
+
+.obs-deck-input:focus {
+    border-color: var(--obs-gold-specular) !important;
+    box-shadow: 0 0 0 3px rgba(205, 173, 105, 0.22) !important;
+    outline: none;
+}
+
+.obs-deck-subcard {
+    border-radius: 1rem;
+    background: linear-gradient(155deg, rgba(41, 44, 49, 0.42), rgba(7, 7, 6, 0.74));
+    border: 1px solid rgba(172, 139, 86, 0.28);
 }
 
 /* Login Hero Kicker above Form */
@@ -333,26 +352,29 @@ input[type="range"] {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.25rem 0.7rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 9999px;
-    background: rgba(255, 215, 0, 0.12);
+    background: rgba(137, 97, 43, 0.24);
     border: 1px solid var(--obs-gold-border);
-    font-family: var(--obs-font-mono);
+    font-family: var(--obs-font-sans);
     font-size: 0.68rem;
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--obs-gold-300);
+    color: var(--obs-gold-specular);
 }
 
 .obs-login-title {
     margin: 0.65rem 0 0;
-    font-family: var(--obs-font-display);
-    font-size: clamp(2rem, 1.4rem + 1.8vw, 2.9rem);
-    font-weight: 800;
-    line-height: 0.98;
-    letter-spacing: -0.03em;
-    color: var(--obs-text-primary);
+    font-family: var(--obs-font-sans);
+    font-size: clamp(1.85rem, 1.35rem + 1.6vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.025em;
+    background: var(--obs-gold-foil);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 /* Floating Mobile Glass Navigation Dock (< 1024px) */
@@ -364,15 +386,15 @@ input[type="range"] {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.25rem;
-    padding: 0.4rem;
+    padding: 0.42rem;
     border-radius: 1.35rem;
-    background: rgba(11, 10, 7, 0.88);
+    background: linear-gradient(145deg, rgba(41, 44, 49, 0.78), rgba(7, 7, 6, 0.92));
     -webkit-backdrop-filter: blur(24px) saturate(160%);
     backdrop-filter: blur(24px) saturate(160%);
     border: 1px solid var(--obs-gold-border-strong);
     box-shadow:
         0 20px 50px -12px rgba(0, 0, 0, 0.95),
-        0 0 36px -14px rgba(255, 215, 0, 0.28);
+        inset 0 1px 0 rgba(244, 225, 133, 0.28);
 }
 
 .obs-dock-link {
@@ -393,9 +415,10 @@ input[type="range"] {
 }
 
 .obs-dock-link[aria-current="page"] {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.24), rgba(212, 175, 55, 0.12));
-    color: var(--obs-gold-bright);
-    border: 1px solid rgba(255, 215, 0, 0.45);
+    background: linear-gradient(135deg, rgba(244, 225, 133, 0.22), rgba(137, 97, 43, 0.28));
+    color: var(--obs-gold-specular);
+    border: 1px solid rgba(244, 225, 133, 0.52);
+    box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.35);
 }
 
 @media (max-width: 63.99rem) {
@@ -413,31 +436,37 @@ input[type="range"] {
 /* Obsidian Glass Deck Custom Helper Surfaces (ObsControlDeck) */
 .obs-stat-tile {
     border-radius: 1.15rem;
-    padding: 0.85rem 1rem;
-    background: rgba(10, 9, 6, 0.72);
-    border: 1px solid rgba(255, 215, 0, 0.24);
+    padding: 0.9rem 1rem;
+    background: linear-gradient(150deg, rgba(41, 44, 49, 0.45), rgba(7, 7, 6, 0.78));
+    border: 1px solid rgba(205, 173, 105, 0.32);
+    box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.14);
 }
 
 .obs-stat-label {
-    font-family: var(--obs-font-mono);
+    font-family: var(--obs-font-sans);
     font-size: 0.68rem;
+    font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--obs-text-muted);
+    color: var(--obs-gold-satin);
 }
 
 .obs-stat-number {
     margin-block-start: 0.25rem;
-    font-family: var(--obs-font-display);
+    font-family: var(--obs-font-sans);
+    font-variant-numeric: tabular-nums;
     font-size: clamp(1.35rem, 1.1rem + 0.9vw, 2rem);
-    font-weight: 800;
-    line-height: 1.05;
-    color: var(--obs-gold-bright);
+    font-weight: 700;
+    line-height: 1.08;
+    background: var(--obs-gold-foil);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 /* Focus & Accessibility */
 .fi-body :is(a, button, input, select, textarea):focus-visible {
-    outline: 2px solid var(--obs-gold-bright) !important;
+    outline: 2px solid var(--obs-gold-specular) !important;
     outline-offset: 2px;
 }
 
@@ -455,7 +484,11 @@ input[type="range"] {
     }
 
     .fi-header-heading,
-    .fi-simple-header-heading {
+    .fi-simple-header-heading,
+    .fi-wi-stats-overview-stat-value,
+    .obs-stat-number,
+    .obs-brand-wordmark,
+    .obs-login-title {
         background: none !important;
         color: CanvasText !important;
     }

@@ -36,15 +36,15 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('2.25rem')
             ->login(Login::class)
             ->darkMode(true, isForced: true)
-            ->font('Plus Jakarta Sans')
-            ->monoFont('JetBrains Mono')
+            ->font('Poppins')
+            ->monoFont('Poppins')
             ->broadcasting()
             ->maxContentWidth('full')
             ->sidebarCollapsibleOnDesktop()
             ->colors([
-                'primary' => Color::hex('#FFD700'),
-                'amber' => Color::hex('#F5C451'),
-                'gray' => Color::Zinc,
+                'primary' => Color::hex('#CDAD69'),
+                'amber' => Color::hex('#F4E185'),
+                'gray' => Color::hex('#292C31'),
             ])
             ->renderHook(
                 PanelsRenderHook::STYLES_AFTER,

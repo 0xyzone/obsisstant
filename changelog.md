@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.2.1] - 2026-11-23 | type: macro
+
+> Switch typography to clean Poppins and restyle gold glassmorphism using custom 7-stop metallic gold palette
+
+### Changed
+- **Typography (`Poppins`)**: Replaced `Syne` and `Plus Jakarta Sans` with clean geometric `Poppins` (`300–800`, `tabular-nums` KPIs) across `/`, `/admin`, `/changelog`, and `/deck/{studio}`.
+- **Metallic Gold & Charcoal/Bronze Glassmorphism**: Applied the 7-stop brushed metallic palette (`#292C31`, `#070706`, `#2D1F11`, `#89612B`, `#AC8B56`, `#CDAD69`, `#F4E185`) with smoked frosted glass gradients, specular bevel highlights, and metallic foil typography.
+
 ## [v1.2.0] - 2026-11-23 | type: minor
 
 > Obsidian Gold Glassmorphism Landing Page, Filament v5 Panel Redesign, Sans Typography System & Mobile Dock
