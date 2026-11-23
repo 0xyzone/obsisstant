@@ -103,15 +103,20 @@ case "$ACTION" in
 
         cd "$AGENT_DIR" || exit 1
         if [ -n "$CA_CERT" ]; then
-            NODE_EXTRA_CA_CERTS="$CA_CERT" nohup "$NODE_BIN" "$AGENT_DIR/src/index.js" >> "$LOG_FILE" 2>&1 &
+            export NODE_EXTRA_CA_CERTS="$CA_CERT"
+        fi
+
+        if command -v perl >/dev/null 2>&1; then
+            nohup perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' "$NODE_BIN" "$AGENT_DIR/src/index.js" </dev/null >> "$LOG_FILE" 2>&1 &
         else
-            nohup "$NODE_BIN" "$AGENT_DIR/src/index.js" >> "$LOG_FILE" 2>&1 &
+            nohup "$NODE_BIN" "$AGENT_DIR/src/index.js" </dev/null >> "$LOG_FILE" 2>&1 &
         fi
         NEW_PID=$!
+        disown "$NEW_PID" 2>/dev/null || true
         echo "$NEW_PID" > "$PID_FILE"
         sleep 1
 
-        if kill -0 "$NEW_PID" 2>/dev/null; then
+        if is_running; then
             echo "started"
             exit 0
         else

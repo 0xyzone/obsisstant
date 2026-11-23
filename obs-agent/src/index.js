@@ -1,7 +1,13 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import OBSWebSocket, { EventSubscription } from 'obs-websocket-js';
 import Pusher from 'pusher-js';
 import WebSocket from 'ws';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 if (!globalThis.WebSocket) {
     globalThis.WebSocket = WebSocket;

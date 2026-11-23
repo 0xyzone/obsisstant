@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.3.1] - 2026-11-23 | type: macro
+
+> Detach local obs-agent watchdog session and resolve obs-agent/.env path independently of working directory
+
+### Fixed
+- **Background Watchdog (`scripts/run_obs_agent.sh`, `obs-agent/src/index.js`)**: Launched `obs-agent` inside a detached POSIX session (`setsid`, `</dev/null`) and loaded `obs-agent/.env` relative to `import.meta.url` so both the admin UI button and CLI watchdog keep running reliably.
+
 ## [v1.3.0] - 2026-11-23 | type: minor
 
 > Multi-Studio Workspace Auto-Sync Relay, Zero-.env Studio Management, UI Relay Controls & Edit Token Fix
