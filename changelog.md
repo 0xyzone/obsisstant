@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.10.3] - 2026-11-23 | type: macro
+
+> Include /usr/local/bin/php in run_reverb.sh CLI lookup for cPanel cron jobs
+
+### Fixed
+- Add explicit /usr/local/bin/php candidate in scripts/run_reverb.sh so restricted cPanel cron environments locate PHP CLI >= 8.3 cleanly
+
 ## [v1.10.2] - 2026-11-23 | type: macro
 
 > Fix false-positive Reverb status badge, suppress unconfigured Filament Echo errors, and load .env in run_reverb.sh

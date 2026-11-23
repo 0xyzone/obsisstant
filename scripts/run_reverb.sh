@@ -23,6 +23,7 @@ for candidate in \
     "/opt/cpanel/ea-php83/root/usr/bin/php" \
     "/usr/bin/ea-php84" \
     "/usr/bin/ea-php83" \
+    "/usr/local/bin/php" \
     "$(command -v ea-php84 2>/dev/null)" \
     "$(command -v ea-php83 2>/dev/null)" \
     "$(command -v php 2>/dev/null)" \
