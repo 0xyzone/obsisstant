@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.10.1] - 2026-11-23 | type: macro
+
+> Fix Studio scene item transforms reverting after updating in OBS
+
+### Fixed
+- Subscribe obs-agent to EventSubscription.SceneItemTransformChanged so OBS layout changes sync reliably
+- Flush authoritative OBS transform and scene item state before command ack and protect Control Center transforms from stale snapshot overwrites
+
 ## [v1.10.0] - 2026-11-23 | type: minor
 
 > Image source file upload to user-configured native Desktop/Mac local storage with Finder folder browser and Storage Settings page

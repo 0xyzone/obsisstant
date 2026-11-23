@@ -1283,6 +1283,7 @@
                 let currentLoadedSettings = {};
                 let currentLoadedInputKind = '';
                 const pendingCommandResolvers = new Map();
+                const optimisticTransforms = new Map();
 
                 const INPUT_KIND_CATALOG = {
                     browser_source: { label: 'Browser Overlay (Web Page / URL)', priority: 1 },
@@ -1523,17 +1524,69 @@
                     return mode === 'snapshot' || mode === 'snapshot-fast';
                 };
 
+                let lastTransformSettledAt = 0;
+                let transformSeq = 0;
+
+                const mergeTransformIntoItem = (item, patch) => {
+                    const currentTf = item.sceneItemTransform || {};
+                    const nextTf = { ...currentTf, ...patch };
+                    const cropW = Number(nextTf.cropLeft || 0) + Number(nextTf.cropRight || 0);
+                    const cropH = Number(nextTf.cropTop || 0) + Number(nextTf.cropBottom || 0);
+                    const srcW = Math.max(0, Number(nextTf.sourceWidth || 0) - cropW);
+                    const srcH = Math.max(0, Number(nextTf.sourceHeight || 0) - cropH);
+
+                    if (patch.boundsWidth !== undefined && nextTf.boundsType && nextTf.boundsType !== 'OBS_BOUNDS_NONE') {
+                        nextTf.width = Number(patch.boundsWidth);
+                    } else if (patch.scaleX !== undefined && srcW > 0) {
+                        nextTf.width = Math.round(srcW * Number(patch.scaleX));
+                    }
+
+                    if (patch.boundsHeight !== undefined && nextTf.boundsType && nextTf.boundsType !== 'OBS_BOUNDS_NONE') {
+                        nextTf.height = Number(patch.boundsHeight);
+                    } else if (patch.scaleY !== undefined && srcH > 0) {
+                        nextTf.height = Math.round(srcH * Number(patch.scaleY));
+                    }
+
+                    item.sceneItemTransform = nextTf;
+                };
+
+                const applyIncomingLiveState = (nextState) => {
+                    if (!nextState || typeof nextState !== 'object') return;
+                    const now = Date.now();
+                    for (const [key, entry] of optimisticTransforms.entries()) {
+                        if (entry.expiresAt <= now) {
+                            optimisticTransforms.delete(key);
+                            continue;
+                        }
+                        const list = nextState?.sceneItemsByScene?.[entry.sceneName];
+                        if (Array.isArray(list)) {
+                            const target = list.find((i) => Number(i.sceneItemId) === Number(entry.sceneItemId));
+                            if (target) {
+                                mergeTransformIntoItem(target, entry.patch);
+                            }
+                        }
+                    }
+                    liveState = nextState;
+                };
+
                 const refreshStudioSnapshot = async () => {
                     if (snapshotInFlight) return snapshotInFlight;
 
+                    const reqStartedAt = Date.now();
                     snapshotInFlight = (async () => {
                         try {
                             const res = await fetch(endpoints.snapshot, { headers: { Accept: 'application/json' } });
                             if (!res.ok) return null;
                             const data = await res.json();
-                            if (data.status) studioStatus = data.status;
-                            if (data.live_state) liveState = data.live_state;
                             if (Array.isArray(data.recent_logs)) renderRecentLogs(data.recent_logs);
+
+                            // Discard stale HTTP snapshots when fresher Echo or transform updates arrived in-flight
+                            if (lastEchoStateAt > reqStartedAt || lastTransformSettledAt > reqStartedAt) {
+                                return data;
+                            }
+
+                            if (data.status) studioStatus = data.status;
+                            if (data.live_state) applyIncomingLiveState(data.live_state);
                             renderAll();
 
                             const previewImgEl = document.getElementById('live-preview-img');
@@ -1638,7 +1691,7 @@
                         if (!wait) return res;
 
                         const settled = await waitForCommandResult(res.command_uuid, 4500);
-                        if (Date.now() - lastEchoStateAt > 500) {
+                        if (requestType !== 'obsisstant.FetchInputSettings' && (Date.now() - lastEchoStateAt) > 650) {
                             scheduleSnapshotRefresh(220);
                         }
 
@@ -1646,7 +1699,7 @@
                             showToast(`OBS Error: ${settled.error_message || `${label} failed`}`, 'error');
                         } else if (settled?.status === 'succeeded') {
                             if (!silent) showToast(`${label} complete`, 'success');
-                        } else {
+                        } else if (requestType !== 'obsisstant.FetchInputSettings') {
                             scheduleSnapshotRefresh(700);
                         }
 
@@ -1654,6 +1707,72 @@
                     } catch (err) {
                         showToast(`Failed ${label}: ${err.message}`, 'error');
                         throw err;
+                    }
+                };
+
+                const commitSceneItemTransform = async (sceneItemId, transformPatch) => {
+                    if (!editingScene || sceneItemId === null || sceneItemId === undefined) return;
+                    const sceneName = editingScene;
+                    const lockKey = `${sceneName}::${sceneItemId}`;
+                    const items = getItemsForEditingScene();
+                    const item = items.find((i) => Number(i.sceneItemId) === Number(sceneItemId));
+                    const backupTransform = item?.sceneItemTransform ? { ...item.sceneItemTransform } : null;
+                    const mySeq = ++transformSeq;
+
+                    if (item) {
+                        mergeTransformIntoItem(item, transformPatch);
+                        optimisticTransforms.set(lockKey, {
+                            seq: mySeq,
+                            sceneName,
+                            sceneItemId: Number(sceneItemId),
+                            patch: { ...transformPatch },
+                            expiresAt: Date.now() + 5000,
+                        });
+                        renderStageLayers();
+                        renderLayersInspector();
+                    }
+
+                    try {
+                        const res = await sendObsCommand('SetSceneItemTransform', {
+                            sceneName,
+                            sceneItemId: Number(sceneItemId),
+                            sceneItemTransform: transformPatch,
+                        });
+
+                        const currentLock = optimisticTransforms.get(lockKey);
+                        if (currentLock?.seq === mySeq) {
+                            optimisticTransforms.delete(lockKey);
+                        }
+
+                        if (res?.settled?.status === 'failed') {
+                            if (backupTransform && (!currentLock || currentLock.seq === mySeq)) {
+                                const cur = (liveState?.sceneItemsByScene?.[sceneName] || []).find(
+                                    (i) => Number(i.sceneItemId) === Number(sceneItemId)
+                                );
+                                if (cur) {
+                                    cur.sceneItemTransform = backupTransform;
+                                    renderStageLayers();
+                                    renderLayersInspector();
+                                }
+                            }
+                        } else {
+                            lastTransformSettledAt = Date.now();
+                        }
+                    } catch {
+                        const currentLock = optimisticTransforms.get(lockKey);
+                        if (currentLock?.seq === mySeq) {
+                            optimisticTransforms.delete(lockKey);
+                            if (backupTransform) {
+                                const cur = (liveState?.sceneItemsByScene?.[sceneName] || []).find(
+                                    (i) => Number(i.sceneItemId) === Number(sceneItemId)
+                                );
+                                if (cur) {
+                                    cur.sceneItemTransform = backupTransform;
+                                    renderStageLayers();
+                                    renderLayersInspector();
+                                }
+                            }
+                        }
                     }
                 };
 
@@ -2423,11 +2542,7 @@
                                     };
                                 }
 
-                                sendObsCommand('SetSceneItemTransform', {
-                                    sceneName: editingScene,
-                                    sceneItemId: itemId,
-                                    sceneItemTransform: patch,
-                                });
+                                commitSceneItemTransform(itemId, patch);
                             };
 
                             box.addEventListener('pointermove', onMove);
@@ -2566,11 +2681,17 @@
 
                     const tf = selectedItem.sceneItemTransform || {};
                     const rect = computeItemRect(selectedItem);
-                    document.getElementById('tf-x').value = String(Math.round(Number(tf.positionX ?? 0)));
-                    document.getElementById('tf-y').value = String(Math.round(Number(tf.positionY ?? 0)));
-                    document.getElementById('tf-w').value = String(Math.round(rect.w));
-                    document.getElementById('tf-h').value = String(Math.round(rect.h));
-                    document.getElementById('tf-rot').value = String(Math.round(Number(tf.rotation ?? 0)));
+                    const setTransformFieldIfIdle = (id, val) => {
+                        const field = document.getElementById(id);
+                        if (field && !isDraggingStage && document.activeElement !== field) {
+                            field.value = String(val);
+                        }
+                    };
+                    setTransformFieldIfIdle('tf-x', Math.round(Number(tf.positionX ?? 0)));
+                    setTransformFieldIfIdle('tf-y', Math.round(Number(tf.positionY ?? 0)));
+                    setTransformFieldIfIdle('tf-w', Math.round(rect.w));
+                    setTransformFieldIfIdle('tf-h', Math.round(rect.h));
+                    setTransformFieldIfIdle('tf-rot', Math.round(Number(tf.rotation ?? 0)));
 
                     loadSelectedSourceSettings(selectedItem);
                 };
@@ -2924,32 +3045,24 @@
                     const targetH = Math.max(16, Number(document.getElementById('tf-h').value || 100));
                     const dimPatch = buildDimensionTransformPatch(item, targetW, targetH);
 
-                    sendObsCommand('SetSceneItemTransform', {
-                        sceneName: editingScene,
-                        sceneItemId: selectedSceneItemId,
-                        sceneItemTransform: {
-                            positionX: Number(document.getElementById('tf-x').value || 0),
-                            positionY: Number(document.getElementById('tf-y').value || 0),
-                            rotation: Number(document.getElementById('tf-rot').value || 0),
-                            ...dimPatch,
-                        },
+                    commitSceneItemTransform(selectedSceneItemId, {
+                        positionX: Number(document.getElementById('tf-x').value || 0),
+                        positionY: Number(document.getElementById('tf-y').value || 0),
+                        rotation: Number(document.getElementById('tf-rot').value || 0),
+                        ...dimPatch,
                     });
                 });
 
                 document.getElementById('btn-fit-source')?.addEventListener('click', () => {
                     if (!editingScene || selectedSceneItemId === null) return;
                     const dims = getVideoDims();
-                    sendObsCommand('SetSceneItemTransform', {
-                        sceneName: editingScene,
-                        sceneItemId: selectedSceneItemId,
-                        sceneItemTransform: {
-                            positionX: 0,
-                            positionY: 0,
-                            rotation: 0,
-                            boundsType: 'OBS_BOUNDS_SCALE_INNER',
-                            boundsWidth: dims.width,
-                            boundsHeight: dims.height,
-                        },
+                    commitSceneItemTransform(selectedSceneItemId, {
+                        positionX: 0,
+                        positionY: 0,
+                        rotation: 0,
+                        boundsType: 'OBS_BOUNDS_SCALE_INNER',
+                        boundsWidth: dims.width,
+                        boundsHeight: dims.height,
                     });
                 });
 
@@ -2973,13 +3086,9 @@
                             ? Math.round((rect.baseH + rect.h) / 2)
                             : Math.round((rect.baseH - rect.h) / 2);
 
-                    sendObsCommand('SetSceneItemTransform', {
-                        sceneName: editingScene,
-                        sceneItemId: selectedSceneItemId,
-                        sceneItemTransform: {
-                            positionX: posX,
-                            positionY: posY,
-                        },
+                    commitSceneItemTransform(selectedSceneItemId, {
+                        positionX: posX,
+                        positionY: posY,
                     });
                 });
 
@@ -3406,7 +3515,7 @@
                         .listen('.obs.studio.state', (payload) => {
                             lastEchoStateAt = Date.now();
                             if (payload.status) studioStatus = payload.status;
-                            if (payload.live_state) liveState = payload.live_state;
+                            if (payload.live_state) applyIncomingLiveState(payload.live_state);
                             renderAll();
                         })
                         .listenForWhisper('obs.preview.frame', applyIncomingPreviewFrame)
@@ -3419,7 +3528,12 @@
                             if (payload.status === 'failed' && payload.error_message) {
                                 showToast(`OBS Error: ${payload.error_message}`, 'error');
                             }
-                            scheduleSnapshotRefresh(350);
+                            if (
+                                payload.request_type !== 'obsisstant.FetchInputSettings'
+                                && (Date.now() - lastEchoStateAt) > 650
+                            ) {
+                                scheduleSnapshotRefresh(400);
+                            }
                         });
                 }
 

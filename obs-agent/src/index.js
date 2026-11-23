@@ -163,6 +163,43 @@ class StudioWorker {
         }
     }
 
+    transformsEqual(current = {}, incoming = {}) {
+        const keys = ['positionX', 'positionY', 'scaleX', 'scaleY', 'rotation', 'width', 'height', 'boundsWidth', 'boundsHeight', 'boundsType', 'alignment', 'cropTop', 'cropBottom', 'cropLeft', 'cropRight'];
+        return keys.every((key) => {
+            if (incoming[key] === undefined) {
+                return true;
+            }
+            return current[key] === incoming[key];
+        });
+    }
+
+    updateLocalSceneItem(sceneName, sceneItemId, updater) {
+        const list = this.liveState.sceneItemsByScene?.[sceneName];
+        if (!Array.isArray(list)) {
+            return null;
+        }
+
+        let matched = false;
+        const updated = list.map((item) => {
+            if (Number(item.sceneItemId) !== Number(sceneItemId)) {
+                return item;
+            }
+            matched = true;
+            return updater(item);
+        });
+
+        if (!matched) {
+            return null;
+        }
+
+        this.liveState.sceneItemsByScene[sceneName] = updated;
+        if (sceneName === this.liveState.currentProgramScene) {
+            this.liveState.sceneItems = updated;
+        }
+
+        return updated;
+    }
+
     schedulePartialScenePush(sceneName) {
         if (this.stopped || !this.obsConnected) {
             return;
@@ -188,6 +225,32 @@ class StudioWorker {
         }, 200);
     }
 
+    async flushSceneItemsPush(sceneName, capturePreview = false) {
+        if (this.partialPushTimer) {
+            clearTimeout(this.partialPushTimer);
+            this.partialPushTimer = null;
+        }
+
+        const partial = {
+            sceneItemsByScene: {
+                ...this.liveState.sceneItemsByScene,
+            },
+        };
+        if (sceneName === this.liveState.currentProgramScene) {
+            partial.sceneItems = this.liveState.sceneItemsByScene[sceneName] ?? [];
+        }
+
+        if (capturePreview) {
+            this.lastPreviewHash = null;
+        }
+
+        await this.pushState(partial);
+
+        if (capturePreview && this.previewConfig.active) {
+            this.captureAndUploadPreviewFrame(true);
+        }
+    }
+
     patchSceneItemTransform(sceneName, sceneItemId, sceneItemTransform) {
         const list = this.liveState.sceneItemsByScene?.[sceneName];
         if (!Array.isArray(list)) {
@@ -195,31 +258,136 @@ class StudioWorker {
             return;
         }
 
-        let matched = false;
-        const updated = list.map((item) => {
-            if (Number(item.sceneItemId) !== Number(sceneItemId)) {
-                return item;
-            }
-            matched = true;
-            return {
-                ...item,
-                sceneItemTransform: {
-                    ...(item.sceneItemTransform || {}),
-                    ...(sceneItemTransform || {}),
-                },
-            };
-        });
-
-        if (!matched) {
+        const existing = list.find((item) => Number(item.sceneItemId) === Number(sceneItemId));
+        if (!existing) {
             this.scheduleRefreshAllState(200);
             return;
         }
 
-        this.liveState.sceneItemsByScene[sceneName] = updated;
-        if (sceneName === this.liveState.currentProgramScene) {
-            this.liveState.sceneItems = updated;
+        if (this.transformsEqual(existing.sceneItemTransform || {}, sceneItemTransform || {})) {
+            return;
         }
+
+        this.updateLocalSceneItem(sceneName, sceneItemId, (item) => ({
+            ...item,
+            sceneItemTransform: {
+                ...(item.sceneItemTransform || {}),
+                ...(sceneItemTransform || {}),
+            },
+        }));
+
         this.schedulePartialScenePush(sceneName);
+    }
+
+    async syncIncrementalCommandState(requestType, requestData = {}) {
+        const sceneName = requestData.sceneName || this.liveState.currentProgramScene;
+
+        if (requestType === 'SetSceneItemTransform' && sceneName && requestData.sceneItemId !== undefined) {
+            try {
+                const { sceneItemTransform } = await this.obs.call('GetSceneItemTransform', {
+                    sceneName,
+                    sceneItemId: Number(requestData.sceneItemId),
+                });
+                const updated = this.updateLocalSceneItem(sceneName, requestData.sceneItemId, (item) => ({
+                    ...item,
+                    sceneItemTransform: sceneItemTransform || {
+                        ...(item.sceneItemTransform || {}),
+                        ...(requestData.sceneItemTransform || {}),
+                    },
+                }));
+                if (updated) {
+                    await this.flushSceneItemsPush(sceneName, true);
+                    return;
+                }
+            } catch {
+                // Fall back to full refresh when single-item query fails
+            }
+            await this.refreshAllState();
+            return;
+        }
+
+        if (requestType === 'SetSceneItemEnabled' && sceneName && requestData.sceneItemId !== undefined) {
+            const enabled = Boolean(requestData.sceneItemEnabled);
+            const updated = this.updateLocalSceneItem(sceneName, requestData.sceneItemId, (item) => ({
+                ...item,
+                sceneItemEnabled: enabled,
+            }));
+            if (updated) {
+                await this.flushSceneItemsPush(sceneName, true);
+                return;
+            }
+            await this.refreshAllState();
+            return;
+        }
+
+        if (requestType === 'SetSceneItemLocked' && sceneName && requestData.sceneItemId !== undefined) {
+            const locked = Boolean(requestData.sceneItemLocked);
+            const updated = this.updateLocalSceneItem(sceneName, requestData.sceneItemId, (item) => ({
+                ...item,
+                sceneItemLocked: locked,
+            }));
+            if (updated) {
+                await this.flushSceneItemsPush(sceneName, false);
+                return;
+            }
+            await this.refreshAllState();
+            return;
+        }
+
+        if (requestType === 'SetCurrentProgramScene' && requestData.sceneName) {
+            const items = await this.hydrateSceneItems(requestData.sceneName);
+            this.liveState.currentProgramScene = requestData.sceneName;
+            this.liveState.sceneItems = items;
+            this.liveState.sceneItemsByScene[requestData.sceneName] = items;
+            this.lastPreviewHash = null;
+            await this.pushState({
+                currentProgramScene: requestData.sceneName,
+                sceneItems: items,
+                sceneItemsByScene: this.liveState.sceneItemsByScene,
+            });
+            if (this.previewConfig.active) {
+                this.captureAndUploadPreviewFrame(true);
+            }
+            return;
+        }
+
+        if (requestType === 'SetCurrentPreviewScene' && requestData.sceneName) {
+            this.liveState.currentPreviewScene = requestData.sceneName;
+            await this.pushState({ currentPreviewScene: requestData.sceneName });
+            return;
+        }
+
+        if (requestType === 'SetStudioModeEnabled') {
+            this.liveState.studioModeEnabled = Boolean(requestData.studioModeEnabled);
+            await this.pushState({ studioModeEnabled: this.liveState.studioModeEnabled });
+            return;
+        }
+
+        if (requestType === 'SetInputMute' && requestData.inputName) {
+            this.liveState.audioInputs = this.liveState.audioInputs.map((inp) =>
+                inp.inputName === requestData.inputName ? { ...inp, inputMuted: Boolean(requestData.inputMuted) } : inp
+            );
+            await this.pushState({ audioInputs: this.liveState.audioInputs });
+            return;
+        }
+
+        if (requestType === 'SetInputVolume' && requestData.inputName) {
+            try {
+                const vol = await this.obs.call('GetInputVolume', { inputName: requestData.inputName });
+                this.liveState.audioInputs = this.liveState.audioInputs.map((inp) =>
+                    inp.inputName === requestData.inputName
+                        ? {
+                              ...inp,
+                              inputVolumeMul: Number(vol.inputVolumeMul ?? inp.inputVolumeMul ?? 1),
+                              inputVolumeDb: Number(vol.inputVolumeDb ?? inp.inputVolumeDb ?? 0),
+                          }
+                        : inp
+                );
+                await this.pushState({ audioInputs: this.liveState.audioInputs });
+            } catch {
+                // Event handler updates if direct query fails
+            }
+        }
     }
 
     async hydrateSceneItems(sceneName) {
@@ -764,7 +932,9 @@ class StudioWorker {
                     'SetCurrentPreviewScene',
                     'SetStudioModeEnabled',
                 ]);
-                if (!incrementalEventCommands.has(requestType)) {
+                if (incrementalEventCommands.has(requestType)) {
+                    await this.syncIncrementalCommandState(requestType, normalizedData);
+                } else {
                     this.scheduleRefreshAllState(180);
                 }
             }
@@ -839,17 +1009,13 @@ class StudioWorker {
         });
         this.obs.on('SceneItemLockStateChanged', async ({ sceneName, sceneItemId, sceneItemLocked }) => {
             const currentList = this.liveState.sceneItemsByScene[sceneName] || [];
-            const updatedList = currentList.map((item) =>
-                item.sceneItemId === sceneItemId ? { ...item, sceneItemLocked } : item
-            );
-            this.liveState.sceneItemsByScene[sceneName] = updatedList;
-
-            const partial = { sceneItemsByScene: this.liveState.sceneItemsByScene };
-            if (sceneName === this.liveState.currentProgramScene) {
-                this.liveState.sceneItems = updatedList;
-                partial.sceneItems = updatedList;
+            const existing = currentList.find((item) => Number(item.sceneItemId) === Number(sceneItemId));
+            if (existing && Boolean(existing.sceneItemLocked) === Boolean(sceneItemLocked)) {
+                return;
             }
-            await this.pushState(partial);
+            if (this.updateLocalSceneItem(sceneName, sceneItemId, (item) => ({ ...item, sceneItemLocked }))) {
+                await this.flushSceneItemsPush(sceneName, false);
+            }
         });
         this.obs.on('InputCreated', () => this.scheduleRefreshAllState(180));
         this.obs.on('InputRemoved', () => this.scheduleRefreshAllState(180));
@@ -863,20 +1029,12 @@ class StudioWorker {
 
         this.obs.on('SceneItemEnableStateChanged', async ({ sceneName, sceneItemId, sceneItemEnabled }) => {
             const currentList = this.liveState.sceneItemsByScene[sceneName] || [];
-            const updatedList = currentList.map((item) =>
-                item.sceneItemId === sceneItemId ? { ...item, sceneItemEnabled } : item
-            );
-            this.liveState.sceneItemsByScene[sceneName] = updatedList;
-
-            const partial = { sceneItemsByScene: this.liveState.sceneItemsByScene };
-            if (sceneName === this.liveState.currentProgramScene) {
-                this.liveState.sceneItems = updatedList;
-                partial.sceneItems = updatedList;
+            const existing = currentList.find((item) => Number(item.sceneItemId) === Number(sceneItemId));
+            if (existing && Boolean(existing.sceneItemEnabled) === Boolean(sceneItemEnabled)) {
+                return;
             }
-            this.lastPreviewHash = null;
-            await this.pushState(partial);
-            if (this.previewConfig.active) {
-                this.captureAndUploadPreviewFrame(true);
+            if (this.updateLocalSceneItem(sceneName, sceneItemId, (item) => ({ ...item, sceneItemEnabled }))) {
+                await this.flushSceneItemsPush(sceneName, true);
             }
         });
 
@@ -946,7 +1104,7 @@ class StudioWorker {
 
         try {
             await this.obs.connect(wsUrl, password, {
-                eventSubscriptions: EventSubscription.All,
+                eventSubscriptions: EventSubscription.All | EventSubscription.SceneItemTransformChanged,
                 rpcVersion: 1,
             });
             this.obsConnected = true;

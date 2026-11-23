@@ -401,4 +401,96 @@ class StudioControlCenterTest extends TestCase
             ])
             ->assertOk();
     }
+
+    public function test_scene_item_transform_state_sync_persists_without_reverting_on_snapshot(): void
+    {
+        $user = User::factory()->create();
+        $studio = ObsStudio::factory()->online()->for($user)->create([
+            'agent_token' => 'transform-sync-token',
+            'live_state' => [
+                'currentProgramScene' => 'New Scene',
+                'scenes' => [['sceneName' => 'New Scene', 'sceneIndex' => 0]],
+                'sceneItemsByScene' => [
+                    'New Scene' => [
+                        [
+                            'sceneItemId' => 1,
+                            'sourceName' => 'Just a test',
+                            'inputKind' => 'text_ft2_source_v2',
+                            'sceneItemEnabled' => true,
+                            'sceneItemLocked' => false,
+                            'sceneItemTransform' => [
+                                'positionX' => 0,
+                                'positionY' => 0,
+                                'width' => 512,
+                                'height' => 244,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $commandRes = $this->actingAs($user)
+            ->postJson(route('studio.command', ['studio' => $studio->slug]), [
+                'request_type' => 'SetSceneItemTransform',
+                'request_data' => [
+                    'sceneName' => 'New Scene',
+                    'sceneItemId' => 1,
+                    'sceneItemTransform' => [
+                        'positionX' => 564,
+                        'positionY' => 337,
+                    ],
+                ],
+            ])
+            ->assertOk();
+
+        $commandUuid = $commandRes->json('command_uuid');
+
+        // Push authoritative transform state before ack, matching obs-agent syncIncrementalCommandState
+        $this->withHeader('Authorization', 'Bearer transform-sync-token')
+            ->postJson(route('api.obs-agent.state'), [
+                'live_state' => [
+                    'sceneItemsByScene' => [
+                        'New Scene' => [
+                            [
+                                'sceneItemId' => 1,
+                                'sourceName' => 'Just a test',
+                                'inputKind' => 'text_ft2_source_v2',
+                                'sceneItemEnabled' => true,
+                                'sceneItemLocked' => false,
+                                'sceneItemTransform' => [
+                                    'positionX' => 564,
+                                    'positionY' => 337,
+                                    'width' => 512,
+                                    'height' => 244,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertOk();
+
+        $this->withHeader('Authorization', 'Bearer transform-sync-token')
+            ->postJson("/api/obs-agent/commands/{$commandUuid}/ack", [
+                'studio_id' => $studio->id,
+                'status' => 'succeeded',
+                'response_data' => [],
+            ])
+            ->assertOk();
+
+        $this->actingAs($user)
+            ->getJson(route('studio.snapshot', ['studio' => $studio->slug]))
+            ->assertOk()
+            ->assertJsonPath('live_state.sceneItemsByScene.New Scene.0.sceneItemTransform.positionX', 564)
+            ->assertJsonPath('live_state.sceneItemsByScene.New Scene.0.sceneItemTransform.positionY', 337);
+
+        $agentJs = file_get_contents(base_path('obs-agent/src/index.js')) ?: '';
+        $this->assertStringContainsString('EventSubscription.All | EventSubscription.SceneItemTransformChanged', $agentJs);
+        $this->assertStringContainsString('syncIncrementalCommandState', $agentJs);
+
+        $bladeJs = file_get_contents(resource_path('views/studio/control-center.blade.php')) ?: '';
+        $this->assertStringContainsString('commitSceneItemTransform', $bladeJs);
+        $this->assertStringContainsString('applyIncomingLiveState', $bladeJs);
+    }
 }
