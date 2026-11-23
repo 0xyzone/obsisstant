@@ -5,4 +5,5 @@
         <circle cx="12" cy="12" r="2.5" fill="#CDAD69"/>
     </svg>
     <span class="obs-brand-wordmark">Obsisstant</span>
+    <span class="obs-brand-version-pill" title="Current version">v{{ \App\Services\ChangelogService::getCurrentVersion() }}</span>
 </span>

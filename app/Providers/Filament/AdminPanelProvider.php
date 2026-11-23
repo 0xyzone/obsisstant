@@ -64,6 +64,14 @@ class AdminPanelProvider extends PanelProvider
                 fn () => view('filament.components.sidebar-version'),
             )
             ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
+                fn () => view('filament.components.reverb-status'),
+            )
+            ->renderHook(
+                PanelsRenderHook::SIMPLE_LAYOUT_START,
+                fn () => view('filament.components.simple-topbar'),
+            )
+            ->renderHook(
                 PanelsRenderHook::BODY_END,
                 fn () => view('filament.components.mobile-bottom-dock'),
             )

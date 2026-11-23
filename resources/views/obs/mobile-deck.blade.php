@@ -58,6 +58,86 @@
                 gap: 0.75rem;
             }
 
+            .obs-deck-brand-row {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .obs-deck-brand-link {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.45rem;
+                color: var(--text);
+                text-decoration: none;
+                font-size: 0.875rem;
+                font-weight: 600;
+                letter-spacing: -0.01em;
+            }
+
+            .obs-deck-brand-link:hover {
+                color: var(--gold);
+            }
+
+            .obs-brand-version-pill {
+                display: inline-flex;
+                align-items: center;
+                padding: 0.125rem 0.5rem;
+                border-radius: 9999px;
+                border: 1px solid var(--border-gold);
+                background: rgba(205, 173, 105, 0.12);
+                color: var(--gold);
+                font-variant-numeric: tabular-nums;
+                font-size: 0.6875rem;
+                font-weight: 500;
+                line-height: 1.35;
+                text-decoration: none;
+            }
+
+            .obs-reverb-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4375rem;
+                padding: 0.25rem 0.625rem;
+                border-radius: 9999px;
+                font-size: 0.75rem;
+                font-weight: 500;
+                line-height: 1.3;
+                white-space: nowrap;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                background: rgba(255, 255, 255, 0.05);
+                color: #C8C0AF;
+            }
+
+            .obs-reverb-dot {
+                inline-size: 0.4375rem;
+                block-size: 0.4375rem;
+                flex-shrink: 0;
+                border-radius: 50%;
+                background-color: #8E8777;
+            }
+
+            .obs-reverb-pill.is-active {
+                border-color: rgba(76, 195, 138, 0.34);
+                background-color: rgba(76, 195, 138, 0.08);
+                color: #9EE6C3;
+            }
+
+            .obs-reverb-pill.is-active .obs-reverb-dot {
+                background-color: #4CC38A;
+            }
+
+            .obs-reverb-pill.is-offline {
+                border-color: rgba(229, 72, 77, 0.32);
+                background-color: rgba(229, 72, 77, 0.08);
+                color: #F4A3A6;
+            }
+
+            .obs-reverb-pill.is-offline .obs-reverb-dot {
+                background-color: #E5484D;
+            }
+
             .status-pill {
                 display: inline-flex;
                 align-items: center;
@@ -140,16 +220,28 @@
     <body>
         <div class="shell">
             <header class="glass topbar">
-                <div>
-                    <div style="font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif; font-size: clamp(1.35rem, 1.05rem + 1.2vw, 2rem); font-weight: 700; line-height: 1.08; letter-spacing: -0.025em; background: linear-gradient(135deg, #89612B 0%, #CDAD69 26%, #F4E185 52%, #CDAD69 78%, #AC8B56 100%); -webkit-background-clip: text; background-clip: text; color: transparent;">{{ $studio->name }}</div>
-                    <div style="font-size: 0.76rem; color: var(--muted);">Mobile Wireless Stream Deck</div>
+                <div style="display: grid; gap: 0.25rem;">
+                    <div class="obs-deck-brand-row">
+                        <a href="{{ route('home') }}" class="obs-deck-brand-link" aria-label="Obsisstant home">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CDAD69" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9"/>
+                                <path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
+                                <circle cx="12" cy="12" r="2.5" fill="#CDAD69"/>
+                            </svg>
+                            <span>{{ config('app.name', 'Obsisstant') }}</span>
+                        </a>
+                        <a href="{{ route('changelog') }}" class="obs-brand-version-pill" title="View release changelog">v{{ \App\Services\ChangelogService::getCurrentVersion() }}</a>
+                    </div>
+                    <div style="font-size: clamp(1.125rem, 0.95rem + 0.8vw, 1.5rem); font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; color: var(--gold);">{{ $studio->name }}</div>
+                    <div style="font-size: 0.75rem; color: var(--muted);">Mobile Wireless Stream Deck</div>
                 </div>
 
                 <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                    <x-reverb-status-pill />
                     <span id="studio-status" class="status-pill {{ $studio->isOnline() ? 'status-pill--online' : '' }}">
                         {{ strtoupper($studio->status) }}
                     </span>
-                    <a href="{{ url('/admin/obs-control-deck') }}" style="color: var(--gold); text-decoration: none; font-size: 0.85rem; font-weight: 600;">Admin Deck</a>
+                    <a href="{{ url('/admin/obs-control-deck') }}" style="color: var(--gold); text-decoration: none; font-size: 0.85rem; font-weight: 500;">Admin Deck</a>
                 </div>
             </header>
 

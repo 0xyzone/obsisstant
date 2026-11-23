@@ -168,16 +168,73 @@
             .version-pill {
                 display: inline-flex;
                 align-items: center;
-                gap: 0.4rem;
-                min-block-size: 2.25rem;
-                padding: 0.35rem 0.8rem;
+                gap: 0.35rem;
+                padding: 0.1875rem 0.5625rem;
                 border-radius: var(--radius-pill);
-                background: linear-gradient(135deg, rgba(226, 184, 75, 0.2), rgba(161, 98, 7, 0.14));
-                border: 1px solid var(--border-gold-strong);
+                background: rgba(205, 173, 105, 0.12);
+                border: 1px solid rgba(205, 173, 105, 0.34);
                 color: var(--gold-100);
-                font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
-                font-size: 0.8rem;
-                font-weight: 600;
+                font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+                font-variant-numeric: tabular-nums;
+                font-size: 0.75rem;
+                font-weight: 500;
+                line-height: 1.3;
+                text-decoration: none;
+            }
+
+            .brand-link {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.75rem;
+                color: inherit;
+                text-decoration: none;
+            }
+
+            .brand-link:hover .brand-title {
+                color: var(--gold-100);
+            }
+
+            .obs-reverb-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4375rem;
+                padding: 0.3125rem 0.6875rem;
+                border-radius: var(--radius-pill);
+                font-size: 0.75rem;
+                font-weight: 500;
+                line-height: 1.3;
+                white-space: nowrap;
+                border: 1px solid var(--border-subtle);
+                background: rgba(27, 26, 23, 0.9);
+                color: var(--text-secondary);
+            }
+
+            .obs-reverb-dot {
+                inline-size: 0.4375rem;
+                block-size: 0.4375rem;
+                flex-shrink: 0;
+                border-radius: 50%;
+                background-color: var(--text-muted);
+            }
+
+            .obs-reverb-pill.is-active {
+                border-color: rgba(76, 195, 138, 0.34);
+                background-color: rgba(76, 195, 138, 0.08);
+                color: #9EE6C3;
+            }
+
+            .obs-reverb-pill.is-active .obs-reverb-dot {
+                background-color: #4CC38A;
+            }
+
+            .obs-reverb-pill.is-offline {
+                border-color: rgba(229, 72, 77, 0.32);
+                background-color: rgba(229, 72, 77, 0.08);
+                color: #F4A3A6;
+            }
+
+            .obs-reverb-pill.is-offline .obs-reverb-dot {
+                background-color: #E5484D;
             }
 
             .nav-link {
@@ -684,25 +741,24 @@
         <div class="page-shell">
             <header class="app-bar">
                 <div class="brand-cluster">
-                    <div class="brand-mark" aria-hidden="true">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 3l2.6 5.26L20 9.27l-4 3.9.94 5.5L12 16l-4.94 2.67L8 13.17l-4-3.9 5.4-1.01L12 3z" />
-                        </svg>
-                    </div>
-                    <div class="brand-text">
-                        <span class="brand-title">{{ config('app.name', 'Obsisstant') }}</span>
-                        <span class="brand-subtitle">Release Ledger</span>
-                    </div>
+                    <a href="{{ route('home') }}" class="brand-link">
+                        <div class="brand-mark" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9"/>
+                                <path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
+                                <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <div class="brand-text">
+                            <span class="brand-title">{{ config('app.name', 'Obsisstant') }}</span>
+                            <span class="brand-subtitle">Release Ledger</span>
+                        </div>
+                    </a>
+                    <span class="version-pill" title="Current active release">v{{ $currentVersion }}</span>
                 </div>
 
                 <nav class="nav-actions" aria-label="Changelog navigation">
-                    <span class="version-pill" title="Current active release">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                            <circle cx="7" cy="7" r="1.5"/>
-                        </svg>
-                        v{{ $currentVersion }}
-                    </span>
+                    <x-reverb-status-pill />
                     <a class="nav-link" href="{{ url('/') }}">Home</a>
                     <a class="nav-link" href="{{ url('/admin') }}">Admin Panel</a>
                 </nav>

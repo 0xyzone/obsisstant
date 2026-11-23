@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.4.0] - 2026-11-23 | type: minor
+
+> Unslop landing page with purposeful motion, cross-app brand version pills, and live top-bar Reverb server status
+
+### Added
+- ReverbStatusService & top-bar Reverb indicator: Server-side TCP socket health check and shared Reverb active/offline status pill rendered in the top bar across Landing, Changelog, Mobile Deck, and Filament panels (including login)
+- Cross-app brand version pill: Compact semantic version pill placed directly beside the Obsisstant brand lockup across app headers and Filament sidebar/topbar logo
+
+### Changed
+- Unslopped Landing Page (/): Redesigned welcome view on stepped matte obsidian surfaces (#070706 to #1B1A17) with Poppins 400-600 hierarchy, coded interactive OBS Switcher & Overlay Explorer, CSS View Timeline scroll reveals with IntersectionObserver fallback, and @starting-style popover drawer transitions
+
 ## [v1.3.1] - 2026-11-23 | type: macro
 
 > Detach local obs-agent watchdog session and resolve obs-agent/.env path independently of working directory

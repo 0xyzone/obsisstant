@@ -3,41 +3,63 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-        <title>{{ config('app.name', 'Obsisstant') }} · Metallic Gold OBS Studio Control</title>
-        <meta name="description" content="Control multi-studio OBS Studio rigs, push real-time Reverb screen overlays, and trigger broadcast macros from any desktop or mobile deck.">
+        <title>{{ config('app.name', 'Obsisstant') }} · OBS Broadcast Relay &amp; Overlay Studio</title>
+        <meta name="description" content="Real-time wireless OBS Studio deck, hardware relay agent, and live Browser Source overlays synced via Laravel Reverb.">
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=poppins:300,400,500,600,700,800&display=swap" rel="stylesheet">
+        <link href="https://fonts.bunny.net/css?family=poppins:400,500,600&display=swap" rel="stylesheet">
         <style>
             :root {
                 color-scheme: dark;
-                --slate-deep: #292C31;
-                --bg-void: #070706;
-                --bronze-smoked: #2D1F11;
-                --gold-antique: #89612B;
+
+                /* Matte obsidian surfaces */
+                --bg-canvas: #070706;
+                --bg-chrome: #0B0B0A;
+                --bg-card: #121210;
+                --bg-raised: #1B1A17;
+                --bg-slate: #292C31;
+                --bg-bronze: #2D1F11;
+
+                /* Brushed metallic gold accent tokens */
+                --gold-dark: #89612B;
                 --gold-satin: #AC8B56;
-                --gold-lustre: #CDAD69;
-                --gold-specular: #F4E185;
-                --surface-glass: linear-gradient(155deg, rgba(41, 44, 49, 0.54) 0%, rgba(7, 7, 6, 0.80) 52%, rgba(45, 31, 17, 0.56) 100%);
-                --surface-glass-strong: linear-gradient(155deg, rgba(41, 44, 49, 0.70) 0%, rgba(7, 7, 6, 0.88) 54%, rgba(45, 31, 17, 0.68) 100%);
-                --gold-foil: linear-gradient(135deg, #89612B 0%, #CDAD69 24%, #F4E185 50%, #CDAD69 76%, #AC8B56 100%);
-                --gold-button: linear-gradient(135deg, #F4E185 0%, #CDAD69 44%, #AC8B56 80%, #89612B 100%);
-                --border-gold: rgba(205, 173, 105, 0.36);
-                --border-gold-strong: rgba(244, 225, 133, 0.62);
-                --border-subtle: rgba(172, 139, 86, 0.22);
-                --text-primary: #FAF7EE;
-                --text-secondary: #D8CEBA;
-                --text-muted: #A99F8D;
-                --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
-                --radius-card: 1.5rem;
-                --radius-pill: 9999px;
-                --shadow-glass:
-                    0 24px 60px -20px rgba(0, 0, 0, 0.94),
-                    inset 0 1px 0 rgba(244, 225, 133, 0.22),
-                    inset 0 -1px 0 rgba(137, 97, 43, 0.2);
-                --shadow-gold:
-                    0 14px 32px -12px rgba(205, 173, 105, 0.44),
-                    inset 0 1px 0 rgba(255, 249, 219, 0.72),
-                    inset 0 -2px 0 rgba(45, 31, 17, 0.42);
+                --gold-accent: #CDAD69;
+                --gold-light: #F4E185;
+
+                /* Hairlines & text inks */
+                --hairline: rgba(205, 173, 105, 0.14);
+                --hairline-strong: rgba(205, 173, 105, 0.34);
+                --hairline-neutral: rgba(255, 255, 255, 0.08);
+                --ink-primary: #FAF7EE;
+                --ink-secondary: #C8C0AF;
+                --ink-muted: #8E8777;
+
+                /* Status inks */
+                --status-live: #4CC38A;
+                --status-live-ink: #9EE6C3;
+                --status-offline: #E5484D;
+                --status-offline-ink: #F4A3A6;
+
+                /* Typography & motion */
+                --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+                /* Strict nested radii & 4px spacing scale */
+                --radius-tag: 0.375rem;   /* 6px */
+                --radius-ctl: 0.5rem;     /* 8px */
+                --radius-inner: 0.75rem;  /* 12px */
+                --radius-card: 1rem;      /* 16px */
+                --radius-frame: 1.25rem;  /* 20px */
+
+                --space-1: 0.25rem;   /* 4px */
+                --space-2: 0.5rem;    /* 8px */
+                --space-3: 0.75rem;   /* 12px */
+                --space-4: 1rem;      /* 16px */
+                --space-5: 1.25rem;   /* 20px */
+                --space-6: 1.5rem;    /* 24px */
+                --space-8: 2rem;      /* 32px */
+                --space-12: 3rem;     /* 48px */
+                --space-16: 4rem;     /* 64px */
+                --space-20: 5rem;     /* 80px */
             }
 
             *,
@@ -47,81 +69,82 @@
             }
 
             html {
-                background-color: var(--bg-void);
-                color: var(--text-primary);
+                scroll-behavior: smooth;
+                background-color: var(--bg-canvas);
+                color: var(--ink-primary);
                 font-family: var(--font-sans);
                 -webkit-font-smoothing: antialiased;
-                scroll-behavior: smooth;
+                -moz-osx-font-smoothing: grayscale;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                html {
+                    scroll-behavior: auto;
+                }
             }
 
             body {
                 margin: 0;
                 min-block-size: 100dvb;
-                background-color: var(--bg-void);
-                color: var(--text-primary);
+                background-color: var(--bg-canvas);
+                color: var(--ink-primary);
+                font-size: 0.9375rem;
+                font-weight: 400;
                 line-height: 1.6;
-                position: relative;
                 overflow-x: clip;
-                text-align: start;
             }
 
-            .ambient-canvas {
+            .skip-link {
                 position: fixed;
-                inset: 0;
-                z-index: 0;
-                pointer-events: none;
-                background:
-                    radial-gradient(circle at 12% 10%, rgba(244, 225, 133, 0.14), transparent 36%),
-                    radial-gradient(circle at 86% 18%, rgba(137, 97, 43, 0.22), transparent 44%),
-                    radial-gradient(circle at 22% 84%, rgba(45, 31, 17, 0.56), transparent 48%),
-                    radial-gradient(circle at 76% 78%, rgba(41, 44, 49, 0.45), transparent 48%),
-                    linear-gradient(180deg, #0a0908 0%, #070706 100%);
+                inset-inline-start: var(--space-4);
+                inset-block-start: -100%;
+                z-index: 60;
+                padding: var(--space-2) var(--space-4);
+                border-radius: var(--radius-ctl);
+                background-color: var(--gold-accent);
+                color: #070706;
+                font-size: 0.875rem;
+                font-weight: 600;
+                text-decoration: none;
             }
 
-            .ambient-grid {
-                position: fixed;
-                inset: 0;
-                z-index: 0;
-                pointer-events: none;
-                opacity: 0.2;
-                background-image:
-                    linear-gradient(to right, rgba(205, 173, 105, 0.08) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(205, 173, 105, 0.08) 1px, transparent 1px);
-                background-size: 48px 48px;
-                mask-image: radial-gradient(ellipse at 50% 24%, black 12%, transparent 78%);
+            .skip-link:focus {
+                inset-block-start: var(--space-4);
             }
 
-            .page-shell {
-                position: relative;
-                z-index: 1;
-                inline-size: min(100%, 78rem);
+            :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+                outline: 2px solid var(--gold-light);
+                outline-offset: 2px;
+            }
+
+            /* Main Page Container */
+            .container {
+                inline-size: min(100%, 76rem);
                 margin-inline: auto;
-                padding-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
-                padding-block-start: max(0.85rem, env(safe-area-inset-top));
-                padding-block-end: max(4rem, env(safe-area-inset-bottom));
-                display: grid;
-                gap: clamp(2.5rem, 1.5rem + 3vw, 4.75rem);
+                padding-inline: max(var(--space-4), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right));
             }
 
-            /* Frosted Metallic Glass Navigation Bar */
+            /* Sticky Frosted Topbar Navigation */
             .site-header {
                 position: sticky;
-                inset-block-start: max(0.75rem, env(safe-area-inset-top));
+                inset-block-start: 0;
                 z-index: 40;
-                border-radius: 1.35rem;
-                background: linear-gradient(95deg, rgba(41, 44, 49, 0.65), rgba(7, 7, 6, 0.84) 55%, rgba(45, 31, 17, 0.65));
-                -webkit-backdrop-filter: blur(22px) saturate(150%);
-                backdrop-filter: blur(22px) saturate(150%);
-                border: 1px solid var(--border-gold);
-                box-shadow: var(--shadow-glass);
-                padding: 0.65rem 1rem;
+                background: rgba(11, 11, 10, 0.86);
+                -webkit-backdrop-filter: blur(16px);
+                backdrop-filter: blur(16px);
+                border-block-end: 1px solid var(--hairline);
             }
 
             .header-inner {
+                inline-size: min(100%, 76rem);
+                margin-inline: auto;
+                min-block-size: 4rem;
+                padding-inline: max(var(--space-4), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right));
+                padding-block: var(--space-2);
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                gap: 1rem;
+                gap: var(--space-4);
             }
 
             .header-inner > * {
@@ -129,182 +152,241 @@
                 white-space: nowrap;
             }
 
-            .site-header.is-measuring * {
-                transition: none !important;
+            .brand-cluster {
+                display: inline-flex;
+                align-items: center;
+                gap: var(--space-2);
             }
 
             .brand-lockup {
                 display: inline-flex;
                 align-items: center;
-                gap: 0.75rem;
+                gap: var(--space-2);
+                color: var(--ink-primary);
                 text-decoration: none;
-                color: var(--text-primary);
-            }
-
-            .brand-mark {
-                display: grid;
-                place-items: center;
-                inline-size: 2.5rem;
-                block-size: 2.5rem;
-                border-radius: 0.9rem;
-                background: linear-gradient(135deg, rgba(244, 225, 133, 0.22), rgba(137, 97, 43, 0.28));
-                border: 1px solid var(--border-gold-strong);
-                color: var(--gold-specular);
-                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.5);
-            }
-
-            .brand-name {
-                font-family: var(--font-sans);
-                font-size: 1.05rem;
-                font-weight: 700;
-                letter-spacing: 0.04em;
-                background: var(--gold-foil);
-                -webkit-background-clip: text;
-                background-clip: text;
-                color: transparent;
-            }
-
-            .version-tag {
-                font-family: var(--font-sans);
-                font-variant-numeric: tabular-nums;
-                font-size: 0.7rem;
+                font-size: 1rem;
                 font-weight: 600;
-                letter-spacing: 0.04em;
-                color: var(--gold-specular);
-                background: rgba(137, 97, 43, 0.26);
-                border: 1px solid var(--border-gold);
-                border-radius: var(--radius-pill);
-                padding: 0.22rem 0.6rem;
+                letter-spacing: -0.01em;
+                transition: color 140ms var(--ease-out);
             }
 
+            .brand-lockup:hover {
+                color: var(--gold-light);
+            }
+
+            .obs-brand-version-pill {
+                display: inline-flex;
+                align-items: center;
+                padding: 0.125rem var(--space-2);
+                border-radius: 9999px;
+                border: 1px solid var(--hairline-strong);
+                background-color: rgba(205, 173, 105, 0.12);
+                color: var(--gold-light);
+                font-variant-numeric: tabular-nums;
+                font-size: 0.6875rem;
+                font-weight: 500;
+                line-height: 1.35;
+                text-decoration: none;
+                transition: border-color 140ms var(--ease-out), background-color 140ms var(--ease-out);
+            }
+
+            .obs-brand-version-pill:hover {
+                border-color: var(--gold-light);
+                background-color: rgba(205, 173, 105, 0.2);
+            }
+
+            .header-end {
+                display: flex;
+                align-items: center;
+                gap: var(--space-3);
+            }
+
+            /* Live Reverb Status Pill */
+            .obs-reverb-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4375rem;
+                padding: var(--space-1) 0.625rem;
+                border-radius: 9999px;
+                font-size: 0.75rem;
+                font-weight: 500;
+                line-height: 1.3;
+                white-space: nowrap;
+                border: 1px solid var(--hairline-neutral);
+                background-color: var(--bg-raised);
+                color: var(--ink-secondary);
+            }
+
+            .obs-reverb-dot {
+                inline-size: 0.4375rem;
+                block-size: 0.4375rem;
+                flex-shrink: 0;
+                border-radius: 50%;
+                background-color: var(--ink-muted);
+            }
+
+            .obs-reverb-pill.is-active {
+                border-color: rgba(76, 195, 138, 0.34);
+                background-color: rgba(76, 195, 138, 0.08);
+                color: var(--status-live-ink);
+            }
+
+            .obs-reverb-pill.is-active .obs-reverb-dot {
+                background-color: var(--status-live);
+            }
+
+            .obs-reverb-pill.is-offline {
+                border-color: rgba(229, 72, 77, 0.32);
+                background-color: rgba(229, 72, 77, 0.08);
+                color: var(--status-offline-ink);
+            }
+
+            .obs-reverb-pill.is-offline .obs-reverb-dot {
+                background-color: var(--status-offline);
+            }
+
+            /* Site Navigation (Narrow Popover Default -> Wide Inline) */
             .site-nav {
                 display: flex;
                 align-items: center;
-                gap: 0.5rem;
+                gap: var(--space-2);
             }
 
             .menu-button {
                 anchor-name: --menu-button;
                 display: inline-flex;
                 align-items: center;
-                gap: 0.45rem;
-                min-block-size: 2.6rem;
-                padding: 0.45rem 0.95rem;
-                border-radius: var(--radius-pill);
-                border: 1px solid var(--border-gold);
-                background: rgba(137, 97, 43, 0.22);
-                color: var(--gold-specular);
+                gap: var(--space-2);
+                min-block-size: 2.375rem;
+                padding: var(--space-1) var(--space-3);
+                border-radius: var(--radius-ctl);
+                border: 1px solid var(--hairline-strong);
+                background-color: var(--bg-raised);
+                color: var(--ink-primary);
                 font: inherit;
-                font-size: 0.85rem;
-                font-weight: 600;
+                font-size: 0.8125rem;
+                font-weight: 500;
                 cursor: pointer;
+                transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out);
+            }
+
+            .menu-button:hover {
+                background-color: #23221E;
+                border-color: var(--gold-accent);
             }
 
             .site-menu {
                 position: fixed;
                 inset: auto;
-                inset-block-start: 4.85rem;
+                /* Static fallback offset for browsers without CSS Anchor Positioning */
+                inset-block-start: 4.5rem;
                 inset-block-start: anchor(--menu-button bottom);
-                inset-inline-end: 1rem;
-                inline-size: min(84dvw, 22rem);
+                inset-inline-end: max(var(--space-4), env(safe-area-inset-right));
+                inline-size: min(82dvw, 19rem);
                 max-inline-size: calc(100dvw - 2rem);
-                max-block-size: calc(100dvb - 6rem);
-                margin: 0.5rem 0 0;
-                padding: 0.75rem;
-                list-style: none;
+                block-size: fit-content;
+                max-block-size: calc(100dvh - 6rem);
                 overflow: auto;
-                border-radius: 1.25rem;
-                background: linear-gradient(155deg, rgba(41, 44, 49, 0.92), rgba(7, 7, 6, 0.95), rgba(45, 31, 17, 0.9));
-                -webkit-backdrop-filter: blur(24px) saturate(160%);
-                backdrop-filter: blur(24px) saturate(160%);
-                border: 1px solid var(--border-gold-strong);
-                box-shadow: var(--shadow-glass);
-                color: var(--text-primary);
-            }
-
-            .site-menu::backdrop {
-                background: rgba(7, 7, 6, 0.55);
-                backdrop-filter: blur(4px);
-            }
-
-            .site-menu[popover]:is(:popover-open, .\:popover-open) {
-                display: grid;
-                gap: 0.35rem;
+                margin: var(--space-2) 0 0;
+                padding: var(--space-2);
+                list-style: none;
+                border-radius: var(--radius-card);
+                background: rgba(18, 18, 16, 0.94);
+                -webkit-backdrop-filter: blur(18px);
+                backdrop-filter: blur(18px);
+                border: 1px solid var(--hairline-strong);
+                box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.78);
+                opacity: 0;
+                transition-property: opacity, transform, display, overlay;
+                transition-duration: 180ms;
+                transition-timing-function: var(--ease-out);
+                /* Declared separately so older browsers still run opacity/transform */
+                transition-behavior: allow-discrete;
             }
 
             @media (prefers-reduced-motion: no-preference) {
-                .site-menu[popover] {
-                    opacity: 0;
-                    translate: 0 -0.45rem;
-                    transition:
-                        opacity 0.2s ease,
-                        translate 0.2s ease,
-                        display 0.2s ease,
-                        overlay 0.2s ease;
-                    transition-behavior: allow-discrete;
+                .site-menu {
+                    transform: translateY(-6px);
                 }
+            }
 
-                .site-menu[popover]:is(:popover-open, .\:popover-open) {
-                    opacity: 1;
-                    translate: 0 0;
-                }
+            .site-menu:is(:popover-open, .\:popover-open):where(:not([data-closing])) {
+                display: grid;
+                gap: var(--space-1);
+                opacity: 1;
 
                 @starting-style {
-                    .site-menu[popover]:is(:popover-open, .\:popover-open) {
-                        opacity: 0;
-                        translate: 0 -0.45rem;
+                    opacity: 0;
+                }
+
+                @media (prefers-reduced-motion: no-preference) {
+                    transform: translateY(0);
+
+                    @starting-style {
+                        transform: translateY(-6px);
                     }
                 }
             }
 
-            .nav-link {
-                display: inline-flex;
+            .site-menu::backdrop {
+                background-color: rgba(7, 7, 6, 0);
+                transition-property: background-color, display, overlay;
+                transition-duration: 180ms;
+                transition-timing-function: var(--ease-out);
+                transition-behavior: allow-discrete;
+            }
+
+            .site-menu:is(:popover-open, .\:popover-open):where(:not([data-closing]))::backdrop {
+                background-color: rgba(7, 7, 6, 0.45);
+
+                @starting-style {
+                    background-color: rgba(7, 7, 6, 0);
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .site-menu,
+                .site-menu::backdrop {
+                    transition-duration: 90ms;
+                }
+            }
+
+            .site-menu a {
+                display: flex;
                 align-items: center;
-                gap: 0.45rem;
-                min-block-size: 2.5rem;
-                padding: 0.45rem 0.9rem;
-                border-radius: var(--radius-pill);
+                justify-content: space-between;
+                min-block-size: 2.375rem;
+                padding: var(--space-2) var(--space-3);
+                border-radius: var(--radius-ctl);
+                color: var(--ink-secondary);
                 text-decoration: none;
-                font-size: 0.85rem;
+                font-size: 0.8125rem;
                 font-weight: 500;
-                color: var(--text-secondary);
-                border: 1px solid transparent;
-                transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+                transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out);
             }
 
-            .nav-link:hover {
-                color: var(--gold-specular);
-                background: rgba(205, 173, 105, 0.12);
+            .site-menu a:hover {
+                background-color: var(--bg-raised);
+                color: var(--ink-primary);
             }
 
-            .nav-link[aria-current="page"] {
-                color: var(--gold-specular);
-                background: linear-gradient(135deg, rgba(244, 225, 133, 0.16), rgba(137, 97, 43, 0.24));
-                border-color: var(--border-gold);
-                font-weight: 600;
+            .site-menu a[aria-current="page"] {
+                color: var(--gold-light);
+                background-color: rgba(205, 173, 105, 0.1);
+                border: 1px solid var(--hairline);
             }
 
-            .nav-cta {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 0.45rem;
-                min-block-size: 2.55rem;
-                padding: 0.5rem 1.2rem;
-                border-radius: var(--radius-pill);
-                text-decoration: none;
-                font-size: 0.84rem;
-                font-weight: 600;
+            .site-menu .nav-cta {
+                background-image: linear-gradient(180deg, #DFC27D 0%, #CDAD69 100%);
                 color: #070706;
-                background: var(--gold-button);
-                border: 1px solid rgba(244, 225, 133, 0.72);
-                box-shadow: var(--shadow-gold);
-                transition: transform 0.18s ease, filter 0.18s ease;
+                font-weight: 600;
+                border: 1px solid rgba(244, 225, 133, 0.45);
+                box-shadow: inset 0 1px 0 rgba(255, 250, 224, 0.42);
             }
 
-            .nav-cta:hover {
-                transform: translateY(-1px);
-                filter: brightness(1.06);
+            .site-menu .nav-cta:hover {
+                background-image: linear-gradient(180deg, #E8CE8D 0%, #D6B773 100%);
+                color: #070706;
             }
 
             .site-header.is-wide .menu-button {
@@ -315,591 +397,853 @@
                 position: static;
                 display: flex;
                 align-items: center;
-                gap: 0.35rem;
+                gap: var(--space-1);
                 inline-size: auto;
                 max-inline-size: none;
+                block-size: auto;
                 max-block-size: none;
                 overflow: visible;
                 margin: 0;
                 padding: 0;
                 border: 0;
-                border-radius: 0;
                 background: transparent;
                 -webkit-backdrop-filter: none;
                 backdrop-filter: none;
                 box-shadow: none;
+                opacity: 1;
+                transform: none;
+                transition: none;
             }
 
             .site-header.is-wide .site-menu::backdrop {
                 display: none;
             }
 
-            :is(a, button, [tabindex]):focus-visible {
-                outline: 2px solid var(--gold-specular);
-                outline-offset: 3px;
+            .site-header.is-wide .site-menu a {
+                padding: var(--space-2) var(--space-3);
             }
 
-            /* Hero Section — Clean Poppins High-Contrast Typography */
-            .hero-grid {
-                display: grid;
-                grid-template-columns: minmax(0, 1fr);
-                gap: clamp(1.75rem, 1rem + 2.5vw, 3rem);
-                align-items: center;
+            .site-header.is-wide .site-menu a[aria-current="page"] {
+                background-color: transparent;
+                border-color: transparent;
+                box-shadow: inset 0 -2px 0 var(--gold-accent);
+                border-radius: var(--radius-ctl) var(--radius-ctl) 0 0;
+                color: var(--ink-primary);
             }
 
-            @media (min-width: 62rem) {
-                .hero-grid {
-                    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+            .site-header.is-measuring * {
+                transition: none !important;
+            }
+
+            @media (max-width: 32rem) {
+                .obs-reverb-pill {
+                    padding: 0.1875rem var(--space-2);
+                    font-size: 0.6875rem;
+                }
+
+                .brand-lockup span {
+                    font-size: 0.9375rem;
                 }
             }
 
-            .eyebrow {
+            /* Hero Entrance Stagger (max 5 items, 45ms stagger, prefers-reduced-motion gated) */
+            @media (prefers-reduced-motion: no-preference) {
+                @keyframes obs-rise-in {
+                    from {
+                        opacity: 0;
+                        translate: 0 10px;
+                    }
+                    to {
+                        opacity: 1;
+                        translate: 0 0;
+                    }
+                }
+
+                [data-enter] {
+                    animation: obs-rise-in 420ms var(--ease-out) backwards;
+                    animation-delay: calc(var(--enter-order, 0) * 45ms);
+                }
+            }
+
+            /* Scroll Reveal Choreography (Native CSS View Timeline + JS Observer fallback) */
+            @media (prefers-reduced-motion: no-preference) {
+                @supports ((animation-timeline: view()) and (animation-range: entry)) {
+                    @keyframes obs-scroll-entry {
+                        from {
+                            opacity: 0;
+                            translate: 0 16px;
+                        }
+                        to {
+                            opacity: 1;
+                            translate: 0 0;
+                        }
+                    }
+
+                    [data-reveal] {
+                        animation: obs-scroll-entry auto linear both;
+                        animation-timeline: view(block);
+                        animation-range: entry 0% entry 85%;
+                    }
+                }
+
+                /* Fallback state applied strictly by JS only when View Timeline is unsupported */
+                [data-reveal].is-pending {
+                    opacity: 0;
+                    translate: 0 16px;
+                }
+
+                [data-reveal].is-revealed {
+                    opacity: 1;
+                    translate: 0 0;
+                    transition: opacity 420ms var(--ease-out), translate 420ms var(--ease-out);
+                }
+            }
+
+            /* Hero Layout */
+            .hero-section {
+                padding-block: clamp(var(--space-8), 5vw, var(--space-16)) clamp(var(--space-8), 4vw, var(--space-12));
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                gap: var(--space-8);
+                align-items: center;
+            }
+
+            @media (min-width: 64rem) {
+                .hero-section {
+                    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+                    gap: var(--space-12);
+                }
+            }
+
+            .hero-kicker {
                 display: inline-flex;
                 align-items: center;
-                gap: 0.55rem;
-                min-block-size: 2rem;
-                padding: 0.3rem 0.9rem;
-                border-radius: var(--radius-pill);
-                background: linear-gradient(135deg, rgba(41, 44, 49, 0.6), rgba(45, 31, 17, 0.6));
-                border: 1px solid var(--border-gold);
-                font-size: 0.72rem;
+                gap: var(--space-2);
+                font-size: 0.8125rem;
+                font-weight: 500;
+                color: var(--gold-accent);
+            }
+
+            .hero-title {
+                margin: var(--space-3) 0 0;
+                font-size: clamp(2.125rem, 1.45rem + 2.3vw, 3.625rem);
                 font-weight: 600;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                color: var(--gold-specular);
-            }
-
-            .eyebrow-dot {
-                inline-size: 0.5rem;
-                block-size: 0.5rem;
-                border-radius: 50%;
-                background: var(--gold-specular);
-                box-shadow: 0 0 12px var(--gold-lustre);
-            }
-
-            .hero-display {
-                margin: 1.1rem 0 0;
-                font-family: var(--font-sans);
-                font-size: clamp(2.85rem, 1.5rem + 5vw, 6.25rem);
-                font-weight: 700;
-                line-height: 0.98;
-                letter-spacing: -0.035em;
+                line-height: 1.08;
+                letter-spacing: -0.025em;
                 text-wrap: balance;
-                color: var(--text-primary);
+                color: var(--ink-primary);
             }
 
-            .hero-display .gold-accent {
-                display: block;
-                background: var(--gold-foil);
-                -webkit-background-clip: text;
-                background-clip: text;
-                color: transparent;
+            .hero-title .accent {
+                color: var(--gold-light);
             }
 
             .hero-lead {
-                margin: 1.35rem 0 0;
-                max-inline-size: 54ch;
-                font-size: clamp(0.98rem, 0.92rem + 0.3vw, 1.15rem);
-                font-weight: 400;
-                line-height: 1.65;
-                color: var(--text-secondary);
-                text-wrap: pretty;
+                margin: var(--space-4) 0 0;
+                max-inline-size: 52ch;
+                font-size: 1rem;
+                line-height: 1.6;
+                color: var(--ink-secondary);
             }
 
             .hero-actions {
-                margin-block-start: 1.75rem;
+                margin-block-start: var(--space-6);
                 display: flex;
                 flex-wrap: wrap;
-                gap: 0.75rem;
+                align-items: center;
+                gap: var(--space-3);
             }
 
-            .btn-gold {
+            .btn {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                gap: 0.5rem;
-                min-block-size: 3.15rem;
-                padding: 0.75rem 1.5rem;
-                border-radius: var(--radius-pill);
-                background: var(--gold-button);
-                border: 1px solid rgba(244, 225, 133, 0.74);
-                color: #070706;
-                text-decoration: none;
-                font-family: var(--font-sans);
-                font-size: 0.92rem;
-                font-weight: 600;
-                box-shadow: var(--shadow-gold);
-                transition: transform 0.18s ease, filter 0.18s ease;
-            }
-
-            .btn-gold:hover {
-                transform: translateY(-2px);
-                filter: brightness(1.06);
-            }
-
-            .btn-glass {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 0.5rem;
-                min-block-size: 3.15rem;
-                padding: 0.75rem 1.35rem;
-                border-radius: var(--radius-pill);
-                background: linear-gradient(150deg, rgba(41, 44, 49, 0.62), rgba(7, 7, 6, 0.78));
-                -webkit-backdrop-filter: blur(16px);
-                backdrop-filter: blur(16px);
-                border: 1px solid var(--border-gold);
-                color: var(--text-primary);
-                text-decoration: none;
-                font-family: var(--font-sans);
-                font-size: 0.9rem;
+                gap: var(--space-2);
+                min-block-size: 2.75rem;
+                padding: var(--space-2) var(--space-5);
+                border-radius: var(--radius-ctl);
+                font: inherit;
+                font-size: 0.875rem;
                 font-weight: 500;
-                transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+                text-decoration: none;
+                cursor: pointer;
+                transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 120ms var(--ease-out);
             }
 
-            .btn-glass:hover {
-                border-color: var(--border-gold-strong);
-                color: var(--gold-specular);
+            @media (prefers-reduced-motion: no-preference) {
+                .btn:active,
+                .pad-key:active,
+                .preset-tab:active {
+                    transform: scale(0.985);
+                }
             }
 
-            .hero-kpi-strip {
-                margin-block-start: 2.25rem;
+            .btn-primary {
+                background-image: linear-gradient(180deg, #DFC27D 0%, #CDAD69 100%);
+                color: #070706;
+                font-weight: 600;
+                border: 1px solid rgba(244, 225, 133, 0.45);
+                box-shadow: inset 0 1px 0 rgba(255, 250, 224, 0.45);
+            }
+
+            .btn-primary:hover {
+                background-image: linear-gradient(180deg, #E8CE8D 0%, #D6B773 100%);
+            }
+
+            .btn-secondary {
+                background-color: var(--bg-raised);
+                color: var(--ink-primary);
+                border: 1px solid var(--hairline-strong);
+            }
+
+            .btn-secondary:hover {
+                background-color: #23221E;
+                border-color: var(--gold-accent);
+            }
+
+            /* Quiet Tabular Studio Metrics Strip */
+            .hero-metrics {
+                margin-block-start: var(--space-8);
+                padding-block-start: var(--space-5);
+                border-block-start: 1px solid var(--hairline);
                 display: grid;
                 grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 0.85rem;
+                gap: var(--space-4);
             }
 
-            .kpi-cell {
-                padding: 0.95rem 1.05rem;
-                border-radius: 1.25rem;
-                background: var(--surface-glass);
-                -webkit-backdrop-filter: blur(18px);
-                backdrop-filter: blur(18px);
-                border: 1px solid var(--border-gold);
-                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.18);
-            }
-
-            .kpi-value {
-                font-family: var(--font-sans);
+            .metric-value {
+                display: block;
                 font-variant-numeric: tabular-nums;
-                font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
-                font-weight: 700;
-                line-height: 1.05;
-                background: var(--gold-foil);
-                -webkit-background-clip: text;
-                background-clip: text;
-                color: transparent;
-            }
-
-            .kpi-label {
-                margin-block-start: 0.25rem;
-                font-size: 0.68rem;
+                font-size: clamp(1.25rem, 1.05rem + 0.6vw, 1.625rem);
                 font-weight: 600;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                color: var(--gold-satin);
+                line-height: 1.15;
+                color: var(--ink-primary);
             }
 
-            /* Interactive Glass Mobile Deck Card */
-            .phone-shell {
-                border-radius: 2.2rem;
-                padding: 1.15rem;
-                background: var(--surface-glass-strong);
-                -webkit-backdrop-filter: blur(26px) saturate(155%);
-                backdrop-filter: blur(26px) saturate(155%);
-                border: 1px solid var(--border-gold-strong);
-                box-shadow:
-                    0 34px 80px -24px rgba(0, 0, 0, 0.96),
-                    0 0 60px -26px rgba(205, 173, 105, 0.26),
-                    inset 0 1px 0 rgba(244, 225, 133, 0.34);
+            .metric-item:first-child .metric-value {
+                color: var(--gold-light);
+            }
+
+            .metric-label {
+                display: block;
+                margin-block-start: var(--space-1);
+                font-size: 0.75rem;
+                color: var(--ink-muted);
+            }
+
+            /* Interactive Coded OBS Studio Deck Preview */
+            .console-frame {
+                background-color: var(--bg-card);
+                border: 1px solid var(--hairline-strong);
+                border-radius: var(--radius-frame);
+                padding: var(--space-3);
                 display: grid;
-                gap: 0.95rem;
+                gap: var(--space-3);
             }
 
-            .phone-notch-row {
+            .console-bar {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                gap: 0.5rem;
-                padding-inline: 0.35rem;
+                gap: var(--space-3);
+                padding-inline: var(--space-1);
             }
 
-            .phone-pill {
+            .console-title {
+                font-size: 0.8125rem;
+                font-weight: 500;
+                color: var(--ink-secondary);
+            }
+
+            .console-badge {
                 display: inline-flex;
                 align-items: center;
-                gap: 0.4rem;
-                padding: 0.26rem 0.7rem;
-                border-radius: var(--radius-pill);
-                font-size: 0.68rem;
-                font-weight: 600;
-                letter-spacing: 0.05em;
-                background: rgba(137, 97, 43, 0.28);
-                border: 1px solid var(--border-gold);
-                color: var(--gold-specular);
+                gap: 0.375rem;
+                padding: 0.125rem var(--space-2);
+                border-radius: var(--radius-tag);
+                background-color: var(--bg-raised);
+                border: 1px solid var(--hairline);
+                font-variant-numeric: tabular-nums;
+                font-size: 0.75rem;
+                font-weight: 500;
+                color: var(--gold-light);
             }
 
             .monitor-stage {
                 position: relative;
                 aspect-ratio: 16 / 9;
-                border-radius: 1.25rem;
-                overflow: hidden;
-                background:
-                    radial-gradient(circle at 18% 20%, rgba(244, 225, 133, 0.16), transparent 52%),
-                    radial-gradient(circle at 86% 80%, rgba(45, 31, 17, 0.72), transparent 58%),
-                    linear-gradient(145deg, #1b1d20, #070706);
-                border: 1px solid var(--border-gold);
-                padding: 0.95rem;
+                border-radius: var(--radius-inner);
+                border: 1px solid var(--hairline);
+                background-color: #0D0D0B;
+                padding: var(--space-4);
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
+                overflow: hidden;
             }
 
-            .monitor-badge-row {
+            .monitor-top {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                gap: 0.5rem;
+                gap: var(--space-2);
             }
 
-            .monitor-live-badge {
+            .monitor-chip {
                 display: inline-flex;
                 align-items: center;
-                gap: 0.35rem;
-                padding: 0.2rem 0.65rem;
-                border-radius: var(--radius-pill);
-                background: var(--gold-button);
-                font-size: 0.65rem;
-                font-weight: 700;
-                letter-spacing: 0.05em;
-                color: #070706;
+                gap: 0.375rem;
+                padding: 0.1875rem var(--space-2);
+                border-radius: var(--radius-tag);
+                background: rgba(11, 11, 10, 0.82);
+                -webkit-backdrop-filter: blur(12px);
+                backdrop-filter: blur(12px);
+                border: 1px solid var(--hairline-neutral);
+                font-variant-numeric: tabular-nums;
+                font-size: 0.75rem;
+                font-weight: 500;
+                color: var(--ink-secondary);
             }
 
-            .monitor-scene-title {
-                margin: 0.35rem 0 0;
-                font-family: var(--font-sans);
-                font-size: clamp(1.3rem, 1rem + 0.95vw, 1.75rem);
-                font-weight: 700;
-                line-height: 1.08;
-                color: var(--text-primary);
+            .monitor-chip.is-pgm {
+                border-color: rgba(205, 173, 105, 0.35);
+                color: var(--gold-light);
             }
 
-            .monitor-lower-third {
-                border-radius: 0.9rem;
-                padding: 0.55rem 0.85rem;
-                background: rgba(7, 7, 6, 0.82);
-                border: 1px solid var(--border-gold);
+            .monitor-scene-stage {
+                display: grid;
+                gap: var(--space-1);
+                padding-block: var(--space-2);
+            }
+
+            .monitor-scene-meta {
+                font-size: 0.75rem;
+                color: var(--gold-accent);
+                font-weight: 500;
+            }
+
+            .monitor-scene-heading {
+                margin: 0;
+                font-size: clamp(1.125rem, 0.95rem + 0.6vw, 1.5rem);
+                font-weight: 600;
+                line-height: 1.2;
+                letter-spacing: -0.015em;
+                color: var(--ink-primary);
+            }
+
+            /* Live Overlay HUD inside Monitor with Discrete Entry/Exit Transition */
+            .monitor-hud {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                gap: 0.65rem;
-                transition: opacity 0.2s ease;
+                gap: var(--space-3);
+                padding: var(--space-2) var(--space-3);
+                border-radius: var(--radius-ctl);
+                background: rgba(18, 18, 16, 0.88);
+                -webkit-backdrop-filter: blur(14px);
+                backdrop-filter: blur(14px);
+                border: 1px solid var(--hairline-strong);
+                opacity: 1;
+                transition-property: opacity, transform, display;
+                transition-duration: 220ms;
+                transition-timing-function: var(--ease-out);
+                transition-behavior: allow-discrete;
             }
 
-            .monitor-lower-third.is-hidden {
-                opacity: 0.28;
+            @media (prefers-reduced-motion: no-preference) {
+                .monitor-hud {
+                    transform: translateY(0);
+                }
+
+                @starting-style {
+                    .monitor-hud {
+                        opacity: 0;
+                        transform: translateY(6px);
+                    }
+                }
             }
 
-            .pad-grid {
+            @starting-style {
+                .monitor-hud {
+                    opacity: 0;
+                }
+            }
+
+            .monitor-hud:where([hidden], [data-closing]) {
+                opacity: 0;
+            }
+
+            @media (prefers-reduced-motion: no-preference) {
+                .monitor-hud:where([hidden], [data-closing]) {
+                    transform: translateY(6px);
+                }
+            }
+
+            .monitor-hud[hidden] {
+                display: none;
+            }
+
+            .hud-guest-name {
+                font-size: 0.8125rem;
+                font-weight: 600;
+                color: var(--gold-light);
+            }
+
+            .hud-guest-role {
+                font-size: 0.75rem;
+                color: var(--ink-muted);
+            }
+
+            .hud-state-tag {
+                font-variant-numeric: tabular-nums;
+                font-size: 0.75rem;
+                font-weight: 500;
+                color: var(--status-live-ink);
+            }
+
+            /* Switcher Deck Keys inside Hero Preview */
+            .deck-pad-grid {
                 display: grid;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 0.55rem;
+                gap: var(--space-2);
             }
 
-            .deck-pad {
-                min-block-size: 3.4rem;
-                padding: 0.65rem 0.85rem;
-                border-radius: 1rem;
-                border: 1px solid rgba(172, 139, 86, 0.24);
-                background: linear-gradient(155deg, rgba(41, 44, 49, 0.45), rgba(7, 7, 6, 0.72));
-                color: var(--text-primary);
-                font: inherit;
-                font-size: 0.82rem;
-                font-weight: 600;
-                text-align: start;
-                cursor: pointer;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                gap: 0.2rem;
-                transition: border-color 0.18s ease, background 0.18s ease, transform 0.15s ease;
-            }
-
-            .deck-pad:hover {
-                border-color: var(--gold-lustre);
-            }
-
-            .deck-pad.is-active {
-                background: linear-gradient(135deg, rgba(244, 225, 133, 0.22), rgba(137, 97, 43, 0.3));
-                border-color: var(--gold-specular);
-                color: var(--gold-specular);
-                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.35);
-            }
-
-            .deck-pad-sub {
-                font-size: 0.65rem;
-                font-weight: 500;
-                color: var(--text-muted);
-            }
-
-            /* Section Headers */
-            .section-head {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: flex-end;
-                justify-content: space-between;
-                gap: 1rem;
-                margin-block-end: 1.5rem;
-            }
-
-            .section-index {
-                font-size: 0.72rem;
-                font-weight: 600;
-                letter-spacing: 0.1em;
-                text-transform: uppercase;
-                color: var(--gold-lustre);
-            }
-
-            .section-title {
-                margin: 0.35rem 0 0;
-                font-family: var(--font-sans);
-                font-size: clamp(2.05rem, 1.35rem + 2.8vw, 3.85rem);
-                font-weight: 700;
-                line-height: 1.04;
-                letter-spacing: -0.03em;
-                text-wrap: balance;
-            }
-
-            .section-aside {
-                max-inline-size: 40ch;
-                font-size: 0.9rem;
-                color: var(--text-muted);
-                text-wrap: pretty;
-                margin: 0;
-            }
-
-            /* Bento Capabilities Grid */
-            .bento-grid {
-                display: grid;
-                grid-template-columns: minmax(0, 1fr);
-                gap: 1rem;
-                container-type: inline-size;
-            }
-
-            @media (min-width: 48rem) {
-                .bento-grid {
-                    grid-template-columns: repeat(12, minmax(0, 1fr));
+            @media (min-width: 28rem) {
+                .deck-pad-grid {
+                    grid-template-columns: repeat(4, minmax(0, 1fr));
                 }
-                .span-7 { grid-column: span 7; }
-                .span-5 { grid-column: span 5; }
-                .span-6 { grid-column: span 6; }
             }
 
-            .glass-card {
-                border-radius: var(--radius-card);
-                padding: clamp(1.25rem, 1rem + 1vw, 1.85rem);
-                background: var(--surface-glass);
-                -webkit-backdrop-filter: blur(24px) saturate(145%);
-                backdrop-filter: blur(24px) saturate(145%);
-                border: 1px solid var(--border-gold);
-                box-shadow: var(--shadow-glass);
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                gap: 1.1rem;
+            .pad-key {
+                min-block-size: 2.5rem;
+                padding: var(--space-2) var(--space-3);
+                border-radius: var(--radius-ctl);
+                border: 1px solid var(--hairline);
+                background-color: var(--bg-raised);
+                color: var(--ink-secondary);
+                font: inherit;
+                font-size: 0.75rem;
+                font-weight: 500;
+                cursor: pointer;
+                text-align: start;
+                display: grid;
+                gap: 0.125rem;
+                transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 120ms var(--ease-out);
             }
 
-            .card-kicker {
-                font-size: 0.7rem;
-                font-weight: 600;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                color: var(--gold-lustre);
+            .pad-key:hover {
+                border-color: var(--hairline-strong);
+                color: var(--ink-primary);
             }
 
-            .card-heading {
-                margin: 0.45rem 0 0;
-                font-family: var(--font-sans);
-                font-size: clamp(1.4rem, 1.15rem + 1vw, 2rem);
-                font-weight: 700;
-                line-height: 1.14;
+            .pad-key[aria-pressed="true"] {
+                background-color: var(--bg-bronze);
+                border-color: var(--gold-accent);
+                color: var(--gold-light);
+            }
+
+            .pad-sub {
+                font-size: 0.6875rem;
+                color: var(--ink-muted);
+            }
+
+            .pad-key[aria-pressed="true"] .pad-sub {
+                color: var(--gold-accent);
+            }
+
+            /* Section Hairline Divider & Band Framing */
+            .band {
+                padding-block: clamp(var(--space-12), 6vw, var(--space-20));
+                border-block-start: 1px solid var(--hairline);
+            }
+
+            .band-header {
+                display: grid;
+                gap: var(--space-2);
+                max-inline-size: 46rem;
+                margin-block-end: var(--space-8);
+            }
+
+            .band-eyebrow {
+                font-size: 0.8125rem;
+                font-weight: 500;
+                color: var(--gold-accent);
+            }
+
+            .band-heading {
+                margin: 0;
+                font-size: clamp(1.5rem, 1.15rem + 1.25vw, 2.25rem);
+                font-weight: 500;
+                line-height: 1.16;
                 letter-spacing: -0.02em;
                 text-wrap: balance;
+                color: var(--ink-primary);
             }
 
-            .card-copy {
-                margin: 0.6rem 0 0;
-                max-inline-size: 56ch;
-                font-size: 0.92rem;
-                color: var(--text-secondary);
-                text-wrap: pretty;
+            .band-copy {
+                margin: 0;
+                color: var(--ink-secondary);
+                max-inline-size: 58ch;
             }
 
-            .chip-row {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 0.45rem;
-            }
-
-            .gold-chip {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.35rem;
-                padding: 0.28rem 0.72rem;
-                border-radius: var(--radius-pill);
-                font-size: 0.7rem;
-                font-weight: 500;
-                color: var(--gold-specular);
-                background: rgba(137, 97, 43, 0.22);
-                border: 1px solid rgba(205, 173, 105, 0.32);
-            }
-
-            /* 7 Overlay Presets Interactive Explorer */
-            .presets-panel {
-                border-radius: var(--radius-card);
-                padding: clamp(1.15rem, 0.9rem + 1.1vw, 1.9rem);
-                background: var(--surface-glass-strong);
-                -webkit-backdrop-filter: blur(24px) saturate(150%);
-                backdrop-filter: blur(24px) saturate(150%);
-                border: 1px solid var(--border-gold);
-                box-shadow: var(--shadow-glass);
-                display: grid;
-                gap: 1.25rem;
-            }
-
-            .preset-tabs {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 0.5rem;
-            }
-
-            .preset-tab {
-                min-block-size: 2.55rem;
-                padding: 0.45rem 0.95rem;
-                border-radius: var(--radius-pill);
-                border: 1px solid rgba(172, 139, 86, 0.28);
-                background: rgba(41, 44, 49, 0.45);
-                color: var(--text-secondary);
-                font: inherit;
-                font-size: 0.82rem;
-                font-weight: 500;
-                cursor: pointer;
-                transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
-            }
-
-            .preset-tab[aria-selected="true"] {
-                background: var(--gold-button);
-                border-color: rgba(244, 225, 133, 0.72);
-                color: #070706;
-                font-weight: 600;
-                box-shadow: var(--shadow-gold);
-            }
-
-            .preset-stage {
+            /* Asymmetric Capabilities Split (5/7) — Zero 4-Card Bento Symmetry */
+            .architecture-split {
                 display: grid;
                 grid-template-columns: minmax(0, 1fr);
-                gap: 1.25rem;
+                gap: var(--space-6);
+                align-items: start;
+            }
+
+            @media (min-width: 60rem) {
+                .architecture-split {
+                    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+                    gap: var(--space-8);
+                }
+            }
+
+            .capability-list {
+                display: grid;
+                gap: var(--space-4);
+                margin: 0;
+                padding: 0;
+                list-style: none;
+            }
+
+            .capability-item {
+                padding: var(--space-4) var(--space-5);
+                border-radius: var(--radius-card);
+                background-color: var(--bg-card);
+                border: 1px solid var(--hairline);
+                display: grid;
+                gap: var(--space-1);
+                transition: border-color 140ms var(--ease-out);
+            }
+
+            .capability-item:hover {
+                border-color: var(--hairline-strong);
+            }
+
+            .capability-title {
+                margin: 0;
+                display: flex;
                 align-items: center;
+                gap: var(--space-2);
+                font-size: 1rem;
+                font-weight: 500;
+                color: var(--ink-primary);
+            }
+
+            .capability-desc {
+                margin: 0;
+                font-size: 0.875rem;
+                color: var(--ink-secondary);
+            }
+
+            .pipeline-panel {
+                background-color: var(--bg-card);
+                border: 1px solid var(--hairline-strong);
+                border-radius: var(--radius-card);
+                padding: var(--space-6);
+                display: grid;
+                gap: var(--space-5);
+            }
+
+            .pipeline-head {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: var(--space-3);
+                padding-block-end: var(--space-4);
+                border-block-end: 1px solid var(--hairline);
+            }
+
+            .pipeline-title {
+                margin: 0;
+                font-size: 1rem;
+                font-weight: 500;
+                color: var(--ink-primary);
+            }
+
+            .pipeline-nodes {
+                display: grid;
+                gap: var(--space-3);
+            }
+
+            .pipeline-row {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr) auto;
+                align-items: center;
+                gap: var(--space-3);
+                padding: var(--space-3) var(--space-4);
+                border-radius: var(--radius-inner);
+                background-color: var(--bg-raised);
+                border: 1px solid var(--hairline);
+            }
+
+            .pipeline-step-num {
+                font-variant-numeric: tabular-nums;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: var(--gold-light);
+            }
+
+            .pipeline-step-name {
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: var(--ink-primary);
+            }
+
+            .pipeline-step-sub {
+                display: block;
+                font-size: 0.75rem;
+                color: var(--ink-muted);
+            }
+
+            .pipeline-tag {
+                padding: 0.125rem var(--space-2);
+                border-radius: var(--radius-tag);
+                background-color: var(--bg-card);
+                border: 1px solid var(--hairline);
+                font-variant-numeric: tabular-nums;
+                font-size: 0.75rem;
+                color: var(--ink-secondary);
+            }
+
+            /* Overlay Preset Explorer (4/8 Asymmetric Split) */
+            .presets-split {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                gap: var(--space-6);
+                align-items: stretch;
             }
 
             @media (min-width: 56rem) {
-                .preset-stage {
-                    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
+                .presets-split {
+                    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
                 }
             }
 
-            .preset-canvas {
+            .preset-rail {
+                display: grid;
+                gap: var(--space-2);
+                align-content: start;
+            }
+
+            .preset-tab {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: var(--space-3);
+                inline-size: 100%;
+                min-block-size: 2.75rem;
+                padding: var(--space-2) var(--space-4);
+                border-radius: var(--radius-ctl);
+                border: 1px solid var(--hairline);
+                background-color: var(--bg-card);
+                color: var(--ink-secondary);
+                font: inherit;
+                font-size: 0.875rem;
+                font-weight: 500;
+                text-align: start;
+                cursor: pointer;
+                transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 120ms var(--ease-out);
+            }
+
+            .preset-tab:hover {
+                background-color: var(--bg-raised);
+                border-color: var(--hairline-strong);
+                color: var(--ink-primary);
+            }
+
+            .preset-tab[aria-selected="true"] {
+                background-color: var(--bg-raised);
+                border-color: var(--gold-accent);
+                color: var(--gold-light);
+                box-shadow: inset 3px 0 0 var(--gold-accent);
+            }
+
+            .preset-tab-type {
+                font-size: 0.75rem;
+                font-weight: 400;
+                color: var(--ink-muted);
+            }
+
+            .preset-stage-card {
+                background-color: var(--bg-card);
+                border: 1px solid var(--hairline-strong);
+                border-radius: var(--radius-frame);
+                padding: var(--space-4);
+                display: grid;
+                gap: var(--space-4);
+            }
+
+            .preset-viewport {
                 position: relative;
                 aspect-ratio: 16 / 9;
-                border-radius: 1.25rem;
-                overflow: hidden;
-                border: 1px solid var(--border-gold-strong);
-                background:
-                    radial-gradient(circle at 18% 22%, rgba(244, 225, 133, 0.18), transparent 48%),
-                    radial-gradient(circle at 82% 80%, rgba(137, 97, 43, 0.28), transparent 54%),
-                    linear-gradient(155deg, #292C31 0%, #070706 60%, #2D1F11 100%);
-                padding: clamp(1rem, 2.5vw, 1.75rem);
+                border-radius: var(--radius-inner);
+                border: 1px solid var(--hairline);
+                background-color: #0D0D0B;
+                padding: clamp(var(--space-4), 3vw, var(--space-6));
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
+                overflow: hidden;
+            }
+
+            .preset-viewport-bar {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: var(--space-2);
+            }
+
+            .stage-tag {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.375rem;
+                padding: 0.1875rem var(--space-2);
+                border-radius: var(--radius-tag);
+                background-color: var(--bg-raised);
+                border: 1px solid var(--hairline);
+                font-size: 0.75rem;
+                font-weight: 500;
+                color: var(--ink-secondary);
+            }
+
+            .stage-tag.is-gold {
+                border-color: var(--hairline-strong);
+                color: var(--gold-light);
+            }
+
+            .preset-copy-block {
+                display: grid;
+                gap: var(--space-2);
             }
 
             .preset-headline {
-                margin: 0.4rem 0 0;
-                font-family: var(--font-sans);
-                font-size: clamp(1.45rem, 1.15rem + 1.6vw, 2.6rem);
-                font-weight: 700;
-                line-height: 1.06;
-                letter-spacing: -0.025em;
-                color: var(--text-primary);
+                margin: 0;
+                font-size: clamp(1.375rem, 1.05rem + 1.1vw, 2rem);
+                font-weight: 600;
+                line-height: 1.15;
+                letter-spacing: -0.02em;
+                color: var(--ink-primary);
             }
 
             .preset-subheadline {
-                margin: 0.4rem 0 0;
-                font-size: 0.9rem;
-                color: var(--text-secondary);
-            }
-
-            /* Closing Statement Banner */
-            .cta-banner {
-                border-radius: 2rem;
-                padding: clamp(1.75rem, 1.2rem + 2.5vw, 3.25rem);
-                background:
-                    radial-gradient(circle at 85% 20%, rgba(244, 225, 133, 0.18), transparent 44%),
-                    linear-gradient(150deg, rgba(41, 44, 49, 0.72), rgba(7, 7, 6, 0.92), rgba(45, 31, 17, 0.72));
-                -webkit-backdrop-filter: blur(24px);
-                backdrop-filter: blur(24px);
-                border: 1px solid var(--border-gold-strong);
-                box-shadow: var(--shadow-glass);
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                justify-content: space-between;
-                gap: 1.5rem;
-            }
-
-            .cta-title {
                 margin: 0;
-                font-family: var(--font-sans);
-                font-size: clamp(1.95rem, 1.3rem + 2.6vw, 3.65rem);
-                font-weight: 700;
-                line-height: 1.04;
-                letter-spacing: -0.03em;
-                text-wrap: balance;
+                font-size: 0.9375rem;
+                color: var(--ink-secondary);
+                max-inline-size: 48ch;
             }
 
-            .footer-bar {
+            .preset-lower-strip {
                 display: flex;
                 flex-wrap: wrap;
                 align-items: center;
                 justify-content: space-between;
-                gap: 0.85rem;
-                padding-block-start: 1.25rem;
-                border-block-start: 1px solid var(--border-subtle);
-                font-size: 0.8rem;
-                color: var(--text-muted);
+                gap: var(--space-3);
+                padding: var(--space-3) var(--space-4);
+                border-radius: var(--radius-ctl);
+                background: rgba(18, 18, 16, 0.86);
+                -webkit-backdrop-filter: blur(14px);
+                backdrop-filter: blur(14px);
+                border: 1px solid var(--hairline-strong);
+            }
+
+            .preset-meta-footer {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: var(--space-3);
+                padding-inline: var(--space-1);
+                font-size: 0.8125rem;
+                color: var(--ink-muted);
+            }
+
+            /* Closing Action Panel & Slim Footer */
+            .closing-panel {
+                background-color: var(--bg-card);
+                border: 1px solid var(--hairline-strong);
+                border-radius: var(--radius-card);
+                padding: clamp(var(--space-6), 4vw, var(--space-12));
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: var(--space-6);
+            }
+
+            .closing-title {
+                margin: 0;
+                font-size: clamp(1.375rem, 1.1rem + 0.9vw, 1.875rem);
+                font-weight: 500;
+                line-height: 1.2;
+                letter-spacing: -0.02em;
+                color: var(--ink-primary);
+            }
+
+            .closing-sub {
+                margin: var(--space-2) 0 0;
+                color: var(--ink-secondary);
+                max-inline-size: 50ch;
+            }
+
+            .site-footer {
+                padding-block: var(--space-8);
+                border-block-start: 1px solid var(--hairline);
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: var(--space-4);
+                font-size: 0.8125rem;
+                color: var(--ink-muted);
+            }
+
+            .footer-links {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: var(--space-4);
+            }
+
+            .footer-links a {
+                color: var(--ink-secondary);
+                text-decoration: none;
+                transition: color 140ms var(--ease-out);
+            }
+
+            .footer-links a:hover {
+                color: var(--gold-light);
             }
 
             @media (forced-colors: active) {
                 .site-header,
-                .glass-card,
-                .presets-panel,
-                .phone-shell,
-                .cta-banner,
-                .kpi-cell {
-                    border: 1px solid CanvasText;
+                .site-menu,
+                .console-frame,
+                .monitor-stage,
+                .monitor-hud,
+                .capability-item,
+                .pipeline-panel,
+                .pipeline-row,
+                .preset-tab,
+                .preset-stage-card,
+                .preset-viewport,
+                .preset-lower-strip,
+                .closing-panel,
+                .obs-reverb-pill,
+                .obs-brand-version-pill {
                     background: Canvas;
                     color: CanvasText;
+                    border: 1px solid CanvasText;
                 }
 
-                .hero-display .gold-accent,
-                .brand-name,
-                .kpi-value {
-                    background: none;
-                    color: CanvasText;
-                }
-
-                .btn-gold,
-                .nav-cta,
+                .site-menu a[aria-current="page"],
+                .btn-primary,
+                .site-menu .nav-cta,
                 .preset-tab[aria-selected="true"] {
                     background: Highlight;
                     color: HighlightText;
@@ -909,392 +1253,544 @@
         </style>
     </head>
     <body>
-        <div class="ambient-canvas" aria-hidden="true"></div>
-        <div class="ambient-grid" aria-hidden="true"></div>
+        <a class="skip-link" href="#main-content">Skip to content</a>
 
-        <div class="page-shell">
-            <header class="site-header" id="site-header">
-                <div class="header-inner">
-                    <a class="brand-lockup" href="{{ route('home') }}">
-                        <span class="brand-mark" aria-hidden="true">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="9"/>
-                                <path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
-                                <circle cx="12" cy="12" r="3" fill="currentColor"/>
-                            </svg>
-                        </span>
-                        <span class="brand-name">OBSISSTANT</span>
-                        <span class="version-tag">v{{ $currentVersion }}</span>
+        <header id="site-header" class="site-header">
+            <div class="header-inner">
+                <div class="brand-cluster">
+                    <a href="{{ route('home') }}" class="brand-lockup" aria-current="page">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#CDAD69" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
+                            <circle cx="12" cy="12" r="2.5" fill="#CDAD69"/>
+                        </svg>
+                        <span>Obsisstant</span>
                     </a>
+                    <a href="{{ route('changelog') }}" class="obs-brand-version-pill" title="View changelog">v{{ $currentVersion }}</a>
+                </div>
+
+                <div class="header-end">
+                    <x-reverb-status-pill />
 
                     <nav class="site-nav" aria-label="Primary">
                         <button
+                            id="menu-trigger"
                             class="menu-button"
                             type="button"
                             popovertarget="site-menu"
                             popovertargetaction="toggle"
                             aria-controls="site-menu"
+                            aria-expanded="false"
                         >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-                                <path d="M4 7h16M4 12h16M4 17h16"/>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <line x1="4" y1="7" x2="20" y2="7"/>
+                                <line x1="4" y1="12" x2="20" y2="12"/>
+                                <line x1="4" y1="17" x2="20" y2="17"/>
                             </svg>
                             <span>Menu</span>
                         </button>
 
                         <ul id="site-menu" class="site-menu" popover="auto">
-                            <li><a class="nav-link" href="{{ route('home') }}" aria-current="page">Overview</a></li>
-                            <li><a class="nav-link" href="{{ url('/admin/obs-control-deck') }}">Control Deck</a></li>
-                            <li><a class="nav-link" href="{{ route('obs.deck.index') }}">Mobile Deck</a></li>
-                            <li><a class="nav-link" href="{{ route('changelog') }}">Changelog</a></li>
-                            <li>
-                                <a class="nav-cta" href="{{ url('/admin') }}">
-                                    <span>@auth Enter Console @else Studio Login @endauth</span>
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <path d="M5 12h14M13 6l6 6-6 6"/>
-                                    </svg>
-                                </a>
-                            </li>
+                            <li><a href="{{ route('home') }}" aria-current="page">Overview</a></li>
+                            <li><a href="#features">Architecture</a></li>
+                            <li><a href="#overlays">Overlays</a></li>
+                            <li><a href="{{ route('changelog') }}">Changelog</a></li>
+                            <li><a href="{{ url('/admin/obs-control-deck') }}" class="nav-cta">Control Deck</a></li>
                         </ul>
                     </nav>
                 </div>
-            </header>
+            </div>
+        </header>
 
-            <main>
-                {{-- Hero Section --}}
-                <section class="hero-grid" aria-labelledby="hero-heading">
+        <main id="main-content" class="container">
+            {{-- Hero Section --}}
+            <section class="hero-section" aria-labelledby="hero-heading">
+                <div>
+                    <div class="hero-kicker" data-enter style="--enter-order: 0;">
+                        <span>Laravel Reverb · OBS WebSocket v5</span>
+                    </div>
+
+                    <h1 id="hero-heading" class="hero-title" data-enter style="--enter-order: 1;">
+                        Control every OBS frame <span class="accent">from any device</span>
+                    </h1>
+
+                    <p class="hero-lead" data-enter style="--enter-order: 2;">
+                        Switch scenes, fire multi-step broadcast macros, and update Browser Source overlays in real time through an outbound local relay—zero router port-forwarding required.
+                    </p>
+
+                    <div class="hero-actions" data-enter style="--enter-order: 3;">
+                        <a href="{{ url('/admin/obs-control-deck') }}" class="btn btn-primary">Open control deck</a>
+                        <a href="{{ route('obs.deck.index') }}" class="btn btn-secondary">Mobile wireless deck</a>
+                    </div>
+
+                    <div class="hero-metrics" data-enter style="--enter-order: 4;">
+                        <div class="metric-item">
+                            <span class="metric-value">{{ $metrics['studios_online'] }} / {{ max(1, $metrics['studios_total']) }}</span>
+                            <span class="metric-label">Studios online</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-value">{{ $metrics['screens_total'] }}</span>
+                            <span class="metric-label">Live overlays</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-value">{{ $metrics['macros_total'] }}</span>
+                            <span class="metric-label">Saved macros</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Coded Interactive OBS Switcher & Overlay Monitor --}}
+                <aside class="console-frame" aria-label="Interactive broadcast switcher preview" data-enter style="--enter-order: 5;">
+                    <div class="console-bar">
+                        <span class="console-title">Live program monitor</span>
+                        <span class="console-badge" id="preview-status-chip">{{ $metrics['studios_online'] > 0 ? 'PGM · Relay connected' : 'PGM · Relay ready' }}</span>
+                    </div>
+
+                    <div id="hero-monitor" class="monitor-stage">
+                        <div class="monitor-top">
+                            <span class="monitor-chip is-pgm" id="preview-scene-pill">Scene · Starting Soon</span>
+                            <span class="monitor-chip" id="preview-stream-chip">1080p60 · Ready</span>
+                        </div>
+
+                        <div class="monitor-scene-stage">
+                            <span class="monitor-scene-meta" id="preview-scene-meta">Program output</span>
+                            <h2 class="monitor-scene-heading" id="preview-scene-heading">Starting Soon</h2>
+                        </div>
+
+                        <div class="monitor-hud" id="preview-lower-third">
+                            <div>
+                                <div class="hud-guest-name" id="preview-lt-name">Obsisstant Studio</div>
+                                <div class="hud-guest-role" id="preview-lt-role">Browser Source Overlay · Lower Thirds</div>
+                            </div>
+                            <span class="hud-state-tag" id="preview-lt-state">On air</span>
+                        </div>
+                    </div>
+
+                    <div class="deck-pad-grid" role="group" aria-label="Test scene switcher buttons">
+                        <button type="button" class="pad-key" data-demo-scene="Starting Soon" data-demo-meta="Pre-show slate" aria-pressed="true">
+                            <span>Starting Soon</span>
+                            <span class="pad-sub">Scene 01</span>
+                        </button>
+                        <button type="button" class="pad-key" data-demo-scene="Main Camera" data-demo-meta="Studio A feed" aria-pressed="false">
+                            <span>Main Camera</span>
+                            <span class="pad-sub">Scene 02</span>
+                        </button>
+                        <button type="button" class="pad-key" data-demo-scene="Screen Share" data-demo-meta="Workstation capture" aria-pressed="false">
+                            <span>Screen Share</span>
+                            <span class="pad-sub">Scene 03</span>
+                        </button>
+                        <button type="button" class="pad-key" id="toggle-lt-pad" aria-pressed="true">
+                            <span>Lower Third</span>
+                            <span class="pad-sub" id="toggle-lt-sub">Overlay visible</span>
+                        </button>
+                    </div>
+                </aside>
+            </section>
+
+            {{-- Asymmetric Architecture Band --}}
+            <section id="features" class="band" aria-labelledby="features-heading">
+                <div class="band-header" data-reveal>
+                    <span class="band-eyebrow">Architecture</span>
+                    <h2 id="features-heading" class="band-heading">Outbound WebSocket control with zero firewall changes</h2>
+                    <p class="band-copy">
+                        Your local relay agent dials out to Laravel Reverb over TLS and bridges every button tap straight to local OBS Studio on port 4455.
+                    </p>
+                </div>
+
+                <div class="architecture-split">
+                    <ul class="capability-list" data-reveal>
+                        <li class="capability-item">
+                            <h3 class="capability-title">Wireless mobile &amp; desktop decks</h3>
+                            <p class="capability-desc">Switch scenes, trigger transitions, toggle streams, and balance audio faders from phone or panel.</p>
+                        </li>
+                        <li class="capability-item">
+                            <h3 class="capability-title">Multi-step macro sequences</h3>
+                            <p class="capability-desc">Chain source visibility, scene cuts, and timed delays into reliable single-tap broadcast cues.</p>
+                        </li>
+                        <li class="capability-item">
+                            <h3 class="capability-title">Token-scoped Browser Sources</h3>
+                            <p class="capability-desc">Push instant headline updates, guest lower-thirds, and alerts to transparent OBS overlay URLs.</p>
+                        </li>
+                    </ul>
+
+                    <div class="pipeline-panel" aria-label="Broadcast command signal path" data-reveal>
+                        <div class="pipeline-head">
+                            <h3 class="pipeline-title">Command signal path</h3>
+                            <span class="stage-tag is-gold">Sub-second relay</span>
+                        </div>
+
+                        <div class="pipeline-nodes">
+                            <div class="pipeline-row">
+                                <span class="pipeline-step-num">01</span>
+                                <div>
+                                    <span class="pipeline-step-name">Operator Deck or Panel</span>
+                                    <span class="pipeline-step-sub">Mobile wireless deck or Filament control surface</span>
+                                </div>
+                                <span class="pipeline-tag">HTTPS</span>
+                            </div>
+                            <div class="pipeline-row">
+                                <span class="pipeline-step-num">02</span>
+                                <div>
+                                    <span class="pipeline-step-name">Laravel Reverb Broker</span>
+                                    <span class="pipeline-step-sub">Authorized studio channel fan-out</span>
+                                </div>
+                                <span class="pipeline-tag">WSS</span>
+                            </div>
+                            <div class="pipeline-row">
+                                <span class="pipeline-step-num">03</span>
+                                <div>
+                                    <span class="pipeline-step-name">Local Relay Daemon</span>
+                                    <span class="pipeline-step-sub">Authenticated agent beside OBS Studio</span>
+                                </div>
+                                <span class="pipeline-tag">Outbound</span>
+                            </div>
+                            <div class="pipeline-row">
+                                <span class="pipeline-step-num">04</span>
+                                <div>
+                                    <span class="pipeline-step-name">OBS Studio v5 Engine</span>
+                                    <span class="pipeline-step-sub">Scene cuts, audio mixers &amp; replay buffers</span>
+                                </div>
+                                <span class="pipeline-tag">ws://:4455</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {{-- Interactive Overlay Presets Explorer --}}
+            @php
+                $firstPreset = $presets[0] ?? [
+                    'key' => 'starting_soon',
+                    'label' => 'Starting Soon',
+                    'theme' => ['transparent_background' => false],
+                    'state' => [
+                        'badge_text' => 'LIVE SOON',
+                        'headline' => 'Stream Starting Soon',
+                        'subheadline' => 'Grab a drink — broadcast begins shortly.',
+                        'show_countdown' => true,
+                    ],
+                ];
+            @endphp
+
+            <section id="overlays" class="band" aria-labelledby="overlays-heading">
+                <div class="band-header" data-reveal>
+                    <span class="band-eyebrow">Browser Source Studio</span>
+                    <h2 id="overlays-heading" class="band-heading">Broadcast canvases ready for any scene</h2>
+                    <p class="band-copy">
+                        Select any built-in preset to inspect how Obsisstant renders full-frame slates and transparent lower-thirds inside OBS Studio.
+                    </p>
+                </div>
+
+                <div class="presets-split">
+                    <div class="preset-rail" role="tablist" aria-label="Overlay canvas presets" data-reveal>
+                        @foreach ($presets as $index => $preset)
+                            <button
+                                type="button"
+                                class="preset-tab"
+                                role="tab"
+                                id="preset-tab-{{ $preset['key'] }}"
+                                aria-controls="preset-tabpanel"
+                                aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
+                                data-preset-key="{{ $preset['key'] }}"
+                                data-preset='@json($preset)'
+                            >
+                                <span>{{ $preset['label'] }}</span>
+                                <span class="preset-tab-type">{{ ! empty($preset['theme']['transparent_background']) ? 'Overlay' : 'Slate' }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+
+                    <div id="preset-tabpanel" class="preset-stage-card" role="tabpanel" aria-labelledby="preset-tab-{{ $firstPreset['key'] }}" data-reveal>
+                        <div class="preset-viewport" id="preset-stage-viewport">
+                            <div class="preset-viewport-bar">
+                                <span class="stage-tag is-gold" id="preset-badge">{{ $firstPreset['state']['badge_text'] ?? 'Live' }}</span>
+                                <span class="stage-tag" id="preset-bg-tag">{{ ! empty($firstPreset['theme']['transparent_background']) ? 'Transparent layer' : 'Full canvas' }}</span>
+                            </div>
+
+                            <div class="preset-copy-block" id="preset-copy-region">
+                                <h3 class="preset-headline" id="preset-headline">{{ $firstPreset['state']['headline'] ?? $firstPreset['label'] }}</h3>
+                                <p class="preset-subheadline" id="preset-subheadline">{{ $firstPreset['state']['subheadline'] ?? 'Broadcast overlay synced through Reverb.' }}</p>
+                            </div>
+
+                            <div class="preset-lower-strip">
+                                <div>
+                                    <div class="hud-guest-name" id="preset-guest">{{ $firstPreset['state']['guest_name'] ?? 'Obsisstant Studio' }}</div>
+                                    <div class="hud-guest-role" id="preset-role">{{ $firstPreset['state']['guest_role'] ?? 'Real-Time Overlay' }}</div>
+                                </div>
+                                <span class="stage-tag is-gold" id="preset-extra">{{ ! empty($firstPreset['state']['show_countdown']) ? 'Timer active' : (! empty($firstPreset['state']['show_webcam_frame']) ? 'Cam frame' : 'Reverb sync') }}</span>
+                            </div>
+                        </div>
+
+                        <div class="preset-meta-footer">
+                            <span id="preset-side-type">Preset key: {{ $firstPreset['key'] }}</span>
+                            <span id="preset-side-title">{{ $firstPreset['label'] }}</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {{-- Closing Strip --}}
+            <section class="band" aria-labelledby="closing-heading">
+                <div class="closing-panel" data-reveal>
                     <div>
-                        <span class="eyebrow">
-                            <span class="eyebrow-dot" aria-hidden="true"></span>
-                            <span>Laravel Reverb + OBS WebSocket v5</span>
-                        </span>
-
-                        <h1 class="hero-display" id="hero-heading">
-                            COMMAND
-                            <span class="gold-accent">EVERY OBS</span>
-                            FRAME.
-                        </h1>
-
-                        <p class="hero-lead">
-                            Design live glassmorphic broadcast overlays, orchestrate multi-studio OBS rigs behind NAT via outbound Node.js relays, and trigger scenes, macros, and audio from any mobile deck in real time.
-                        </p>
-
-                        <div class="hero-actions">
-                            <a class="btn-gold" href="{{ url('/admin/obs-control-deck') }}">
-                                <span>Launch Control Deck</span>
-                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M5 12h14M13 6l6 6-6 6"/>
-                                </svg>
-                            </a>
-                            <a class="btn-glass" href="{{ route('obs.deck.index') }}">
-                                <span>Open Mobile Deck</span>
-                            </a>
-                            <a class="btn-glass" href="{{ route('changelog') }}">
-                                <span>v{{ $currentVersion }} Notes</span>
-                            </a>
-                        </div>
-
-                        <div class="hero-kpi-strip" aria-label="Studio readiness telemetry">
-                            <div class="kpi-cell">
-                                <div class="kpi-value">{{ $metrics['studios_total'] }}</div>
-                                <div class="kpi-label">Active Studios</div>
-                            </div>
-                            <div class="kpi-cell">
-                                <div class="kpi-value">{{ count($presets) }}</div>
-                                <div class="kpi-label">Overlay Canvases</div>
-                            </div>
-                            <div class="kpi-cell">
-                                <div class="kpi-value">{{ $metrics['macros_total'] }}</div>
-                                <div class="kpi-label">Broadcast Macros</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Interactive Glass Mobile Deck Preview --}}
-                    <aside class="phone-shell" aria-label="Interactive mobile deck preview">
-                        <div class="phone-notch-row">
-                            <span class="phone-pill">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="8"/>
-                                </svg>
-                                <span>REVERB LIVE SYNC</span>
-                            </span>
-                            <span class="version-tag">{{ $metrics['studios_online'] > 0 ? $metrics['studios_online'].' ONLINE' : 'RELAY READY' }}</span>
-                        </div>
-
-                        <div class="monitor-stage" id="hero-monitor">
-                            <div class="monitor-badge-row">
-                                <span class="monitor-live-badge" id="preview-badge">MAIN CAM</span>
-                                <span class="version-tag" id="preview-status-chip">PGM · 1080P60</span>
-                            </div>
-
-                            <div>
-                                <div class="kpi-label" style="margin:0;">Active OBS Program</div>
-                                <h2 class="monitor-scene-title" id="preview-scene-name">Main Camera Feed</h2>
-                            </div>
-
-                            <div class="monitor-lower-third" id="preview-lower-third">
-                                <div>
-                                    <div style="font-weight:600;font-size:0.86rem;color:var(--gold-specular);" id="preview-guest">Super Admin</div>
-                                    <div style="font-size:0.72rem;color:var(--text-muted);" id="preview-role">Host · Obsisstant Studio</div>
-                                </div>
-                                <span class="version-tag" id="preview-lt-state">VISIBLE</span>
-                            </div>
-                        </div>
-
-                        <div class="pad-grid" role="group" aria-label="Simulated OBS scene switcher">
-                            <button type="button" class="deck-pad is-active" data-scene="Main Camera Feed" data-badge="MAIN CAM">
-                                <span>Main Camera</span>
-                                <span class="deck-pad-sub">Switch Scene</span>
-                            </button>
-                            <button type="button" class="deck-pad" data-scene="Starting Soon" data-badge="COUNTDOWN">
-                                <span>Starting Soon</span>
-                                <span class="deck-pad-sub">Switch Scene</span>
-                            </button>
-                            <button type="button" class="deck-pad" data-scene="Picture-in-Picture" data-badge="DUAL CAM">
-                                <span>Screen + Cam</span>
-                                <span class="deck-pad-sub">Switch Scene</span>
-                            </button>
-                            <button type="button" class="deck-pad" id="toggle-lt-pad">
-                                <span>Toggle Lower Third</span>
-                                <span class="deck-pad-sub" id="toggle-lt-sub">Overlay: On</span>
-                            </button>
-                        </div>
-                    </aside>
-                </section>
-
-                {{-- Capabilities Bento --}}
-                <section aria-labelledby="architecture-heading" style="margin-block-start: clamp(3rem, 2rem + 3vw, 5rem);">
-                    <div class="section-head">
-                        <div>
-                            <div class="section-index">01 / STUDIO ARCHITECTURE</div>
-                            <h2 class="section-title" id="architecture-heading">ONE GLASS DECK.<br>ZERO FIREWALL HEADACHES.</h2>
-                        </div>
-                        <p class="section-aside">
-                            Engineered to run effortlessly over HTTPS locally on MAMP or in production on cPanel with WebSocket tunneling.
+                        <h2 id="closing-heading" class="closing-title">Open your broadcast console</h2>
+                        <p class="closing-sub">
+                            Configure studio relay profiles, customize live Browser Sources, or launch the mobile wireless control deck.
                         </p>
                     </div>
-
-                    <div class="bento-grid">
-                        <article class="glass-card span-7">
-                            <div>
-                                <span class="card-kicker">Outbound Relay (obs-agent)</span>
-                                <h3 class="card-heading">Connect Any Local OBS Studio Without Opening Router Ports.</h3>
-                                <p class="card-copy">
-                                    Each studio connects outbound over HTTPS and <code>wss://</code> to Laravel Reverb using its scoped bearer token while talking locally to OBS WebSocket v5 (<code>127.0.0.1:4455</code>). Credentials never touch client browsers.
-                                </p>
-                            </div>
-                            <div class="chip-row">
-                                <span class="gold-chip">obs-websocket-js v5</span>
-                                <span class="gold-chip">Multi-Studio Scoped</span>
-                                <span class="gold-chip">Signed Channel Auth</span>
-                            </div>
-                        </article>
-
-                        <article class="glass-card span-5">
-                            <div>
-                                <span class="card-kicker">Instant Push Overlays</span>
-                                <h3 class="card-heading">Browser Sources That Update Mid-Sentence.</h3>
-                                <p class="card-copy">
-                                    Edit headlines, countdown clocks, tickers, lower thirds, or breaking alert toasts and broadcast straight into OBS via synchronous Reverb events.
-                                </p>
-                            </div>
-                            <div class="chip-row">
-                                <span class="gold-chip">/screens/{token}</span>
-                                <span class="gold-chip">1-Click Push to OBS</span>
-                            </div>
-                        </article>
-
-                        <article class="glass-card span-6">
-                            <div>
-                                <span class="card-kicker">Touch-First Wireless Control</span>
-                                <h3 class="card-heading">Your Phone Becomes a Tactile Stream Deck.</h3>
-                                <p class="card-copy">
-                                    Open the mobile-native deck at <code>/deck</code> on iOS or Android to fire multi-step macros, mute mics, toggle scene items, and transition Studio Mode cleanly.
-                                </p>
-                            </div>
-                            <div class="chip-row">
-                                <span class="gold-chip">Safe-Area Mobile UI</span>
-                                <span class="gold-chip">Audio Mixer &amp; Macros</span>
-                            </div>
-                        </article>
-
-                        <article class="glass-card span-6">
-                            <div>
-                                <span class="card-kicker">Filament v5 Metallic Cockpit</span>
-                                <h3 class="card-heading">All Studios, Screens, Macros &amp; Audit Logs Unified.</h3>
-                                <p class="card-copy">
-                                    Full desktop and mobile command panel styled in smoked-bronze glass and brushed metallic gold with real-time telemetry, FPS/CPU stats, and instant alert triggers.
-                                </p>
-                            </div>
-                            <div class="chip-row">
-                                <span class="gold-chip">Command Telemetry</span>
-                                <span class="gold-chip">Zero-Build Ready</span>
-                            </div>
-                        </article>
+                    <div class="hero-actions" style="margin-block-start: 0;">
+                        <a href="{{ url('/admin/obs-control-deck') }}" class="btn btn-primary">Launch admin deck</a>
+                        <a href="{{ route('changelog') }}" class="btn btn-secondary">Release notes v{{ $currentVersion }}</a>
                     </div>
-                </section>
+                </div>
+            </section>
+        </main>
 
-                {{-- 7 Screen Presets Interactive Explorer --}}
-                <section aria-labelledby="presets-heading" style="margin-block-start: clamp(3rem, 2rem + 3vw, 5rem);">
-                    <div class="section-head">
-                        <div>
-                            <div class="section-index">02 / LIVE SCREEN DESIGNER</div>
-                            <h2 class="section-title" id="presets-heading">SEVEN BROADCAST CANVASES.</h2>
-                        </div>
-                        <p class="section-aside">
-                            Select any preset below to inspect its glassmorphism layer, lower-third block, and live overlay state.
-                        </p>
-                    </div>
-
-                    <div class="presets-panel">
-                        <div class="preset-tabs" role="tablist" aria-label="OBS screen overlay presets">
-                            @foreach ($presets as $index => $preset)
-                                <button
-                                    type="button"
-                                    class="preset-tab"
-                                    role="tab"
-                                    aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
-                                    data-preset='@json($preset)'
-                                >
-                                    {{ $preset['label'] }}
-                                </button>
-                            @endforeach
-                        </div>
-
-                        @php $firstPreset = $presets[0] ?? ['label' => 'Starting Soon', 'state' => [], 'theme' => []]; @endphp
-                        <div class="preset-stage">
-                            <div class="preset-canvas">
-                                <div class="monitor-badge-row">
-                                    <span class="monitor-live-badge" id="preset-badge">{{ $firstPreset['state']['badge_text'] ?? 'UP NEXT' }}</span>
-                                    <span class="version-tag" id="preset-bg-tag">{{ ! empty($firstPreset['theme']['transparent_background']) ? 'TRANSPARENT LAYER' : 'FULL CANVAS' }}</span>
-                                </div>
-
-                                <div>
-                                    <h3 class="preset-headline" id="preset-headline">{{ $firstPreset['state']['headline'] ?? 'Stream Starting Soon' }}</h3>
-                                    <p class="preset-subheadline" id="preset-subheadline">{{ $firstPreset['state']['subheadline'] ?? 'Audio checks complete.' }}</p>
-                                </div>
-
-                                <div class="monitor-lower-third">
-                                    <div>
-                                        <div style="font-weight:600;font-size:0.88rem;color:var(--gold-specular);" id="preset-guest">{{ $firstPreset['state']['guest_name'] ?? 'Obsisstant Live' }}</div>
-                                        <div style="font-size:0.74rem;color:var(--text-muted);" id="preset-role">{{ $firstPreset['state']['guest_role'] ?? 'Studio Production' }}</div>
-                                    </div>
-                                    <span class="version-tag" id="preset-extra">{{ ! empty($firstPreset['state']['show_countdown']) ? 'TIMER ACTIVE' : (! empty($firstPreset['state']['show_webcam_frame']) ? 'CAM FRAME' : 'REVERB SYNC') }}</span>
-                                </div>
-                            </div>
-
-                            <div class="glass-card">
-                                <div>
-                                    <span class="card-kicker" id="preset-side-type">{{ $firstPreset['key'] ?? 'starting_soon' }}</span>
-                                    <h3 class="card-heading" id="preset-side-title">{{ $firstPreset['label'] }}</h3>
-                                    <p class="card-copy" id="preset-side-desc">
-                                        Customize colors, backdrop blur, border radius, countdown duration, ticker messages, and push directly into OBS as an active Browser Source.
-                                    </p>
-                                </div>
-                                <div class="hero-actions" style="margin-block-start:0.5rem;">
-                                    <a class="btn-gold" href="{{ url('/admin/obs-screens') }}">Open Screen Designer</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {{-- Closing CTA --}}
-                <section style="margin-block-start: clamp(3rem, 2rem + 3vw, 5rem);">
-                    <div class="cta-banner">
-                        <div>
-                            <div class="section-index">03 / READY FOR AIR</div>
-                            <h2 class="cta-title">TAKE THE CONTROLS.</h2>
-                        </div>
-                        <div class="hero-actions" style="margin:0;">
-                            <a class="btn-gold" href="{{ url('/admin') }}">Enter Studio Console</a>
-                            <a class="btn-glass" href="{{ route('changelog') }}">Release History</a>
-                        </div>
-                    </div>
-                </section>
-            </main>
-
-            <footer class="footer-bar">
-                <span>Obsisstant Broadcast Control Suite · Version {{ $currentVersion }}</span>
-                <span>Metallic Gold &amp; Smoked Charcoal Glass System</span>
-            </footer>
-        </div>
+        <footer class="container site-footer">
+            <div>Obsisstant v{{ $currentVersion }} · Local OBS Relay &amp; Broadcast Console</div>
+            <div class="footer-links">
+                <a href="{{ url('/admin') }}">Admin Panel</a>
+                <a href="{{ route('obs.deck.index') }}">Mobile Deck</a>
+                <a href="{{ route('changelog') }}">Changelog</a>
+            </div>
+        </footer>
 
         <script>
             (() => {
-                // Adaptive responsive navbar measurement (ResizeObserver + Popover fallback)
-                const header = document.getElementById('site-header');
-                const inner = header?.querySelector('.header-inner');
-                const menu = document.getElementById('site-menu');
-                const nav = header?.querySelector('.site-nav');
-
-                if (header && inner && menu) {
-                    let lastCollapsedWidth = 0;
-
-                    const syncNavbar = () => {
-                        const wasOpen = menu.matches(':popover-open') || menu.classList.contains(':popover-open');
-                        header.classList.add('is-measuring', 'is-wide');
-                        menu.removeAttribute('popover');
-
-                        const fitsInline = inner.scrollWidth <= inner.clientWidth + 1;
-                        if (fitsInline) {
-                            header.classList.add('is-wide');
-                        } else {
-                            header.classList.remove('is-wide');
-                            menu.setAttribute('popover', 'auto');
-                            lastCollapsedWidth = header.clientWidth;
-                            if (wasOpen && typeof menu.showPopover === 'function') {
-                                try { menu.showPopover(); } catch (_) {}
-                            }
-                        }
-
-                        requestAnimationFrame(() => header.classList.remove('is-measuring'));
-                    };
-
-                    syncNavbar();
-
-                    if ('ResizeObserver' in window) {
-                        const ro = new ResizeObserver(() => {
-                            if (header.classList.contains('is-wide') || header.clientWidth > lastCollapsedWidth + 8) {
-                                syncNavbar();
-                            }
-                        });
-                        ro.observe(header);
-                        if (nav) {
-                            ro.observe(nav);
-                        }
-                    }
+                // Conditional popover polyfill loader per web guidance (only when native Popover API is missing)
+                if (!Object.hasOwn(HTMLElement.prototype, 'popover')) {
+                    import('https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js').catch(() => {});
                 }
 
-                // Interactive hero deck mockup
-                const scenePads = document.querySelectorAll('.deck-pad[data-scene]');
-                const sceneTitle = document.getElementById('preview-scene-name');
-                const previewBadge = document.getElementById('preview-badge');
-                const ltToggleBtn = document.getElementById('toggle-lt-pad');
-                const ltBox = document.getElementById('preview-lower-third');
-                const ltState = document.getElementById('preview-lt-state');
-                const ltSub = document.getElementById('toggle-lt-sub');
-                let ltVisible = true;
+                const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+                const noReducedMotionQuery = window.matchMedia('(prefers-reduced-motion: no-preference)');
 
-                scenePads.forEach((btn) => {
-                    btn.addEventListener('click', () => {
-                        scenePads.forEach((b) => b.classList.remove('is-active'));
-                        btn.classList.add('is-active');
-                        if (sceneTitle) { sceneTitle.textContent = btn.dataset.scene || 'Main Camera Feed'; }
-                        if (previewBadge) { previewBadge.textContent = btn.dataset.badge || 'LIVE'; }
+                let cachedDisplaySupport;
+                const canTransitionDisplay = () => {
+                    if (cachedDisplaySupport !== undefined) {
+                        return cachedDisplaySupport;
+                    }
+                    if (!window.CSS?.supports?.('transition-behavior', 'allow-discrete') || !document.body) {
+                        return false;
+                    }
+                    const probe = document.createElement('div');
+                    probe.style.cssText = 'transition: display 1s allow-discrete !important; display: block;';
+                    document.body.appendChild(probe);
+                    getComputedStyle(probe).display;
+                    probe.style.display = 'none';
+                    cachedDisplaySupport = getComputedStyle(probe).display === 'block';
+                    probe.remove();
+                    return cachedDisplaySupport;
+                };
+
+                const supportsTopLayerExit = () => Boolean(window.CSS?.supports?.('overlay', 'auto') && canTransitionDisplay());
+
+                const header = document.getElementById('site-header');
+                const headerInner = header?.querySelector('.header-inner');
+                const menu = document.getElementById('site-menu');
+                const menuTrigger = document.getElementById('menu-trigger');
+
+                let lastCollapsedWidth = 0;
+
+                const syncNavLayout = () => {
+                    if (!header || !headerInner || !menu) {
+                        return;
+                    }
+
+                    const wasWide = header.classList.contains('is-wide');
+                    const wasOpen = !wasWide && menu.matches(':popover-open, .\\:popover-open');
+                    const containerWidth = headerInner.clientWidth;
+
+                    if (!wasWide && containerWidth <= lastCollapsedWidth) {
+                        return;
+                    }
+
+                    header.classList.add('is-measuring');
+                    header.classList.add('is-wide');
+                    menu.removeAttribute('popover');
+
+                    const fitsInline = headerInner.scrollWidth <= headerInner.clientWidth + 1;
+
+                    if (fitsInline) {
+                        lastCollapsedWidth = 0;
+                        menuTrigger?.setAttribute('aria-expanded', 'false');
+                    } else {
+                        header.classList.remove('is-wide');
+                        menu.setAttribute('popover', 'auto');
+                        lastCollapsedWidth = containerWidth;
+                        if (wasOpen && typeof menu.showPopover === 'function') {
+                            try {
+                                menu.showPopover();
+                            } catch {}
+                        }
+                    }
+
+                    requestAnimationFrame(() => header.classList.remove('is-measuring'));
+                };
+
+                if (header && menu && 'ResizeObserver' in window) {
+                    const observer = new ResizeObserver(syncNavLayout);
+                    observer.observe(header);
+                    observer.observe(menu);
+                }
+                syncNavLayout();
+
+                if (menu && menuTrigger) {
+                    menu.addEventListener('toggle', (event) => {
+                        menuTrigger.setAttribute('aria-expanded', event.newState === 'open' ? 'true' : 'false');
+                    });
+
+                    // Close narrow popover cleanly when tapping an in-page anchor
+                    menu.querySelectorAll('a[href^="#"]').forEach((link) => {
+                        link.addEventListener('click', async () => {
+                            if (header?.classList.contains('is-wide') || !menu.matches(':popover-open, .\\:popover-open')) {
+                                return;
+                            }
+                            if (!supportsTopLayerExit()) {
+                                menu.setAttribute('data-closing', '');
+                                const anims = menu.getAnimations({ subtree: true });
+                                if (anims.length > 0) {
+                                    await Promise.race([
+                                        Promise.allSettled(anims.map((a) => a.finished)),
+                                        new Promise((resolve) => setTimeout(resolve, 600)),
+                                    ]);
+                                }
+                                menu.removeAttribute('data-closing');
+                            }
+                            if (typeof menu.hidePopover === 'function') {
+                                menu.hidePopover();
+                            }
+                        });
+                    });
+                }
+
+                // Fallback IntersectionObserver scroll reveals for browsers without View Timeline
+                const revealTargets = Array.from(document.querySelectorAll('[data-reveal]'));
+                const hasNativeViewTimeline = Boolean(
+                    window.CSS?.supports?.('(animation-timeline: view()) and (animation-range: entry)')
+                );
+
+                if (!hasNativeViewTimeline && noReducedMotionQuery.matches && 'IntersectionObserver' in window && revealTargets.length > 0) {
+                    const observer = new IntersectionObserver(
+                        (entries) => {
+                            entries.forEach((entry) => {
+                                if (!entry.isIntersecting) {
+                                    return;
+                                }
+                                entry.target.classList.remove('is-pending');
+                                entry.target.classList.add('is-revealed');
+                                observer.unobserve(entry.target);
+                            });
+                        },
+                        { threshold: 0.12 }
+                    );
+
+                    revealTargets.forEach((el) => {
+                        const rect = el.getBoundingClientRect();
+                        if (rect.top > window.innerHeight * 0.92) {
+                            el.classList.add('is-pending');
+                            observer.observe(el);
+                        }
+                    });
+                }
+
+                // Micro-animation helper using Web Animations API (strictly honoring reduced motion)
+                const pulseElementChange = (element) => {
+                    if (!element || reducedMotionQuery.matches || typeof element.animate !== 'function') {
+                        return;
+                    }
+                    element.animate(
+                        [
+                            { opacity: 0.45, transform: 'translateY(6px)' },
+                            { opacity: 1, transform: 'translateY(0)' },
+                        ],
+                        { duration: 240, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+                    );
+                };
+
+                // Interactive Demo Scene Switcher
+                const sceneButtons = document.querySelectorAll('[data-demo-scene]');
+                const scenePill = document.getElementById('preview-scene-pill');
+                const sceneHeading = document.getElementById('preview-scene-heading');
+                const sceneMeta = document.getElementById('preview-scene-meta');
+
+                sceneButtons.forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const sceneName = button.getAttribute('data-demo-scene') || '';
+                        const metaText = button.getAttribute('data-demo-meta') || 'Program output';
+
+                        sceneButtons.forEach((btn) => btn.setAttribute('aria-pressed', btn === button ? 'true' : 'false'));
+                        if (scenePill) {
+                            scenePill.textContent = `Scene · ${sceneName}`;
+                        }
+                        if (sceneMeta) {
+                            sceneMeta.textContent = metaText;
+                        }
+                        if (sceneHeading) {
+                            sceneHeading.textContent = sceneName;
+                            pulseElementChange(sceneHeading);
+                        }
                     });
                 });
 
-                ltToggleBtn?.addEventListener('click', () => {
-                    ltVisible = !ltVisible;
-                    ltBox?.classList.toggle('is-hidden', !ltVisible);
-                    if (ltState) { ltState.textContent = ltVisible ? 'VISIBLE' : 'HIDDEN'; }
-                    if (ltSub) { ltSub.textContent = ltVisible ? 'Overlay: On' : 'Overlay: Off'; }
-                    ltToggleBtn.classList.toggle('is-active', ltVisible);
+                // Interactive Lower-Third HUD Toggle with Fallback for Discrete Display Exits
+                const ltToggleBtn = document.getElementById('toggle-lt-pad');
+                const ltToggleSub = document.getElementById('toggle-lt-sub');
+                const ltBanner = document.getElementById('preview-lower-third');
+                const ltStateTag = document.getElementById('preview-lt-state');
+
+                const hideHud = async (el) => {
+                    if (canTransitionDisplay()) {
+                        el.hidden = true;
+                    } else {
+                        el.setAttribute('data-closing', '');
+                    }
+
+                    const animations = el.getAnimations();
+                    if (animations.length > 0) {
+                        await Promise.race([
+                            Promise.allSettled(animations.map((a) => a.finished)),
+                            new Promise((resolve) => setTimeout(resolve, 1000)),
+                        ]);
+                    }
+
+                    if (el.hasAttribute('data-closing')) {
+                        el.removeAttribute('data-closing');
+                        el.hidden = true;
+                    }
+                };
+
+                const showHud = (el) => {
+                    el.removeAttribute('data-closing');
+                    el.hidden = false;
+                };
+
+                ltToggleBtn?.addEventListener('click', async () => {
+                    if (!ltBanner) {
+                        return;
+                    }
+
+                    const nextVisible = ltBanner.hidden || ltBanner.hasAttribute('data-closing');
+                    ltToggleBtn.setAttribute('aria-pressed', nextVisible ? 'true' : 'false');
+
+                    if (ltToggleSub) {
+                        ltToggleSub.textContent = nextVisible ? 'Overlay visible' : 'Overlay hidden';
+                    }
+                    if (ltStateTag) {
+                        ltStateTag.textContent = nextVisible ? 'On air' : 'Muted';
+                    }
+
+                    if (nextVisible) {
+                        showHud(ltBanner);
+                    } else {
+                        await hideHud(ltBanner);
+                    }
                 });
 
-                // Interactive 7-preset showcase switcher
-                const presetTabs = document.querySelectorAll('.preset-tab[data-preset]');
+                // Overlay Preset Explorer
+                const presetTabs = document.querySelectorAll('[data-preset-key]');
+                const presetTabpanel = document.getElementById('preset-tabpanel');
+                const presetCopyRegion = document.getElementById('preset-copy-region');
                 const pBadge = document.getElementById('preset-badge');
                 const pBgTag = document.getElementById('preset-bg-tag');
                 const pHeadline = document.getElementById('preset-headline');
@@ -1307,24 +1803,51 @@
 
                 presetTabs.forEach((tab) => {
                     tab.addEventListener('click', () => {
-                        const data = JSON.parse(tab.dataset.preset || '{}');
-                        presetTabs.forEach((t) => t.setAttribute('aria-selected', 'false'));
-                        tab.setAttribute('aria-selected', 'true');
-
-                        const st = data.state || {};
-                        const th = data.theme || {};
-
-                        if (pBadge) { pBadge.textContent = st.badge_text || 'LIVE'; }
-                        if (pBgTag) { pBgTag.textContent = th.transparent_background ? 'TRANSPARENT LAYER' : 'FULL CANVAS'; }
-                        if (pHeadline) { pHeadline.textContent = st.headline || data.label || ''; }
-                        if (pSubheadline) { pSubheadline.textContent = st.subheadline || ''; }
-                        if (pGuest) { pGuest.textContent = st.guest_name || 'Obsisstant Studio'; }
-                        if (pRole) { pRole.textContent = st.guest_role || 'Real-Time Overlay'; }
-                        if (pExtra) {
-                            pExtra.textContent = st.show_countdown ? 'TIMER ACTIVE' : (st.show_webcam_frame ? 'CAM FRAME' : 'REVERB SYNC');
+                        const raw = tab.getAttribute('data-preset');
+                        if (!raw) {
+                            return;
                         }
-                        if (pSideType) { pSideType.textContent = data.key || 'custom'; }
-                        if (pSideTitle) { pSideTitle.textContent = data.label || 'Custom Overlay'; }
+
+                        const data = JSON.parse(raw);
+                        const state = data.state || {};
+                        const theme = data.theme || {};
+
+                        presetTabs.forEach((btn) => btn.setAttribute('aria-selected', btn === tab ? 'true' : 'false'));
+                        if (presetTabpanel && tab.id) {
+                            presetTabpanel.setAttribute('aria-labelledby', tab.id);
+                        }
+
+                        if (pBadge) {
+                            pBadge.textContent = state.badge_text || 'Live';
+                        }
+                        if (pBgTag) {
+                            pBgTag.textContent = theme.transparent_background ? 'Transparent layer' : 'Full canvas';
+                        }
+                        if (pHeadline) {
+                            pHeadline.textContent = state.headline || data.label || '';
+                        }
+                        if (pSubheadline) {
+                            pSubheadline.textContent = state.subheadline || '';
+                        }
+                        if (pGuest) {
+                            pGuest.textContent = state.guest_name || 'Obsisstant Studio';
+                        }
+                        if (pRole) {
+                            pRole.textContent = state.guest_role || 'Real-Time Overlay';
+                        }
+                        if (pExtra) {
+                            pExtra.textContent = state.show_countdown
+                                ? 'Timer active'
+                                : (state.show_webcam_frame ? 'Cam frame' : 'Reverb sync');
+                        }
+                        if (pSideType) {
+                            pSideType.textContent = `Preset key: ${data.key || 'custom'}`;
+                        }
+                        if (pSideTitle) {
+                            pSideTitle.textContent = data.label || 'Custom Overlay';
+                        }
+
+                        pulseElementChange(presetCopyRegion);
                     });
                 });
             })();
