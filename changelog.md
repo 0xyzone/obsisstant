@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.3.0] - 2026-11-23 | type: minor
+
+> Multi-Studio Workspace Auto-Sync Relay, Zero-.env Studio Management, UI Relay Controls & Edit Token Fix
+
+### Added
+- **Workspace Auto-Sync Relay Mode**: Added single-key multi-studio pairing (`OBS_RELAY_TOKEN` in `config/obs.php`, dual-mode `AuthenticateObsAgent`, `ObsAgentController` relay bootstrap, and `ObsRelayCatalogUpdated` Reverb sync event) plus dynamic multi-studio `StudioWorker` orchestration in `obs-agent/src/index.js` so adding or updating Studios in `/admin/obs-studios` syncs automatically with zero `.env` edits.
+- **Local Relay Watchdog & Admin UI Controls**: Added `scripts/run_obs_agent.sh`, `ObsLocalRelayService`, live Start/Restart/Stop Local Relay buttons, and a one-click Pair External Relay modal in `ListObsStudios` and `ObsControlDeck`.
+
+### Fixed
+- **Blank Agent Token on Studio Edit (`EditObsStudio`)**: Fixed hidden attribute stripping during Filament form hydration (`mutateFormDataBeforeFill`) so `Per-Studio Relay Token` and `OBS WebSocket Password` populate cleanly on edit.
+
 ## [v1.2.4] - 2026-11-23 | type: macro
 
 > Remove phantom outer box around dashboard stats widget and align Studio roster table columns

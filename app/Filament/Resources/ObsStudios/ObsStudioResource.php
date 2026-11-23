@@ -73,17 +73,17 @@ class ObsStudioResource extends Resource
                             ->password()
                             ->revealable()
                             ->nullable()
-                            ->helperText('Optional if configured directly in obs-agent/.env'),
+                            ->helperText('Saved encrypted in the database and synced automatically to your running obs-agent.'),
                         Toggle::make('is_active')
                             ->label('Studio Enabled')
                             ->default(true),
                         TextInput::make('agent_token')
-                            ->label('Relay Agent Bearer Token')
+                            ->label('Per-Studio Relay Token')
                             ->disabled()
                             ->dehydrated(false)
                             ->copyable()
                             ->visible(fn (?ObsStudio $record): bool => $record !== null)
-                            ->helperText('Paste into obs-agent/.env as OBSISSTANT_AGENT_TOKEN.')
+                            ->helperText('Auto-synced automatically when Workspace Relay mode is running. Copy only if pairing this studio standalone on a separate PC.')
                             ->columnSpanFull(),
                     ]),
             ]);

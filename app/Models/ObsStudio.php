@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\ObsRelayCatalogUpdated;
 use Database\Factories\ObsStudioFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use Throwable;
 
 #[Fillable([
     'name',
@@ -36,6 +38,41 @@ class ObsStudio extends Model
             }
             if (blank($studio->agent_token)) {
                 $studio->agent_token = 'obs_'.Str::random(48);
+            }
+        });
+
+        static::created(function (ObsStudio $studio): void {
+            try {
+                event(new ObsRelayCatalogUpdated(
+                    reason: 'created',
+                    studioId: $studio->id,
+                ));
+            } catch (Throwable) {
+                // Never block studio creation if Reverb server is offline
+            }
+        });
+
+        static::updated(function (ObsStudio $studio): void {
+            if ($studio->wasChanged(['name', 'obs_host', 'obs_port', 'obs_password', 'is_active'])) {
+                try {
+                    event(new ObsRelayCatalogUpdated(
+                        reason: 'updated',
+                        studioId: $studio->id,
+                    ));
+                } catch (Throwable) {
+                    // Never block studio updates if Reverb server is offline
+                }
+            }
+        });
+
+        static::deleted(function (ObsStudio $studio): void {
+            try {
+                event(new ObsRelayCatalogUpdated(
+                    reason: 'deleted',
+                    studioId: $studio->id,
+                ));
+            } catch (Throwable) {
+                // Never block studio deletion if Reverb server is offline
             }
         });
     }

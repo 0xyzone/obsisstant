@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Events\ObsCommandAcknowledged;
+use App\Events\ObsRelayCatalogUpdated;
 use App\Events\ObsStudioStateUpdated;
 use App\Models\ObsCommandLog;
 use App\Models\ObsStudio;
@@ -115,5 +116,70 @@ class ObsAgentApiTest extends TestCase
         $this->assertSame('succeeded', $log->status);
         $this->assertNotNull($log->executed_at);
         Event::assertDispatched(ObsCommandAcknowledged::class);
+    }
+
+    public function test_workspace_relay_token_bootstraps_all_active_studios_and_routes_by_studio_id(): void
+    {
+        Event::fake([ObsStudioStateUpdated::class, ObsCommandAcknowledged::class]);
+        config(['obs.relay_token' => 'obs_relay_test_master_key']);
+
+        $activeOne = ObsStudio::factory()->create(['name' => 'Mac OBS', 'is_active' => true]);
+        $activeTwo = ObsStudio::factory()->create(['name' => 'Podcast Rig', 'is_active' => true]);
+        $inactive = ObsStudio::factory()->create(['name' => 'Archived Rig', 'is_active' => false]);
+
+        $this->withToken('obs_relay_test_master_key')
+            ->getJson('/api/obs-agent/bootstrap')
+            ->assertOk()
+            ->assertJsonPath('mode', 'relay')
+            ->assertJsonCount(2, 'studios')
+            ->assertJsonPath('reverb.relay_channel', 'private-obs.relay');
+
+        $this->withToken('obs_relay_test_master_key')
+            ->postJson('/api/obs-agent/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => 'private-obs.relay',
+            ])
+            ->assertOk();
+
+        $this->withToken('obs_relay_test_master_key')
+            ->postJson('/api/obs-agent/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.studio.{$activeTwo->id}.commands",
+            ])
+            ->assertOk();
+
+        $this->withToken('obs_relay_test_master_key')
+            ->postJson('/api/obs-agent/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.studio.{$inactive->id}.commands",
+            ])
+            ->assertForbidden();
+
+        $this->withToken('obs_relay_test_master_key')
+            ->postJson('/api/obs-agent/state', [
+                'studio_id' => $activeOne->id,
+                'live_state' => [
+                    'currentProgramScene' => 'Keynote Scene',
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'online');
+
+        $activeOne->refresh();
+        $this->assertSame('Keynote Scene', $activeOne->getCurrentProgramScene());
+    }
+
+    public function test_studio_config_changes_dispatch_catalog_sync_event_while_status_updates_do_not(): void
+    {
+        Event::fake([ObsRelayCatalogUpdated::class]);
+
+        $studio = ObsStudio::factory()->create(['obs_host' => '127.0.0.1']);
+        Event::assertDispatched(ObsRelayCatalogUpdated::class, 1);
+
+        $studio->update(['status' => 'online', 'last_seen_at' => now()]);
+        Event::assertDispatched(ObsRelayCatalogUpdated::class, 1);
+
+        $studio->update(['obs_port' => 4456]);
+        Event::assertDispatched(ObsRelayCatalogUpdated::class, 2);
     }
 }

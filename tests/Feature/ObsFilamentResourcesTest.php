@@ -9,6 +9,7 @@ use App\Filament\Resources\ObsMacros\Pages\ListObsMacros;
 use App\Filament\Resources\ObsScreens\Pages\EditObsScreen;
 use App\Filament\Resources\ObsScreens\Pages\ListObsScreens;
 use App\Filament\Resources\ObsStudios\Pages\CreateObsStudio;
+use App\Filament\Resources\ObsStudios\Pages\EditObsStudio;
 use App\Filament\Resources\ObsStudios\Pages\ListObsStudios;
 use App\Models\ObsMacro;
 use App\Models\ObsScreen;
@@ -92,6 +93,13 @@ class ObsFilamentResourcesTest extends TestCase
             ])
             ->call('save')
             ->assertHasNoFormErrors();
+
+        $createdStudio = ObsStudio::query()->where('slug', 'podcast-room')->firstOrFail();
+
+        Livewire::test(EditObsStudio::class, ['record' => $createdStudio->id])
+            ->assertFormSet([
+                'agent_token' => $createdStudio->agent_token,
+            ]);
 
         Event::assertDispatched(ObsScreenUpdated::class);
     }

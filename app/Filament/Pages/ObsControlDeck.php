@@ -7,7 +7,9 @@ use App\Models\ObsMacro;
 use App\Models\ObsScreen;
 use App\Models\ObsStudio;
 use App\Services\Obs\ObsCommandService;
+use App\Services\Obs\ObsLocalRelayService;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -321,6 +323,41 @@ class ObsControlDeck extends Page
             ->success()
             ->title($visible ? 'Alert displayed on overlay' : 'Alert hidden')
             ->send();
+    }
+
+    protected function getHeaderActions(): array
+    {
+        $relay = app(ObsLocalRelayService::class);
+        if (! $relay->isLocalControlAvailable()) {
+            return [];
+        }
+
+        $status = $relay->status();
+
+        return [
+            Action::make('localRelay')
+                ->label($status['running'] ? 'Restart local relay' : 'Start local relay')
+                ->icon($status['running'] ? Heroicon::OutlinedArrowPath : Heroicon::OutlinedPlay)
+                ->color($status['running'] ? 'gray' : 'primary')
+                ->action(function () use ($relay, $status): void {
+                    $result = $status['running'] ? $relay->restart() : $relay->start();
+                    $fresh = $relay->status();
+
+                    if ($fresh['running']) {
+                        Notification::make()
+                            ->success()
+                            ->title('Workspace Relay active')
+                            ->body("obs-agent synced automatically ({$result}).")
+                            ->send();
+                    } else {
+                        Notification::make()
+                            ->danger()
+                            ->title('Could not start Workspace Relay')
+                            ->body($result ?: 'Check storage/logs/obs-agent.log for details.')
+                            ->send();
+                    }
+                }),
+        ];
     }
 
     protected function syncSelectedScreenFields(): void

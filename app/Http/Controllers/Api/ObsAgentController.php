@@ -9,62 +9,83 @@ use App\Models\ObsCommandLog;
 use App\Models\ObsStudio;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Pusher\Pusher;
 
 class ObsAgentController extends Controller
 {
     public function bootstrap(Request $request): JsonResponse
     {
-        /** @var ObsStudio $studio */
-        $studio = $request->attributes->get('obs_studio');
+        $isRelayMode = (bool) $request->attributes->get('obs_relay_mode', false);
 
-        $pendingCommands = ObsCommandLog::query()
-            ->where('obs_studio_id', $studio->id)
-            ->whereIn('status', ['queued', 'dispatched'])
-            ->where('created_at', '>=', now()->subMinutes(5))
-            ->orderBy('id')
-            ->get()
-            ->map(fn (ObsCommandLog $log): array => [
-                'command_uuid' => $log->command_uuid,
-                'request_type' => $log->request_type,
-                'request_data' => $log->request_data ?? [],
-            ])
-            ->values();
+        if ($isRelayMode) {
+            $studios = ObsStudio::query()
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->get()
+                ->map(fn (ObsStudio $studio): array => $this->formatStudioBootstrap($studio))
+                ->values();
+
+            return response()->json([
+                'mode' => 'relay',
+                'studios' => $studios,
+                'reverb' => [
+                    'key' => config('reverb.apps.apps.0.key'),
+                    'host' => config('reverb.apps.apps.0.options.host'),
+                    'port' => (int) config('reverb.apps.apps.0.options.port', 443),
+                    'scheme' => config('reverb.apps.apps.0.options.scheme', 'https'),
+                    'relay_channel' => 'private-obs.relay',
+                ],
+            ]);
+        }
+
+        $studio = $this->resolveStudio($request);
+        $formatted = $this->formatStudioBootstrap($studio);
 
         return response()->json([
-            'studio' => [
-                'id' => $studio->id,
-                'name' => $studio->name,
-                'slug' => $studio->slug,
-                'obs_host' => $studio->obs_host,
-                'obs_port' => $studio->obs_port,
-                'obs_password' => $studio->obs_password,
-            ],
+            'mode' => 'studio',
+            'studio' => $formatted['studio'],
+            'studios' => [$formatted],
             'reverb' => [
                 'key' => config('reverb.apps.apps.0.key'),
                 'host' => config('reverb.apps.apps.0.options.host'),
                 'port' => (int) config('reverb.apps.apps.0.options.port', 443),
                 'scheme' => config('reverb.apps.apps.0.options.scheme', 'https'),
-                'channel' => "private-obs.studio.{$studio->id}.commands",
+                'channel' => $formatted['channel'],
             ],
-            'pending_commands' => $pendingCommands,
+            'pending_commands' => $formatted['pending_commands'],
         ]);
     }
 
     public function authenticateBroadcast(Request $request): JsonResponse
     {
-        /** @var ObsStudio $studio */
-        $studio = $request->attributes->get('obs_studio');
+        $isRelayMode = (bool) $request->attributes->get('obs_relay_mode', false);
 
         $validated = $request->validate([
             'socket_id' => ['required', 'string'],
             'channel_name' => ['required', 'string'],
         ]);
 
-        $expectedChannel = "private-obs.studio.{$studio->id}.commands";
+        if ($isRelayMode) {
+            $authorized = $validated['channel_name'] === 'private-obs.relay';
 
-        if ($validated['channel_name'] !== $expectedChannel) {
-            return response()->json(['message' => 'Unauthorized channel for this OBS Studio agent.'], 403);
+            if (! $authorized && preg_match('/^private-obs\.studio\.(\d+)\.commands$/', $validated['channel_name'], $matches)) {
+                $authorized = ObsStudio::query()
+                    ->where('id', (int) $matches[1])
+                    ->where('is_active', true)
+                    ->exists();
+            }
+
+            if (! $authorized) {
+                return response()->json(['message' => 'Unauthorized channel for Workspace Relay.'], 403);
+            }
+        } else {
+            $studio = $this->resolveStudio($request);
+            $expectedChannel = "private-obs.studio.{$studio->id}.commands";
+
+            if ($validated['channel_name'] !== $expectedChannel) {
+                return response()->json(['message' => 'Unauthorized channel for this OBS Studio agent.'], 403);
+            }
         }
 
         $pusher = new Pusher(
@@ -83,10 +104,10 @@ class ObsAgentController extends Controller
 
     public function updateState(Request $request): JsonResponse
     {
-        /** @var ObsStudio $studio */
-        $studio = $request->attributes->get('obs_studio');
+        $studio = $this->resolveStudio($request);
 
         $validated = $request->validate([
+            'studio_id' => ['nullable', 'integer'],
             'status' => ['nullable', 'string', 'in:offline,online,streaming,recording'],
             'live_state' => ['required', 'array'],
         ]);
@@ -119,8 +140,7 @@ class ObsAgentController extends Controller
 
     public function heartbeat(Request $request): JsonResponse
     {
-        /** @var ObsStudio $studio */
-        $studio = $request->attributes->get('obs_studio');
+        $studio = $this->resolveStudio($request);
 
         $status = $request->input('status');
         if (! in_array($status, ['offline', 'online', 'streaming', 'recording'], true)) {
@@ -140,8 +160,7 @@ class ObsAgentController extends Controller
 
     public function acknowledgeCommand(Request $request, string $commandUuid): JsonResponse
     {
-        /** @var ObsStudio $studio */
-        $studio = $request->attributes->get('obs_studio');
+        $studio = $this->resolveStudio($request);
 
         $commandLog = ObsCommandLog::query()
             ->where('obs_studio_id', $studio->id)
@@ -149,6 +168,7 @@ class ObsAgentController extends Controller
             ->firstOrFail();
 
         $validated = $request->validate([
+            'studio_id' => ['nullable', 'integer'],
             'status' => ['required', 'string', 'in:succeeded,failed'],
             'response_data' => ['nullable', 'array'],
             'error_message' => ['nullable', 'string'],
@@ -164,18 +184,68 @@ class ObsAgentController extends Controller
         $freshLog = $commandLog->fresh() ?? $commandLog;
         event(new ObsCommandAcknowledged($freshLog));
 
-        return response()->json(['ok' => true]);
+        return response()->json([
+            'ok' => true,
+            'command_uuid' => $freshLog->command_uuid,
+            'status' => $freshLog->status,
+        ]);
+    }
+
+    private function resolveStudio(Request $request): ObsStudio
+    {
+        $studio = $request->attributes->get('obs_studio');
+
+        if (! $studio instanceof ObsStudio) {
+            abort(422, 'Missing studio_id for multi-studio relay request.');
+        }
+
+        return $studio;
     }
 
     /**
-     * @param  array<string, mixed>  $state
+     * @return array<string, mixed>
      */
-    protected function deriveStatus(array $state): string
+    private function formatStudioBootstrap(ObsStudio $studio): array
     {
-        $outputs = $state['outputs'] ?? [];
+        /** @var Collection<int, array<string, mixed>> $pendingCommands */
+        $pendingCommands = ObsCommandLog::query()
+            ->where('obs_studio_id', $studio->id)
+            ->whereIn('status', ['queued', 'dispatched'])
+            ->where('created_at', '>=', now()->subMinutes(5))
+            ->orderBy('id')
+            ->get()
+            ->map(fn (ObsCommandLog $log): array => [
+                'command_uuid' => $log->command_uuid,
+                'request_type' => $log->request_type,
+                'request_data' => $log->request_data ?? [],
+            ])
+            ->values();
+
+        return [
+            'studio' => [
+                'id' => $studio->id,
+                'name' => $studio->name,
+                'slug' => $studio->slug,
+                'obs_host' => $studio->obs_host,
+                'obs_port' => $studio->obs_port,
+                'obs_password' => $studio->obs_password,
+            ],
+            'channel' => "private-obs.studio.{$studio->id}.commands",
+            'pending_commands' => $pendingCommands,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $liveState
+     */
+    private function deriveStatus(array $liveState): string
+    {
+        $outputs = $liveState['outputs'] ?? [];
+
         if (! empty($outputs['streaming'])) {
             return 'streaming';
         }
+
         if (! empty($outputs['recording'])) {
             return 'recording';
         }

@@ -6,6 +6,7 @@ lsp-*.php
 maintenance.php
 reverb.pid
 reverb.stopped
+obs-agent.stopped
 *.pid
 routes.php
 routes.scanned.php
