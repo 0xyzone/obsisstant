@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.1.0] - 2026-11-23 | type: minor
+
+> Multi-Studio OBS Control Deck, Laravel Reverb Real-Time Sync, Outbound Studio Relay Agent, Screen Designer & Browser Overlays
+
+### Added
+- **Laravel Reverb & Apache WebSocket Proxy**: Installed Laravel Reverb (`wss://ob/app` via Apache `mod_proxy_wstunnel`), Filament Echo broadcasting config, `scripts/run_reverb.sh` cPanel/local watchdog, and `cpanel-root.htaccess`.
+- **Multi-Studio OBS Registry & Node.js Relay Agent (`obs-agent/`)**: Added `obs_studios` and `obs_command_logs` models/API (`/api/obs-agent/*`) plus cross-platform Node.js `obs-websocket-js` v5 relay agent connecting outbound behind NAT/firewalls.
+- **Dynamic Screen Designer & Live Browser Source Overlays (`/screens/{token}`)**: Added 7 preset templates (`starting_soon`, `main_cam`, `pip`, `brb`, `lower_thirds`, `ending`, `custom`), live Reverb-driven countdowns, tickers, alerts, lower-thirds, and 1-click Push to OBS.
+- **OBS Live Control Deck, Macros & Mobile Stream Deck (`/deck/{studio}`)**: Added Filament `ObsControlDeck` (scenes, Studio Mode, outputs, audio mixer, sources, macros, telemetry) and responsive gold-and-black mobile touch deck.
+
 ## [v1.0.1] - 2026-11-23 | type: macro
 
 > Serve Vite dev server over HTTPS to resolve Mixed Content console errors

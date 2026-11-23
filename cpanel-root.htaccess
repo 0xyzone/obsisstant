@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 1. Proxy Laravel Reverb WebSocket upgrades to local Reverb daemon
+    RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    RewriteRule ^app/(.*) ws://127.0.0.1:8080/app/$1 [P,L]
+    RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    RewriteRule ^app$ ws://127.0.0.1:8080/app [P,L]
+
+    # 2. Forward standard HTTP requests into Laravel public/
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ /public/$1 [L]
+</IfModule>

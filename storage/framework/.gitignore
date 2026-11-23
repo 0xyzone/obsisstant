@@ -4,6 +4,9 @@ down
 events.scanned.php
 lsp-*.php
 maintenance.php
+reverb.pid
+reverb.stopped
+*.pid
 routes.php
 routes.scanned.php
 schedule-*
