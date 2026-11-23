@@ -35,21 +35,21 @@ class ObsidianUiThemeTest extends TestCase
             ->assertSee(route('changelog'));
     }
 
-    public function test_filament_login_renders_forced_obsidian_theme_and_control_access_hero(): void
+    public function test_filament_login_renders_forced_obsidian_theme_and_clean_sign_in_heading(): void
     {
         $response = $this->get('/admin/login');
 
         $response->assertOk()
-            ->assertSee('CONTROL ACCESS')
+            ->assertSee('Sign in to Obsisstant')
             ->assertSee('filament-obs-theme.css')
-            ->assertSee('poppins:300,400,500,600,700,800')
+            ->assertSee('poppins:400,500,600')
             ->assertSee('dark', false);
     }
 
-    public function test_authenticated_filament_dashboard_renders_stats_overview_and_mobile_dock(): void
+    public function test_authenticated_filament_dashboard_renders_studio_workspace_and_mobile_dock(): void
     {
         $user = User::factory()->create();
-        $studio = ObsStudio::factory()->online()->create();
+        $studio = ObsStudio::factory()->online()->create(['name' => 'Studio Bravo']);
         ObsScreen::factory()->create(['obs_studio_id' => $studio->id]);
         ObsMacro::factory()->create(['obs_studio_id' => $studio->id]);
 
@@ -58,9 +58,12 @@ class ObsidianUiThemeTest extends TestCase
         $response = $this->actingAs($user)->get('/admin');
 
         $response->assertOk()
-            ->assertSee('OBSISSTANT')
-            ->assertSee('Studios Online')
-            ->assertSee('Live Screen Canvases')
+            ->assertSee('Obsisstant')
+            ->assertSee('Studios online')
+            ->assertSee('Live screens')
+            ->assertSee('Studio roster')
+            ->assertSee('Studio Bravo')
+            ->assertSee('Recent commands')
             ->assertSee('obs-mobile-dock')
             ->assertSee('filament-obs-theme.css');
     }

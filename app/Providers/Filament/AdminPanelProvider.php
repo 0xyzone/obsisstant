@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Widgets\ObsStatsOverview;
+use App\Filament\Widgets\ObsStudioWorkspaceWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -15,7 +16,6 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
-use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -40,6 +40,7 @@ class AdminPanelProvider extends PanelProvider
             ->monoFont('Poppins')
             ->broadcasting()
             ->maxContentWidth('full')
+            ->sidebarWidth('16.5rem')
             ->sidebarCollapsibleOnDesktop()
             ->colors([
                 'primary' => Color::hex('#CDAD69'),
@@ -88,7 +89,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 ObsStatsOverview::class,
-                AccountWidget::class,
+                ObsStudioWorkspaceWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

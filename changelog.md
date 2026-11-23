@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.2.2] - 2026-11-23 | type: macro
+
+> Unslop Filament dashboard with restrained gold-and-obsidian surfaces, studio workspace table, and 4px spacing
+
+### Added
+- **Studio Workspace Dashboard Widget (`ObsStudioWorkspaceWidget`)**: Replaced the generic greeting card on `/admin` with an asymmetric 2/3 responsive studio roster table (`role="region"`, sticky headers, container-query mobile stacking) paired with a recent OBS command feed and shortcut panel.
+
+### Changed
+- **Unslopped Gold & Black Filament Chrome (`filament-obs-theme.css`)**: Replaced background blobs/grid, gradient text, heavy shadows, and pill bloat with stepped matte obsidian surfaces (`#070706`–`#1B1A17`), quiet `#CDAD69` hairline borders, sentence-case Poppins (`400–600`) hierarchy, nested `8 / 12 / 16px` radii, and calm `140ms` surface transitions.
+
 ## [v1.2.1] - 2026-11-23 | type: macro
 
 > Switch typography to clean Poppins and restyle gold glassmorphism using custom 7-stop metallic gold palette

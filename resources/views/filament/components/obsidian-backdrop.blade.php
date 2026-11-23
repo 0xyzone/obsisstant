@@ -1,2 +1,1 @@
-<div class="obs-ambient-bg" aria-hidden="true"></div>
-<div class="obs-ambient-grid" aria-hidden="true"></div>
+{{-- Calm solid obsidian background canvas injected at layout body start --}}

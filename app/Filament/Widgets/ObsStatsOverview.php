@@ -6,7 +6,6 @@ use App\Models\ObsCommandLog;
 use App\Models\ObsMacro;
 use App\Models\ObsScreen;
 use App\Models\ObsStudio;
-use App\Services\ChangelogService;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -24,21 +23,24 @@ class ObsStatsOverview extends StatsOverviewWidget
             ->count();
         $screensCount = ObsScreen::query()->count();
         $macrosCount = ObsMacro::query()->count();
-        $commandsCount = ObsCommandLog::query()->count();
+        $recentCommands = ObsCommandLog::query()
+            ->where('created_at', '>=', now()->subDay())
+            ->count();
+        $totalCommands = ObsCommandLog::query()->count();
 
         return [
-            Stat::make('Studios Online', $onlineStudios.' / '.$activeStudios)
-                ->description($onlineStudios > 0 ? 'Reverb relay connected' : 'Awaiting obs-agent relay')
-                ->color($onlineStudios > 0 ? 'success' : 'warning'),
-            Stat::make('Live Screen Canvases', (string) $screensCount)
-                ->description('Browser Source overlays')
-                ->color('primary'),
-            Stat::make('Broadcast Macros', (string) $macrosCount)
-                ->description('1-click multi-step sequences')
-                ->color('primary'),
-            Stat::make('Studio Release', 'v'.ChangelogService::getCurrentVersion())
-                ->description($commandsCount.' commands dispatched')
-                ->color('warning'),
+            Stat::make('Studios online', $onlineStudios.' / '.$activeStudios)
+                ->description($onlineStudios > 0 ? $onlineStudios.' active relay connected' : $activeStudios.' active studio registered')
+                ->color($onlineStudios > 0 ? 'primary' : 'gray'),
+            Stat::make('Live screens', (string) $screensCount)
+                ->description('Browser source overlays')
+                ->color('gray'),
+            Stat::make('Broadcast macros', (string) $macrosCount)
+                ->description('Multi-step sequences')
+                ->color('gray'),
+            Stat::make('Commands (24h)', (string) $recentCommands)
+                ->description($totalCommands.' total dispatched')
+                ->color('gray'),
         ];
     }
 }

@@ -22,10 +22,10 @@
                     <select
                         id="studio-selector"
                         wire:model.live="studioId"
-                        class="rounded-xl border border-amber-400/35 bg-black/70 px-3 py-2 text-sm text-amber-50 focus:border-amber-400 focus:outline-none"
+                        class="obs-deck-input px-3 py-2 text-sm"
                     >
                         @forelse ($studios as $item)
-                            <option value="{{ $item->id }}">{{ $item->name }} ({{ strtoupper($item->status) }})</option>
+                            <option value="{{ $item->id }}">{{ $item->name }} ({{ ucfirst($item->status) }})</option>
                         @empty
                             <option value="">No studios configured</option>
                         @endforelse
@@ -33,10 +33,10 @@
 
                     @if ($studio)
                         <x-filament::badge :color="match($studio->status) { 'streaming' => 'danger', 'recording' => 'warning', 'online' => 'success', default => 'gray' }">
-                            {{ strtoupper($studio->status) }}
+                            {{ ucfirst($studio->status) }}
                         </x-filament::badge>
-                        <span class="font-mono text-xs text-amber-200/75">
-                            OBS {{ $studio->live_state['obsVersion'] ?? '—' }} · Program: <strong class="text-amber-300">{{ $studio->getCurrentProgramScene() ?? '—' }}</strong>
+                        <span class="text-xs text-stone-400" style="font-variant-numeric: tabular-nums;">
+                            OBS {{ $studio->live_state['obsVersion'] ?? '—' }} · Program: <strong class="font-medium text-stone-200">{{ $studio->getCurrentProgramScene() ?? '—' }}</strong>
                         </span>
                     @endif
                 </div>
@@ -44,7 +44,7 @@
                 @if ($studio)
                     <div class="flex flex-wrap items-center gap-2">
                         <x-filament::button size="sm" color="gray" wire:click="sendCommand('obsisstant.RefreshAllState')">
-                            Sync OBS State
+                            Sync OBS state
                         </x-filament::button>
                         <x-filament::button
                             tag="a"
@@ -53,20 +53,20 @@
                             :href="route('obs.deck.show', ['studio' => $studio->slug])"
                             target="_blank"
                         >
-                            Open Mobile Deck
+                            Open mobile deck
                         </x-filament::button>
                     </div>
                 @endif
             </div>
 
             @if ($studio)
-                <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
                     <div class="obs-stat-tile">
                         <div class="obs-stat-label">FPS</div>
                         <div class="obs-stat-number">{{ $stats['activeFps'] ?? '—' }}</div>
                     </div>
                     <div class="obs-stat-tile">
-                        <div class="obs-stat-label">CPU Usage</div>
+                        <div class="obs-stat-label">CPU usage</div>
                         <div class="obs-stat-number">{{ isset($stats['cpuUsage']) ? $stats['cpuUsage'].'%' : '—' }}</div>
                     </div>
                     <div class="obs-stat-tile">
@@ -74,12 +74,12 @@
                         <div class="obs-stat-number">{{ isset($stats['memoryUsage']) ? round($stats['memoryUsage']).' MB' : '—' }}</div>
                     </div>
                     <div class="obs-stat-tile">
-                        <div class="obs-stat-label">Skipped</div>
+                        <div class="obs-stat-label">Skipped frames</div>
                         <div class="obs-stat-number">{{ ($stats['renderSkippedFrames'] ?? 0).' / '.($stats['outputSkippedFrames'] ?? 0) }}</div>
                     </div>
                     <div class="obs-stat-tile">
-                        <div class="obs-stat-label">Studio Mode</div>
-                        <div class="obs-stat-number">{{ $studio->isStudioModeEnabled() ? 'LIVE' : 'OFF' }}</div>
+                        <div class="obs-stat-label">Studio mode</div>
+                        <div class="obs-stat-number">{{ $studio->isStudioModeEnabled() ? 'Active' : 'Off' }}</div>
                     </div>
                 </div>
             @endif
@@ -190,8 +190,8 @@
                             @endphp
                             <div class="obs-deck-subcard flex items-center justify-between gap-2 px-3 py-2">
                                 <div>
-                                    <div class="text-sm font-medium">{{ $sourceName }}</div>
-                                    <div class="font-mono text-xs text-amber-200/60">{{ $kind ?: 'source' }}</div>
+                                    <div class="text-sm font-medium text-stone-100">{{ $sourceName }}</div>
+                                    <div class="text-xs text-stone-400">{{ $kind ?: 'source' }}</div>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     @if ($kind === 'browser_source')
@@ -227,9 +227,9 @@
                             @endphp
                             <div class="obs-deck-subcard p-3">
                                 <div class="flex items-center justify-between gap-2">
-                                    <span class="text-sm font-semibold">{{ $inName }}</span>
+                                    <span class="text-sm font-medium text-stone-100">{{ $inName }}</span>
                                     <div class="flex items-center gap-2">
-                                        <span class="font-mono text-xs text-amber-200/75">{{ $db }} dB</span>
+                                        <span class="text-xs text-stone-400" style="font-variant-numeric: tabular-nums;">{{ $db }} dB</span>
                                         <x-filament::button
                                             size="xs"
                                             :color="$muted ? 'danger' : 'success'"
@@ -290,7 +290,7 @@
                             </x-filament::button>
                         </div>
 
-                        <div class="border-t border-amber-400/20 pt-3">
+                        <div class="border-t border-[#CDAD69]/15 pt-3">
                             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 <input type="text" wire:model="liveAlertTitle" placeholder="Alert title" class="obs-deck-input px-3 py-2 text-sm">
                                 <input type="text" wire:model="liveAlertMessage" placeholder="Pop-up alert message..." class="obs-deck-input px-3 py-2 text-sm">
@@ -313,7 +313,7 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm">
                         <thead>
-                            <tr class="border-b border-gray-200 text-xs uppercase text-gray-500 dark:border-gray-800">
+                            <tr class="border-b border-[#CDAD69]/15 text-xs font-medium text-stone-400">
                                 <th class="py-2 pr-4">Command</th>
                                 <th class="py-2 pr-4">Status</th>
                                 <th class="py-2 pr-4">Error</th>
@@ -322,15 +322,15 @@
                         </thead>
                         <tbody>
                             @forelse ($logs as $log)
-                                <tr class="border-b border-gray-100 dark:border-gray-900">
-                                    <td class="py-2 pr-4 font-mono text-xs">{{ $log->request_type }}</td>
+                                <tr class="border-b border-[#CDAD69]/10">
+                                    <td class="py-2 pr-4 text-xs font-medium text-stone-200">{{ $log->request_type }}</td>
                                     <td class="py-2 pr-4">
                                         <x-filament::badge :color="match($log->status) { 'succeeded' => 'success', 'failed' => 'danger', default => 'warning' }">
-                                            {{ strtoupper($log->status) }}
+                                            {{ ucfirst($log->status) }}
                                         </x-filament::badge>
                                     </td>
-                                    <td class="py-2 pr-4 text-xs text-red-500">{{ $log->error_message ?? '—' }}</td>
-                                    <td class="py-2 text-xs text-gray-500">{{ $log->created_at?->diffForHumans() }}</td>
+                                    <td class="py-2 pr-4 text-xs text-red-400">{{ $log->error_message ?? '—' }}</td>
+                                    <td class="py-2 text-xs text-stone-400" style="font-variant-numeric: tabular-nums;">{{ $log->created_at?->diffForHumans() }}</td>
                                 </tr>
                             @empty
                                 <tr>
