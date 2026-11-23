@@ -66,5 +66,15 @@ class ObsidianUiThemeTest extends TestCase
             ->assertSee('Recent commands')
             ->assertSee('obs-mobile-dock')
             ->assertSee('filament-obs-theme.css');
+
+        $deckResponse = $this->actingAs($user)->get('/admin/obs-control-deck');
+
+        $deckResponse->assertOk()
+            ->assertSee('obs-deck-stack')
+            ->assertSee('obs-telemetry-grid')
+            ->assertSee('obs-deck-two-col')
+            ->assertSee('obs-sidebar-footer')
+            ->assertDontSee('sm:grid-cols-5')
+            ->assertDontSee('lg:grid-cols-2');
     }
 }

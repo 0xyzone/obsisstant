@@ -11,18 +11,19 @@
         $sceneItems = $studio?->getSceneItems() ?? [];
         $audioInputs = $studio?->getAudioInputs() ?? [];
         $selectedScreen = $this->selectedScreenId ? $screens->firstWhere('id', $this->selectedScreenId) : null;
+        $isLive = $studio ? $studio->isOnline() : false;
     @endphp
 
-    <div wire:poll.15s class="space-y-6">
+    <div wire:poll.15s class="obs-deck-stack">
         {{-- Studio Selector & Live Telemetry --}}
         <x-filament::section>
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex flex-wrap items-center gap-3">
-                    <label for="studio-selector" class="text-sm font-semibold">Active Studio:</label>
+            <div class="obs-deck-toolbar">
+                <div class="obs-deck-toolbar-group">
+                    <label for="studio-selector" class="obs-deck-label">Active studio</label>
                     <select
                         id="studio-selector"
                         wire:model.live="studioId"
-                        class="obs-deck-input px-3 py-2 text-sm"
+                        class="obs-deck-input obs-deck-select"
                     >
                         @forelse ($studios as $item)
                             <option value="{{ $item->id }}">{{ $item->name }} ({{ ucfirst($item->status) }})</option>
@@ -32,17 +33,18 @@
                     </select>
 
                     @if ($studio)
-                        <x-filament::badge :color="match($studio->status) { 'streaming' => 'danger', 'recording' => 'warning', 'online' => 'success', default => 'gray' }">
-                            {{ ucfirst($studio->status) }}
-                        </x-filament::badge>
-                        <span class="text-xs text-stone-400" style="font-variant-numeric: tabular-nums;">
-                            OBS {{ $studio->live_state['obsVersion'] ?? '—' }} · Program: <strong class="font-medium text-stone-200">{{ $studio->getCurrentProgramScene() ?? '—' }}</strong>
+                        <span class="obs-status-inline {{ $isLive ? 'is-live' : '' }}">
+                            <span class="obs-status-dot" aria-hidden="true"></span>
+                            <span>{{ ucfirst($studio->status) }}</span>
+                        </span>
+                        <span class="obs-deck-meta">
+                            OBS {{ $studio->live_state['obsVersion'] ?? '—' }} · Program: <strong>{{ $studio->getCurrentProgramScene() ?? '—' }}</strong>
                         </span>
                     @endif
                 </div>
 
                 @if ($studio)
-                    <div class="flex flex-wrap items-center gap-2">
+                    <div class="obs-btn-row">
                         <x-filament::button size="sm" color="gray" wire:click="sendCommand('obsisstant.RefreshAllState')">
                             Sync OBS state
                         </x-filament::button>
@@ -60,7 +62,7 @@
             </div>
 
             @if ($studio)
-                <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                <div class="obs-telemetry-grid">
                     <div class="obs-stat-tile">
                         <div class="obs-stat-label">FPS</div>
                         <div class="obs-stat-number">{{ $stats['activeFps'] ?? '—' }}</div>
@@ -87,80 +89,80 @@
 
         @if ($studio)
             {{-- Outputs & Broadcast Macros --}}
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <x-filament::section heading="Outputs & Transitions">
-                    <div class="flex flex-wrap gap-2">
+            <div class="obs-deck-two-col">
+                <x-filament::section heading="Outputs & transitions">
+                    <div class="obs-btn-row">
                         <x-filament::button
                             :color="! empty($outputs['streaming']) ? 'danger' : 'primary'"
                             wire:click="sendCommand('{{ ! empty($outputs['streaming']) ? 'StopStream' : 'StartStream' }}')"
                         >
-                            {{ ! empty($outputs['streaming']) ? 'Stop Stream' : 'Start Stream' }}
+                            {{ ! empty($outputs['streaming']) ? 'Stop stream' : 'Start stream' }}
                         </x-filament::button>
 
                         <x-filament::button
                             :color="! empty($outputs['recording']) ? 'warning' : 'gray'"
                             wire:click="sendCommand('{{ ! empty($outputs['recording']) ? 'StopRecord' : 'StartRecord' }}')"
                         >
-                            {{ ! empty($outputs['recording']) ? 'Stop Record' : 'Start Record' }}
+                            {{ ! empty($outputs['recording']) ? 'Stop record' : 'Start record' }}
                         </x-filament::button>
 
                         <x-filament::button color="gray" wire:click="sendCommand('ToggleRecordPause')">
-                            {{ ! empty($outputs['recordingPaused']) ? 'Resume Rec' : 'Pause Rec' }}
+                            {{ ! empty($outputs['recordingPaused']) ? 'Resume rec' : 'Pause rec' }}
                         </x-filament::button>
 
                         <x-filament::button
                             :color="! empty($outputs['virtualCam']) ? 'success' : 'gray'"
                             wire:click="sendCommand('ToggleVirtualCam')"
                         >
-                            Virtual Cam
+                            Virtual cam
                         </x-filament::button>
 
                         <x-filament::button color="gray" wire:click="sendCommand('SaveReplayBuffer')">
-                            Save Replay
+                            Save replay
                         </x-filament::button>
 
                         <x-filament::button
                             :color="$studio->isStudioModeEnabled() ? 'warning' : 'gray'"
                             wire:click="toggleStudioMode"
                         >
-                            Studio Mode
+                            Studio mode
                         </x-filament::button>
 
                         @if ($studio->isStudioModeEnabled())
                             <x-filament::button color="primary" wire:click="sendCommand('TriggerStudioModeTransition')">
-                                Transition → Live
+                                Transition to live
                             </x-filament::button>
                         @endif
                     </div>
                 </x-filament::section>
 
-                <x-filament::section heading="1-Click Broadcast Macros">
-                    <div class="flex flex-wrap gap-2">
+                <x-filament::section heading="Broadcast macros">
+                    <div class="obs-btn-row">
                         @forelse ($macros as $macro)
-                            <x-filament::button color="warning" wire:click="runMacro({{ $macro->id }})">
+                            <x-filament::button color="gray" wire:click="runMacro({{ $macro->id }})">
                                 {{ $macro->name }}
                             </x-filament::button>
                         @empty
-                            <p class="text-sm text-gray-500">No macros created yet.</p>
+                            <p class="obs-deck-empty">No macros created yet.</p>
                         @endforelse
                     </div>
                 </x-filament::section>
             </div>
 
             {{-- Scenes & Sources --}}
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div class="obs-deck-two-col">
                 <x-filament::section heading="Scenes">
-                    <div class="mb-4 flex gap-2">
+                    <div class="obs-inline-form">
                         <input
                             type="text"
                             wire:model="newSceneName"
-                            placeholder="New scene name..."
-                            class="obs-deck-input flex-1 px-3 py-2 text-sm"
+                            placeholder="New scene name"
+                            class="obs-deck-input obs-inline-grow"
                         >
-                        <x-filament::button size="sm" wire:click="createNewScene">Create Scene</x-filament::button>
+                        <x-filament::button size="sm" wire:click="createNewScene">Create scene</x-filament::button>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <div class="obs-scene-grid">
                         @forelse ($scenes as $scene)
                             @php
                                 $sName = $scene['sceneName'] ?? '';
@@ -168,19 +170,19 @@
                                 $isPreview = $studio->getCurrentPreviewScene() === $sName;
                             @endphp
                             <x-filament::button
-                                :color="$isProgram ? 'danger' : ($isPreview ? 'warning' : 'gray')"
+                                :color="$isProgram ? 'primary' : ($isPreview ? 'warning' : 'gray')"
                                 wire:click="switchScene('{{ addslashes($sName) }}')"
                             >
                                 {{ $sName }}
                             </x-filament::button>
                         @empty
-                            <p class="col-span-full text-sm text-gray-400">Waiting for obs-agent connection to sync OBS scenes.</p>
+                            <p class="obs-deck-empty">Waiting for obs-agent connection to sync OBS scenes.</p>
                         @endforelse
                     </div>
                 </x-filament::section>
 
-                <x-filament::section heading="Active Scene Sources & Visibility">
-                    <div class="space-y-2">
+                <x-filament::section heading="Active scene sources">
+                    <div class="obs-list-stack">
                         @forelse ($sceneItems as $item)
                             @php
                                 $itemId = (int) ($item['sceneItemId'] ?? 0);
@@ -188,12 +190,12 @@
                                 $sourceName = (string) ($item['sourceName'] ?? '');
                                 $kind = (string) ($item['inputKind'] ?? '');
                             @endphp
-                            <div class="obs-deck-subcard flex items-center justify-between gap-2 px-3 py-2">
+                            <div class="obs-deck-subcard obs-deck-subcard-row">
                                 <div>
-                                    <div class="text-sm font-medium text-stone-100">{{ $sourceName }}</div>
-                                    <div class="text-xs text-stone-400">{{ $kind ?: 'source' }}</div>
+                                    <div class="obs-deck-item-title">{{ $sourceName }}</div>
+                                    <div class="obs-deck-item-meta">{{ $kind ?: 'source' }}</div>
                                 </div>
-                                <div class="flex items-center gap-2">
+                                <div class="obs-btn-row">
                                     @if ($kind === 'browser_source')
                                         <x-filament::button size="xs" color="gray" wire:click="refreshBrowserSource('{{ addslashes($sourceName) }}')">
                                             Refresh
@@ -201,7 +203,7 @@
                                     @endif
                                     <x-filament::button
                                         size="xs"
-                                        :color="$enabled ? 'success' : 'gray'"
+                                        :color="$enabled ? 'primary' : 'gray'"
                                         wire:click="toggleSceneItem({{ $itemId }}, {{ $enabled ? 'false' : 'true' }})"
                                     >
                                         {{ $enabled ? 'Visible' : 'Hidden' }}
@@ -209,30 +211,30 @@
                                 </div>
                             </div>
                         @empty
-                            <p class="text-sm text-gray-400">No active scene items synced yet.</p>
+                            <p class="obs-deck-empty">No active scene items synced yet.</p>
                         @endforelse
                     </div>
                 </x-filament::section>
             </div>
 
             {{-- Audio Mixer & Live Screen Overlays --}}
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <x-filament::section heading="Audio Mixer">
-                    <div class="space-y-3">
+            <div class="obs-deck-two-col">
+                <x-filament::section heading="Audio mixer">
+                    <div class="obs-list-stack-md">
                         @forelse ($audioInputs as $input)
                             @php
                                 $inName = (string) ($input['inputName'] ?? '');
                                 $muted = (bool) ($input['inputMuted'] ?? false);
                                 $db = round((float) ($input['inputVolumeDb'] ?? 0), 1);
                             @endphp
-                            <div class="obs-deck-subcard p-3">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-sm font-medium text-stone-100">{{ $inName }}</span>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs text-stone-400" style="font-variant-numeric: tabular-nums;">{{ $db }} dB</span>
+                            <div class="obs-deck-subcard obs-deck-subcard-box">
+                                <div class="obs-deck-mixer-head">
+                                    <span class="obs-deck-item-title">{{ $inName }}</span>
+                                    <div class="obs-btn-row">
+                                        <span class="obs-deck-db">{{ $db }} dB</span>
                                         <x-filament::button
                                             size="xs"
-                                            :color="$muted ? 'danger' : 'success'"
+                                            :color="$muted ? 'danger' : 'gray'"
                                             wire:click="toggleInputMute('{{ addslashes($inName) }}', {{ $muted ? 'false' : 'true' }})"
                                         >
                                             {{ $muted ? 'Muted' : 'Live' }}
@@ -245,22 +247,22 @@
                                     max="0"
                                     step="1"
                                     value="{{ $db }}"
-                                    class="mt-2 w-full"
+                                    class="obs-range-slider"
                                     x-on:change="$wire.setInputVolumeDb('{{ addslashes($inName) }}', parseFloat($event.target.value))"
                                 >
                             </div>
                         @empty
-                            <p class="text-sm text-gray-400">No OBS audio inputs detected yet.</p>
+                            <p class="obs-deck-empty">No OBS audio inputs detected yet.</p>
                         @endforelse
                     </div>
                 </x-filament::section>
 
-                <x-filament::section heading="Live Screen Overlay Controller (Reverb)">
-                    <div class="space-y-3">
-                        <div class="flex flex-wrap items-center gap-2">
+                <x-filament::section heading="Live screen overlay controller">
+                    <div class="obs-list-stack-md">
+                        <div class="obs-inline-form">
                             <select
                                 wire:model.live="selectedScreenId"
-                                class="obs-deck-input flex-1 px-3 py-2 text-sm"
+                                class="obs-deck-input obs-deck-select obs-inline-grow"
                             >
                                 @foreach ($screens as $scr)
                                     <option value="{{ $scr->id }}">{{ $scr->name }} ({{ $scr->template_type }})</option>
@@ -268,7 +270,7 @@
                             </select>
                             @if ($selectedScreen)
                                 <x-filament::button size="sm" color="gray" tag="a" :href="$selectedScreen->getOverlayUrl()" target="_blank">
-                                    Open Overlay
+                                    Open overlay
                                 </x-filament::button>
                                 <x-filament::button size="sm" color="warning" wire:click="pushSelectedScreenToObs">
                                     Push to OBS
@@ -276,31 +278,31 @@
                             @endif
                         </div>
 
-                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <input type="text" wire:model="liveGuestName" placeholder="Lower-third name" class="obs-deck-input px-3 py-2 text-sm">
-                            <input type="text" wire:model="liveGuestRole" placeholder="Role / subtitle" class="obs-deck-input px-3 py-2 text-sm">
+                        <div class="obs-overlay-fields">
+                            <input type="text" wire:model="liveGuestName" placeholder="Lower-third name" class="obs-deck-input">
+                            <input type="text" wire:model="liveGuestRole" placeholder="Role or subtitle" class="obs-deck-input">
                         </div>
 
-                        <div class="flex flex-wrap gap-2">
+                        <div class="obs-btn-row">
                             <x-filament::button size="sm" color="primary" wire:click="updateLiveOverlay(true)">
-                                Show &amp; Update Lower Third
+                                Show lower third
                             </x-filament::button>
                             <x-filament::button size="sm" color="gray" wire:click="updateLiveOverlay(false)">
-                                Hide Lower Third
+                                Hide lower third
                             </x-filament::button>
                         </div>
 
-                        <div class="border-t border-[#CDAD69]/15 pt-3">
-                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                <input type="text" wire:model="liveAlertTitle" placeholder="Alert title" class="obs-deck-input px-3 py-2 text-sm">
-                                <input type="text" wire:model="liveAlertMessage" placeholder="Pop-up alert message..." class="obs-deck-input px-3 py-2 text-sm">
+                        <div class="obs-deck-divider">
+                            <div class="obs-overlay-fields">
+                                <input type="text" wire:model="liveAlertTitle" placeholder="Alert title" class="obs-deck-input">
+                                <input type="text" wire:model="liveAlertMessage" placeholder="Alert message" class="obs-deck-input">
                             </div>
-                            <div class="mt-2 flex flex-wrap gap-2">
+                            <div class="obs-btn-row obs-deck-alert-actions">
                                 <x-filament::button size="sm" color="warning" wire:click="triggerLiveAlert(true)">
-                                    Push Alert Toast
+                                    Push alert toast
                                 </x-filament::button>
                                 <x-filament::button size="sm" color="gray" wire:click="triggerLiveAlert(false)">
-                                    Dismiss Alert
+                                    Dismiss alert
                                 </x-filament::button>
                             </div>
                         </div>
@@ -309,32 +311,32 @@
             </div>
 
             {{-- Recent Command Audit Log --}}
-            <x-filament::section heading="Recent OBS Command Log">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
+            <x-filament::section heading="Recent OBS command log">
+                <div tabindex="0" role="region" aria-label="Recent OBS command log" class="obs-table-wrap">
+                    <table class="obs-data-table">
                         <thead>
-                            <tr class="border-b border-[#CDAD69]/15 text-xs font-medium text-stone-400">
-                                <th class="py-2 pr-4">Command</th>
-                                <th class="py-2 pr-4">Status</th>
-                                <th class="py-2 pr-4">Error</th>
-                                <th class="py-2">Time</th>
+                            <tr>
+                                <th scope="col">Command</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Error</th>
+                                <th scope="col" class="obs-num-col">Time</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($logs as $log)
-                                <tr class="border-b border-[#CDAD69]/10">
-                                    <td class="py-2 pr-4 text-xs font-medium text-stone-200">{{ $log->request_type }}</td>
-                                    <td class="py-2 pr-4">
-                                        <x-filament::badge :color="match($log->status) { 'succeeded' => 'success', 'failed' => 'danger', default => 'warning' }">
+                                <tr>
+                                    <th scope="row">{{ $log->request_type }}</th>
+                                    <td>
+                                        <span class="obs-command-status {{ $log->status === 'failed' ? 'is-error' : ($log->status === 'succeeded' ? 'is-ok' : '') }}">
                                             {{ ucfirst($log->status) }}
-                                        </x-filament::badge>
+                                        </span>
                                     </td>
-                                    <td class="py-2 pr-4 text-xs text-red-400">{{ $log->error_message ?? '—' }}</td>
-                                    <td class="py-2 text-xs text-stone-400" style="font-variant-numeric: tabular-nums;">{{ $log->created_at?->diffForHumans() }}</td>
+                                    <td>{{ $log->error_message ?? '—' }}</td>
+                                    <td class="obs-num-col">{{ $log->created_at?->diffForHumans() }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="py-3 text-sm text-gray-500">No commands dispatched yet.</td>
+                                    <td colspan="4" class="obs-empty-row">No commands dispatched yet.</td>
                                 </tr>
                             @endforelse
                         </tbody>

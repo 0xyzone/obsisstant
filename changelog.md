@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.2.3] - 2026-11-23 | type: macro
+
+> Fix broken grid layout and sidebar footer spacing on OBS Control Deck by replacing uncompiled Tailwind classes with dedicated theme CSS
+
+### Fixed
+- **OBS Control Deck Layout & Sidebar Footer**: Replaced uncompiled Tailwind grid/spacing utilities (`sm:grid-cols-5`, `lg:grid-cols-2`, `space-y-6`, `px-4 py-3`) in `obs-control-deck.blade.php` and `sidebar-version.blade.php` with explicit responsive CSS grid classes inside `public/css/filament-obs-theme.css` and added `<select>` arrow clearance.
+
 ## [v1.2.2] - 2026-11-23 | type: macro
 
 > Unslop Filament dashboard with restrained gold-and-obsidian surfaces, studio workspace table, and 4px spacing
