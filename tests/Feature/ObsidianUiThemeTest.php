@@ -54,6 +54,9 @@ class ObsidianUiThemeTest extends TestCase
         ObsMacro::factory()->create(['obs_studio_id' => $studio->id]);
 
         $this->assertFileExists(public_path('css/filament-obs-theme.css'));
+        $themeCss = (string) file_get_contents(public_path('css/filament-obs-theme.css'));
+        $this->assertStringContainsString('.fi-section:not(.fi-section-not-contained)', $themeCss);
+        $this->assertStringContainsString('.fi-section.fi-section-not-contained', $themeCss);
 
         $response = $this->actingAs($user)->get('/admin');
 

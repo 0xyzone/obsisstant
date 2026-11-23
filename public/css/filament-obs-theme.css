@@ -168,7 +168,8 @@ body.fi-body {
 }
 
 /* Raised Stepped Cards, Tables, Modals & Menus */
-.fi-section,
+.fi-section:not(.fi-section-not-contained):not(.fi-aside),
+.fi-section:not(.fi-section-not-contained).fi-aside > .fi-section-content-ctn,
 .fi-wi-stats-overview-stat,
 .fi-ta-ctn,
 .fi-simple-main,
@@ -180,6 +181,17 @@ body.fi-body {
     border-radius: var(--obs-radius-panel) !important;
     box-shadow: none !important;
     --tw-ring-shadow: 0 0 #0000 !important;
+}
+
+.fi-section.fi-section-not-contained {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.fi-section.fi-section-not-contained > .fi-section-content-ctn > .fi-section-content {
+    padding: 0 !important;
 }
 
 .fi-wi-stats-overview-stat {
@@ -214,7 +226,7 @@ body.fi-body {
     background: none !important;
 }
 
-.fi-wi-stats-overview-stat:first-child .fi-wi-stats-overview-stat-value {
+.fi-wi-stats-overview .fi-section-content > .fi-grid-col:first-child .fi-wi-stats-overview-stat-value {
     color: var(--obs-gold-light) !important;
 }
 
@@ -408,6 +420,7 @@ input[type="range"] {
     color: var(--obs-text-muted);
     font-weight: 500;
     font-size: 0.75rem;
+    text-align: start;
     padding: 0.625rem 0.75rem;
     border-block-end: 1px solid var(--obs-hairline);
     white-space: nowrap;
@@ -423,6 +436,7 @@ input[type="range"] {
 
 .obs-data-table tbody th,
 .obs-data-table tbody td {
+    text-align: start;
     padding: 0.75rem;
     border-block-end: 1px solid var(--obs-hairline);
     vertical-align: middle;
@@ -445,6 +459,8 @@ input[type="range"] {
     background-color: rgba(205, 173, 105, 0.04);
 }
 
+.obs-data-table th.obs-num-col,
+.obs-data-table td.obs-num-col,
 .obs-num-col {
     text-align: end;
     font-variant-numeric: tabular-nums;

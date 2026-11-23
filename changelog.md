@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.2.4] - 2026-11-23 | type: macro
+
+> Remove phantom outer box around dashboard stats widget and align Studio roster table columns
+
+### Fixed
+- **Dashboard Stats Wrapper (`filament-obs-theme.css`)**: Excluded `.fi-section-not-contained` from `.fi-section` card styling and reset its container padding so the 4 KPI stat cards sit cleanly without an outer border wrapper.
+- **KPI Gold Accent & Roster Table Alignment**: Scoped the gold stat accent strictly to the first stat column (`.fi-wi-stats-overview .fi-section-content > .fi-grid-col:first-child`) and added explicit `text-align: start` / `text-align: end` rules to `.obs-data-table` headers and row cells.
+
 ## [v1.2.3] - 2026-11-23 | type: macro
 
 > Fix broken grid layout and sidebar footer spacing on OBS Control Deck by replacing uncompiled Tailwind classes with dedicated theme CSS
