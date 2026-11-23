@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.0.1] - 2026-11-23 | type: macro
+
+> Serve Vite dev server over HTTPS to resolve Mixed Content console errors
+
+### Fixed
+- **Vite Dev Server HTTPS**: Configured `VITE_DEV_SERVER_KEY` and `VITE_DEV_SERVER_CERT` in `.env` (and documented in `.env.example`) so `npm run dev` serves scripts, styles, and fonts over `https://ob:5173` with valid SSL and CORS.
+
 ## [v1.0.0] - 2026-11-23 | type: major
 
 > Initial Stage — Local HTTPS VHost, Versioning & Changelog UI, Task Automation, Username Auth & Filament Admin

@@ -8,15 +8,18 @@ use Tests\TestCase;
 
 class ChangelogServiceTest extends TestCase
 {
-    public function test_it_parses_initial_v1_release_from_changelog_md(): void
+    public function test_it_parses_releases_from_changelog_md_with_v1_baseline(): void
     {
         $releases = ChangelogService::getReleases();
+        $currentVersion = ChangelogService::getCurrentVersion();
+        $baselineRelease = collect($releases)->firstWhere('tag', 'v1.0.0');
 
         $this->assertNotEmpty($releases);
-        $this->assertSame('1.0.0', ChangelogService::getCurrentVersion());
-        $this->assertSame('v1.0.0', $releases[0]['tag']);
-        $this->assertSame('major', $releases[0]['type']);
-        $this->assertNotEmpty($releases[0]['sections']);
+        $this->assertMatchesRegularExpression('/^\d+\.\d+\.\d+$/', $currentVersion);
+        $this->assertSame("v{$currentVersion}", $releases[0]['tag']);
+        $this->assertNotNull($baselineRelease);
+        $this->assertSame('major', $baselineRelease['type']);
+        $this->assertNotEmpty($baselineRelease['sections']);
     }
 
     public function test_it_computes_next_major_minor_and_macro_versions(): void
