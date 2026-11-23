@@ -34,6 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('Obsisstant')
             ->brandLogo(fn () => view('filament.components.brand-logo'))
             ->brandLogoHeight('2.25rem')
+            ->favicon(fn (): string => asset(app()->isProduction() ? 'favicon-prod.svg' : 'favicon-local.svg'))
             ->login(Login::class)
             ->darkMode(true, isForced: true)
             ->font('Poppins')

@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.7.0] - 2026-11-23 | type: minor
+
+> Environment-aware white/gold favicons, ASCII preview frame cache fix with default OBS Live View, and Scene Collection switch/create
+
+### Added
+- Environment Favicons (favicon-local.svg, favicon-prod.svg, x-app-favicon): Renders a white symbol in local/non-production tabs and metallic gold in production across public pages and Filament panels
+- OBS Scene Collection Management (obs-agent, /studio, ObsRequestCatalog): Syncs sceneCollections & currentSceneCollection from OBS WebSocket v5 and adds remote SetCurrentSceneCollection switching and CreateSceneCollection creation
+
+### Fixed
+- Live Preview Image Cache & Stage Accuracy: Stored preview frames as UTF-8-safe ASCII base64 in Cache (resolving MySQL SQLSTATE 1366 error), enabled OBS Pixel Feed by default when online, aligned bounding boxes via OBS sceneItemTransform width/height and alignment bits, fixed [hidden] CSS visibility on Studio Mode transition button, and unified Obsisstant branding
+
 ## [v1.6.0] - 2026-11-23 | type: minor
 
 > Standalone /studio Control Center with full Scene/Source CRUD, interactive 16:9 Live View stage, and HTTPS Vite hot-reload

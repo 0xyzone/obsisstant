@@ -29,6 +29,7 @@
         <title>{{ $studio->name }} · Studio Control Center · {{ config('app.name', 'Obsisstant') }}</title>
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=poppins:400,500,600&display=swap" rel="stylesheet">
+        <x-app-favicon />
         <x-dev-hot-reload />
         <style>
             :root {
@@ -69,6 +70,10 @@
             :is(a, button, input, select, textarea, [tabindex]):focus-visible {
                 outline: 2px solid var(--gold-light);
                 outline-offset: 2px;
+            }
+
+            [hidden] {
+                display: none !important;
             }
 
             /* Top Studio Header */
@@ -716,7 +721,7 @@
                         <path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
                         <circle cx="12" cy="12" r="2.5" fill="#CDAD69"/>
                     </svg>
-                    <span>{{ config('app.name', 'Obsisstant') }}</span>
+                    <span>Obsisstant</span>
                 </a>
                 <a href="{{ route('changelog') }}" class="obs-brand-version-pill">v{{ $currentVersion }}</a>
                 <span class="studio-divider" aria-hidden="true"></span>
@@ -750,10 +755,19 @@
                 <div class="dock-panel">
                     <div class="dock-head">
                         <div>
-                            <h2 class="dock-title">Scenes</h2>
-                            <div class="dock-subtitle">Click to edit canvas · Cut sends live</div>
+                            <h2 class="dock-title">Scenes &amp; Collections</h2>
+                            <div class="dock-subtitle">Click scene to inspect · Live cuts output</div>
                         </div>
                         <button type="button" class="s-btn s-btn-xs" id="sync-obs-btn">Sync</button>
+                    </div>
+
+                    <div style="display: grid; gap: 0.25rem; padding-block-end: 0.5rem; border-block-end: 1px solid var(--hairline);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.375rem;">
+                            <label for="scene-collection-select" class="field-label">Scene Collection</label>
+                            <button type="button" class="s-btn s-btn-xs" commandfor="create-collection-dialog" command="show-modal">+ Collection</button>
+                        </div>
+                        <select id="scene-collection-select" class="s-select" style="inline-size: 100%; min-block-size: 2rem; font-size: 0.75rem;"></select>
+                        <div class="dock-subtitle" style="font-size: 0.6875rem;">Switch or create OBS Scene Collections remotely (rename/delete in OBS desktop menu).</div>
                     </div>
 
                     <div style="display: flex; gap: 0.375rem;">
@@ -810,8 +824,8 @@
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
                         <label for="live-view-mode" class="field-label">Live View</label>
                         <select id="live-view-mode" class="s-select" style="min-block-size: 1.875rem; font-size: 0.75rem;">
-                            <option value="layout">Layout Grid Only</option>
-                            <option value="snapshot">OBS Pixel Feed (Snapshots)</option>
+                            <option value="snapshot" @selected($studio->isOnline())>OBS Pixel Feed (Snapshots)</option>
+                            <option value="layout" @selected(! $studio->isOnline())>Layout Grid Only</option>
                             <option value="vcam">Local OBS Virtual Cam (WebRTC)</option>
                         </select>
                         <button
@@ -1016,6 +1030,29 @@
                     <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
                         <button type="button" class="s-btn" commandfor="rename-scene-dialog" command="close">Cancel</button>
                         <button type="submit" class="s-btn s-btn-gold">Rename Scene</button>
+                    </div>
+                </form>
+            </div>
+        </dialog>
+
+        {{-- Native Declarative Modal: Create Scene Collection --}}
+        <dialog id="create-collection-dialog" class="obs-dialog" aria-labelledby="create-collection-title">
+            <div class="dialog-inner">
+                <div class="dialog-head">
+                    <h2 id="create-collection-title" class="dialog-title">Create OBS Scene Collection</h2>
+                    <button type="button" class="s-btn s-btn-xs" commandfor="create-collection-dialog" command="close">Close</button>
+                </div>
+                <form id="create-collection-form" style="display: grid; gap: 0.75rem;">
+                    <label class="field-stack">
+                        <span class="field-label">New Scene Collection Name</span>
+                        <input type="text" id="create-collection-name" class="s-input" placeholder="e.g. Tournament Finals" required>
+                    </label>
+                    <p style="margin: 0; font-size: 0.75rem; color: var(--ink-muted);">
+                        Creates a new Scene Collection inside OBS Studio and switches to it automatically.
+                    </p>
+                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                        <button type="button" class="s-btn" commandfor="create-collection-dialog" command="close">Cancel</button>
+                        <button type="submit" class="s-btn s-btn-gold">Create Collection</button>
                     </div>
                 </form>
             </div>
@@ -1248,11 +1285,33 @@
                 };
 
                 const renderScenes = () => {
+                    const colSelect = document.getElementById('scene-collection-select');
+                    if (colSelect) {
+                        const collections = Array.isArray(liveState?.sceneCollections) ? liveState.sceneCollections : [];
+                        const currentCol = liveState?.currentSceneCollection || '';
+                        colSelect.innerHTML = '';
+
+                        if (collections.length === 0) {
+                            const opt = document.createElement('option');
+                            opt.value = '';
+                            opt.textContent = currentCol || 'No synced collections';
+                            colSelect.appendChild(opt);
+                        } else {
+                            collections.forEach((colName) => {
+                                const opt = document.createElement('option');
+                                opt.value = colName;
+                                opt.textContent = colName;
+                                opt.selected = colName === currentCol;
+                                colSelect.appendChild(opt);
+                            });
+                        }
+                    }
+
                     const container = document.getElementById('scenes-list');
                     if (!container) return;
 
                     const scenes = Array.isArray(liveState?.scenes) ? liveState.scenes : [];
-                    if (!editingScene && scenes.length > 0) {
+                    if ((!editingScene || !scenes.some((s) => s.sceneName === editingScene)) && scenes.length > 0) {
                         editingScene = liveState?.currentProgramScene || scenes[0].sceneName;
                     }
 
@@ -1334,22 +1393,38 @@
                 const computeItemRect = (item) => {
                     const dims = getVideoDims();
                     const tf = item.sceneItemTransform || {};
-                    const x = Number(tf.positionX ?? 0);
-                    const y = Number(tf.positionY ?? 0);
                     const scaleX = Number(tf.scaleX ?? 1);
                     const scaleY = Number(tf.scaleY ?? 1);
-                    const rawWidth = Number(tf.boundsType && tf.boundsType !== 'OBS_BOUNDS_NONE'
-                        ? (tf.boundsWidth || tf.width || 480)
-                        : ((tf.sourceWidth || 480) * scaleX));
-                    const rawHeight = Number(tf.boundsType && tf.boundsType !== 'OBS_BOUNDS_NONE'
-                        ? (tf.boundsHeight || tf.height || 270)
-                        : ((tf.sourceHeight || 270) * scaleY));
+                    const hasBounds = tf.boundsType && tf.boundsType !== 'OBS_BOUNDS_NONE';
+                    const fallbackW = hasBounds ? Number(tf.boundsWidth || 480) : Number((tf.sourceWidth || 480) * scaleX);
+                    const fallbackH = hasBounds ? Number(tf.boundsHeight || 270) : Number((tf.sourceHeight || 270) * scaleY);
+
+                    const rawW = Number(tf.width && tf.width > 0 ? tf.width : fallbackW);
+                    const rawH = Number(tf.height && tf.height > 0 ? tf.height : fallbackH);
+                    const w = Math.max(40, isFinite(rawW) && rawW > 0 ? rawW : 480);
+                    const h = Math.max(24, isFinite(rawH) && rawH > 0 ? rawH : 270);
+
+                    const posX = Number(tf.positionX ?? 0);
+                    const posY = Number(tf.positionY ?? 0);
+                    const align = Number(tf.alignment ?? 5);
+                    const hAlign = align & 3;
+                    const vAlign = align & 12;
+
+                    let left = posX;
+                    if (hAlign === 0) left = posX - (w / 2);
+                    else if (hAlign === 2) left = posX - w;
+
+                    let top = posY;
+                    if (vAlign === 0) top = posY - (h / 2);
+                    else if (vAlign === 8) top = posY - h;
 
                     return {
-                        x,
-                        y,
-                        w: Math.max(80, isFinite(rawWidth) && rawWidth > 0 ? rawWidth : (Number(tf.width) || 480)),
-                        h: Math.max(45, isFinite(rawHeight) && rawHeight > 0 ? rawHeight : (Number(tf.height) || 270)),
+                        x: left,
+                        y: top,
+                        posX,
+                        posY,
+                        w,
+                        h,
                         baseW: dims.width,
                         baseH: dims.height,
                     };
@@ -1420,12 +1495,14 @@
                                     box.style.width = `${(nextW / rect.baseW) * 100}%`;
                                     box.style.height = `${(nextH / rect.baseH) * 100}%`;
                                 } else {
-                                    const nextX = Math.round(startTf.x + dxObs);
-                                    const nextY = Math.round(startTf.y + dyObs);
-                                    box.style.left = `${(nextX / rect.baseW) * 100}%`;
-                                    box.style.top = `${(nextY / rect.baseH) * 100}%`;
-                                    document.getElementById('tf-x').value = String(nextX);
-                                    document.getElementById('tf-y').value = String(nextY);
+                                    const nextLeft = Math.round(startTf.x + dxObs);
+                                    const nextTop = Math.round(startTf.y + dyObs);
+                                    const nextPosX = Math.round(startTf.posX + dxObs);
+                                    const nextPosY = Math.round(startTf.posY + dyObs);
+                                    box.style.left = `${(nextLeft / rect.baseW) * 100}%`;
+                                    box.style.top = `${(nextTop / rect.baseH) * 100}%`;
+                                    document.getElementById('tf-x').value = String(nextPosX);
+                                    document.getElementById('tf-y').value = String(nextPosY);
                                 }
                             };
 
@@ -1451,8 +1528,8 @@
                                         patch.scaleY = Number((startScaleY * ratioY).toFixed(3));
                                     }
                                 } else {
-                                    patch.positionX = Math.round(startTf.x + dxObs);
-                                    patch.positionY = Math.round(startTf.y + dyObs);
+                                    patch.positionX = Math.round(startTf.posX + dxObs);
+                                    patch.positionY = Math.round(startTf.posY + dyObs);
                                 }
 
                                 sendObsCommand('SetSceneItemTransform', {
@@ -1692,6 +1769,26 @@
 
                 document.getElementById('sync-obs-btn')?.addEventListener('click', () => {
                     sendObsCommand('obsisstant.RefreshAllState');
+                });
+
+                document.getElementById('scene-collection-select')?.addEventListener('change', (ev) => {
+                    const collectionName = ev.target.value;
+                    if (!collectionName) return;
+                    editingScene = '';
+                    selectedSceneItemId = null;
+                    sendObsCommand('SetCurrentSceneCollection', { sceneCollectionName: collectionName });
+                });
+
+                document.getElementById('create-collection-form')?.addEventListener('submit', async (ev) => {
+                    ev.preventDefault();
+                    const input = document.getElementById('create-collection-name');
+                    const name = input?.value?.trim();
+                    if (!name) return;
+                    editingScene = '';
+                    selectedSceneItemId = null;
+                    await sendObsCommand('CreateSceneCollection', { sceneCollectionName: name });
+                    input.value = '';
+                    closeDialog(document.getElementById('create-collection-dialog'));
                 });
 
                 document.getElementById('create-scene-btn')?.addEventListener('click', async () => {
@@ -1977,16 +2074,27 @@
                     const renew = () => postJson(endpoints.previewToggle, {
                         active: true,
                         scene_name: editingScene || null,
-                        interval_ms: 650,
+                        interval_ms: 550,
                         width: 960,
                     }).catch(() => {});
 
                     await renew();
                     if (previewImg) {
+                        previewImg.onerror = () => { previewImg.hidden = true; };
+                        previewImg.onload = () => { previewImg.hidden = false; };
                         previewImg.src = `${endpoints.previewFrame}?t=${Date.now()}`;
-                        previewImg.hidden = false;
                     }
-                    previewLeaseTimer = setInterval(renew, 20000);
+                    setTimeout(() => {
+                        if (document.getElementById('live-view-mode')?.value === 'snapshot' && previewImg && previewImg.hidden) {
+                            previewImg.src = `${endpoints.previewFrame}?t=${Date.now()}`;
+                        }
+                    }, 750);
+                    previewLeaseTimer = setInterval(() => {
+                        renew();
+                        if (previewImg && !window.Echo) {
+                            previewImg.src = `${endpoints.previewFrame}?t=${Date.now()}`;
+                        }
+                    }, 18000);
                 };
 
                 document.getElementById('live-view-mode')?.addEventListener('change', async (ev) => {
@@ -2049,6 +2157,13 @@
                 }
 
                 renderAll();
+
+                // Auto-start OBS Pixel Feed underlay on launch whenever Studio is online
+                const initialViewMode = document.getElementById('live-view-mode')?.value;
+                if (initialViewMode === 'snapshot') {
+                    if (previewStatusLabel) previewStatusLabel.textContent = 'OBS snapshot feed active (~1.8 fps)';
+                    enableSnapshotPreview(true);
+                }
             })();
         </script>
     </body>

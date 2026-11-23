@@ -7,6 +7,7 @@
         <meta name="description" content="Real-time wireless OBS Studio deck, hardware relay agent, and live Browser Source overlays synced via Laravel Reverb.">
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=poppins:400,500,600&display=swap" rel="stylesheet">
+        <x-app-favicon />
         <x-dev-hot-reload />
         <style>
             :root {

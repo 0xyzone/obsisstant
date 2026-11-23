@@ -3,10 +3,11 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-        <title>Knowledge Base · {{ config('app.name', 'Obsisstant') }} v{{ $currentVersion }}</title>
+        <title>Knowledge Base · Obsisstant v{{ $currentVersion }}</title>
         <meta name="description" content="Setup instructions, Broadcast Macro automation, Overlay Studio reference, and searchable OBS WebSocket v5 commands.">
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=poppins:400,500,600&display=swap" rel="stylesheet">
+        <x-app-favicon />
         <x-dev-hot-reload />
         <style>
             :root {

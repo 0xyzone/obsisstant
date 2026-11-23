@@ -7,6 +7,7 @@
         <title>{{ $studio->name }} · Mobile Control Deck</title>
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=poppins:300,400,500,600,700,800&display=swap" rel="stylesheet">
+        <x-app-favicon />
         <x-dev-hot-reload />
         <style>
             :root {
@@ -229,7 +230,7 @@
                                 <path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
                                 <circle cx="12" cy="12" r="2.5" fill="#CDAD69"/>
                             </svg>
-                            <span>{{ config('app.name', 'Obsisstant') }}</span>
+                            <span>Obsisstant</span>
                         </a>
                         <a href="{{ route('changelog') }}" class="obs-brand-version-pill" title="View release changelog">v{{ \App\Services\ChangelogService::getCurrentVersion() }}</a>
                     </div>

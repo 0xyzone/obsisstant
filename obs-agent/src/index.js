@@ -53,6 +53,8 @@ function emptyLiveState() {
     return {
         obsVersion: null,
         websocketVersion: null,
+        currentSceneCollection: null,
+        sceneCollections: [],
         currentProgramScene: null,
         currentPreviewScene: null,
         studioModeEnabled: false,
@@ -229,9 +231,10 @@ class StudioWorker {
         }
 
         try {
-            const [version, sceneList, studioMode, streamStatus, recordStatus, stats, videoSettings] = await Promise.all([
+            const [version, sceneList, collectionList, studioMode, streamStatus, recordStatus, stats, videoSettings] = await Promise.all([
                 this.obs.call('GetVersion'),
                 this.obs.call('GetSceneList'),
+                this.obs.call('GetSceneCollectionList').catch(() => ({ currentSceneCollectionName: null, sceneCollections: [] })),
                 this.obs.call('GetStudioModeEnabled'),
                 this.obs.call('GetStreamStatus'),
                 this.obs.call('GetRecordStatus'),
@@ -264,6 +267,8 @@ class StudioWorker {
             this.liveState = {
                 obsVersion: version.obsVersion,
                 websocketVersion: version.obsWebSocketVersion,
+                currentSceneCollection: collectionList?.currentSceneCollectionName ?? null,
+                sceneCollections: Array.isArray(collectionList?.sceneCollections) ? collectionList.sceneCollections : [],
                 currentProgramScene: programScene,
                 currentPreviewScene: sceneList.currentPreviewSceneName ?? null,
                 studioModeEnabled: Boolean(studioMode.studioModeEnabled),
@@ -296,6 +301,9 @@ class StudioWorker {
             };
 
             await this.pushState(this.liveState);
+            if (this.previewConfig.active) {
+                this.captureAndUploadPreviewFrame();
+            }
         } catch (error) {
             console.error(`${this.logPrefix()} State hydration error:`, error.message);
         }
@@ -524,6 +532,14 @@ class StudioWorker {
 
         this.obs.on('SceneListChanged', async () => {
             this.scheduleRefreshAllState(120);
+        });
+
+        this.obs.on('CurrentSceneCollectionChanged', () => {
+            this.scheduleRefreshAllState(350);
+        });
+
+        this.obs.on('SceneCollectionListChanged', () => {
+            this.scheduleRefreshAllState(250);
         });
 
         this.obs.on('SceneNameChanged', async () => {

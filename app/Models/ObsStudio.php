@@ -184,6 +184,21 @@ class ObsStudio extends Model
     }
 
     /**
+     * @return array<int, string>
+     */
+    public function getSceneCollections(): array
+    {
+        $collections = $this->live_state['sceneCollections'] ?? [];
+
+        return is_array($collections) ? array_values($collections) : [];
+    }
+
+    public function getCurrentSceneCollection(): ?string
+    {
+        return $this->live_state['currentSceneCollection'] ?? null;
+    }
+
+    /**
      * @return array{width: int, height: int}
      */
     public function getVideoDimensions(): array

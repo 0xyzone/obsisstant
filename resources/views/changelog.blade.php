@@ -3,9 +3,10 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-        <title>Changelog · {{ config('app.name', 'Obsisstant') }} v{{ $currentVersion }}</title>
+        <title>Changelog · Obsisstant v{{ $currentVersion }}</title>
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=poppins:300,400,500,600,700,800&display=swap" rel="stylesheet">
+        <x-app-favicon />
         <x-dev-hot-reload />
         <style>
             :root {
@@ -751,7 +752,7 @@
                             </svg>
                         </div>
                         <div class="brand-text">
-                            <span class="brand-title">{{ config('app.name', 'Obsisstant') }}</span>
+                            <span class="brand-title">Obsisstant</span>
                             <span class="brand-subtitle">Release Ledger</span>
                         </div>
                     </a>

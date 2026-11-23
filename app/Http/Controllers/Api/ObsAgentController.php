@@ -117,7 +117,7 @@ class ObsAgentController extends Controller
         $mergedState = array_replace_recursive($studio->live_state ?? [], $validated['live_state']);
 
         // Replace collection arrays directly so deleted/reordered scenes, items, or inputs don't linger
-        foreach (['scenes', 'sceneItems', 'sceneItemsByScene', 'audioInputs', 'allInputs', 'inputKinds', 'videoDimensions'] as $listKey) {
+        foreach (['scenes', 'sceneItems', 'sceneItemsByScene', 'audioInputs', 'allInputs', 'inputKinds', 'videoDimensions', 'sceneCollections'] as $listKey) {
             if (array_key_exists($listKey, $validated['live_state'])) {
                 $mergedState[$listKey] = $validated['live_state'][$listKey];
             }
@@ -168,7 +168,7 @@ class ObsAgentController extends Controller
 
         Cache::put("obs.preview.frame.{$studio->id}", [
             'mime' => $mime,
-            'bytes' => $binary,
+            'base64' => $base64,
             'scene_name' => $validated['scene_name'],
             'version' => $version,
         ], now()->addSeconds(45));

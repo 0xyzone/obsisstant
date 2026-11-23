@@ -72,14 +72,41 @@ class StudioControlCenterTest extends TestCase
         $this->actingAs($user)
             ->get(route('studio.show', ['studio' => $studio->slug]))
             ->assertOk()
+            ->assertSee('Obsisstant')
             ->assertSee('Broadcast A')
             ->assertSee($versionTag)
             ->assertSee('Reverb active')
+            ->assertSee('favicon-local.svg', false)
+            ->assertSee('scene-collection-select')
+            ->assertSee('create-collection-dialog')
             ->assertSee('stage-canvas')
             ->assertSee('add-source-dialog')
             ->assertSee('rename-scene-dialog')
             ->assertSee('Host Camera')
             ->assertDontSee('@vite/client', false);
+    }
+
+    public function test_environment_favicons_switch_between_white_local_and_gold_production_symbols(): void
+    {
+        $this->assertFileExists(public_path('favicon-local.svg'));
+        $this->assertFileExists(public_path('favicon-prod.svg'));
+
+        $this->assertStringContainsString('#FAF7EE', (string) file_get_contents(public_path('favicon-local.svg')));
+        $this->assertStringContainsString('#F4E185', (string) file_get_contents(public_path('favicon-prod.svg')));
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('favicon-local.svg', false);
+
+        $this->app->detectEnvironment(static fn (): string => 'production');
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('favicon-prod.svg', false);
+
+        $this->get('/admin/login')
+            ->assertOk()
+            ->assertSee('favicon-prod.svg', false);
     }
 
     public function test_studio_control_center_dispatches_scene_source_transform_and_inspect_commands(): void
@@ -187,10 +214,21 @@ class StudioControlCenterTest extends TestCase
             ->assertOk()
             ->assertHeader('Content-Type', 'image/jpeg');
 
-        // Confirm state update replaces sceneItemsByScene cleanly instead of merging deleted keys
+        $this->postJson(route('studio.command', ['studio' => $studio->slug]), [
+            'request_type' => 'SetCurrentSceneCollection',
+            'request_data' => ['sceneCollectionName' => 'Podcast Layout'],
+        ])->assertOk()->assertJsonPath('request_type', 'SetCurrentSceneCollection');
+
+        $this->postJson(route('studio.command', ['studio' => $studio->slug]), [
+            'request_type' => 'CreateSceneCollection',
+            'request_data' => ['sceneCollectionName' => 'Event Finals'],
+        ])->assertOk()->assertJsonPath('request_type', 'CreateSceneCollection');
+
         $this->withHeader('Authorization', 'Bearer studio-token-123456')
             ->postJson(route('api.obs-agent.state'), [
                 'live_state' => [
+                    'currentSceneCollection' => 'Podcast Layout',
+                    'sceneCollections' => ['Default', 'Podcast Layout'],
                     'scenes' => [['sceneName' => 'Main Scene']],
                     'sceneItemsByScene' => [
                         'Main Scene' => [['sceneItemId' => 5, 'sourceName' => 'Camera']],
@@ -202,5 +240,7 @@ class StudioControlCenterTest extends TestCase
         $studio->refresh();
         $this->assertArrayNotHasKey('Old Scene', $studio->getSceneItemsByScene());
         $this->assertSame('Camera', $studio->getSceneItems('Main Scene')[0]['sourceName']);
+        $this->assertSame('Podcast Layout', $studio->getCurrentSceneCollection());
+        $this->assertSame(['Default', 'Podcast Layout'], $studio->getSceneCollections());
     }
 }

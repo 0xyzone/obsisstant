@@ -69,6 +69,20 @@ class ObsRequestCatalog
                 'fields' => ['transitionDuration'],
                 'example_payload' => ['transitionDuration' => 350],
             ],
+            'SetCurrentSceneCollection' => [
+                'category' => 'Scenes & Transitions',
+                'label' => 'Switch Scene Collection',
+                'summary' => 'Load a different OBS Scene Collection by exact collection name.',
+                'fields' => ['sceneCollectionName'],
+                'example_payload' => ['sceneCollectionName' => 'Main Podcast Setup'],
+            ],
+            'CreateSceneCollection' => [
+                'category' => 'Scenes & Transitions',
+                'label' => 'Create Scene Collection',
+                'summary' => 'Create and switch to a new empty OBS Scene Collection.',
+                'fields' => ['sceneCollectionName'],
+                'example_payload' => ['sceneCollectionName' => 'Event Broadcast'],
+            ],
             'StartStream' => [
                 'category' => 'Stream, Record & Outputs',
                 'label' => 'Start Streaming',
@@ -446,6 +460,10 @@ class ObsRequestCatalog
                 $unpacked['param_propertyName'] = (string) ($requestData['propertyName'] ?? 'refreshnocache');
             }
 
+            if (in_array('sceneCollectionName', $fields, true)) {
+                $unpacked['param_sceneCollectionName'] = (string) ($requestData['sceneCollectionName'] ?? '');
+            }
+
             return $unpacked;
         }, $steps));
     }
@@ -612,6 +630,13 @@ class ObsRequestCatalog
                 $propertyName = trim((string) ($step['param_propertyName'] ?? 'refreshnocache'));
                 if ($propertyName !== '') {
                     $requestData['propertyName'] = $propertyName;
+                }
+            }
+
+            if (in_array('sceneCollectionName', $fields, true)) {
+                $collectionName = trim((string) ($step['param_sceneCollectionName'] ?? ''));
+                if ($collectionName !== '') {
+                    $requestData['sceneCollectionName'] = $collectionName;
                 }
             }
 

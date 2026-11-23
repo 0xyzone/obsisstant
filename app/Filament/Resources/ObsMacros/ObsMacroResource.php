@@ -289,6 +289,15 @@ class ObsMacroResource extends Resource
                                     ->required(fn (Get $get): bool => $get('type') === 'obs_command'
                                         && ObsRequestCatalog::commandHasField($get('command_preset'), 'propertyName')),
 
+                                TextInput::make('param_sceneCollectionName')
+                                    ->label('Scene Collection Name')
+                                    ->placeholder('Exact OBS Scene Collection name')
+                                    ->visible(fn (Get $get): bool => $get('type') === 'obs_command'
+                                        && ObsRequestCatalog::commandHasField($get('command_preset'), 'sceneCollectionName'))
+                                    ->required(fn (Get $get): bool => $get('type') === 'obs_command'
+                                        && ObsRequestCatalog::commandHasField($get('command_preset'), 'sceneCollectionName'))
+                                    ->columnSpanFull(),
+
                                 Select::make('screen_slug')
                                     ->label('Target Overlay Screen')
                                     ->options(fn (): array => ObsScreen::query()->pluck('name', 'slug')->all())

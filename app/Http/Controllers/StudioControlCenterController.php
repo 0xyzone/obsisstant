@@ -173,13 +173,23 @@ class StudioControlCenterController extends Controller
     {
         $frame = Cache::get("obs.preview.frame.{$studio->id}");
 
-        if (! is_array($frame) || empty($frame['bytes'])) {
+        $bytes = null;
+        if (is_array($frame)) {
+            if (! empty($frame['base64'])) {
+                $decoded = base64_decode((string) $frame['base64'], true);
+                $bytes = $decoded !== false ? $decoded : null;
+            } elseif (! empty($frame['bytes'])) {
+                $bytes = $frame['bytes'];
+            }
+        }
+
+        if (! is_string($bytes) || $bytes === '') {
             return response('', 204, [
                 'Cache-Control' => 'no-store, no-cache, must-revalidate',
             ]);
         }
 
-        return response($frame['bytes'], 200, [
+        return response($bytes, 200, [
             'Content-Type' => $frame['mime'] ?? 'image/jpeg',
             'Cache-Control' => 'no-store, no-cache, must-revalidate',
             'X-OBS-Preview-Scene' => (string) ($frame['scene_name'] ?? ''),

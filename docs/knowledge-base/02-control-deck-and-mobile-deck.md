@@ -10,8 +10,9 @@ summary: Direct scenes (create/rename/delete), build live 16:9 source layouts, c
 
 For full broadcast production, launch the standalone **Studio Control Center** (`/studio` or `/studio/{studio-slug}`), reachable from the landing page, Admin Dashboard, and Filament sidebar. Unlike administrative tables, `/studio` renders a three-column dark workspace driven over Reverb WebSockets.
 
-### 1. Full Scene Management
+### 1. Full Scene & Scene Collection Management
 
+- **Scene Collections**: Switch active Scene Collections (`SetCurrentSceneCollection`) or create new collections (`CreateSceneCollection`) directly from the top of the left Scenes dock. *(Note: OBS WebSocket v5 does not expose rename/delete requests for Scene Collections—manage those inside the OBS Desktop Scene Collection menu.)*
 - **Select Scene for Staging vs Live Cut**: Click any scene row to inspect and rearrange its sources on the center stage without changing what your audience sees live. Click **Live** (or **Preview** when Studio Mode is active) to switch OBS output.
 - **Create, Rename & Delete Scenes**: Add scenes inline (`CreateScene`), rename existing scenes (`SetSceneName`), or delete scenes (`RemoveScene`) directly inside OBS Studio.
 
