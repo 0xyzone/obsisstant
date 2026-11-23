@@ -248,6 +248,12 @@ class StudioControlCenterTest extends TestCase
             ->assertOk()
             ->assertJsonPath('active', true);
 
+        // Preview stream toggle must stay ephemeral and not pollute obs_command_logs
+        $this->assertDatabaseMissing('obs_command_logs', [
+            'obs_studio_id' => $studio->id,
+            'request_type' => 'obsisstant.SetPreviewStream',
+        ]);
+
         // No frame cached yet -> 204
         $this->actingAs($user)
             ->get(route('studio.preview-frame', ['studio' => $studio->slug]))
@@ -263,7 +269,7 @@ class StudioControlCenterTest extends TestCase
             ->assertOk()
             ->assertJsonPath('ok', true);
 
-        Event::assertDispatched(ObsPreviewFrameUpdated::class);
+        Event::assertDispatched(ObsPreviewFrameUpdated::class, static fn (ObsPreviewFrameUpdated $event): bool => $event->imageData === $tinyJpeg);
 
         $this->actingAs($user)
             ->get(route('studio.preview-frame', ['studio' => $studio->slug]))

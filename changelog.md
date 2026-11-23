@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.8.1] - 2026-11-23 | type: macro
+
+> Load-balanced preview delivery over Reverb WebSocket with frame deduplication, file caching, transient preview leases, and incremental obs-agent sync
+
+### Changed
+- Preview Pipeline Performance (ObsPreviewFrameUpdated, config/reverb.php, ObsAgentController, /studio): Raised Reverb message limits to 256 KB to push 640px JPEG frames directly over WebSocket without /preview-frame HTTP GET polling, routed transient frame cache off MySQL onto file cache, and replaced aggressive 550ms fetches with 2.5s balanced / 1.2s active modes plus automatic background-tab pause
+- Ephemeral Preview Lease & Incremental obs-agent Sync (ObsCommandService::dispatchTransient, obs-agent): Kept SetPreviewStream toggles out of obs_command_logs, added SHA-1 frame hash deduplication to skip static scene uploads, parallelized scene/input hydration with Promise.all, patched SceneItemTransformChanged incrementally, and throttled unchanged telemetry pushes
+
+### Fixed
+- Client Request Contention (/studio): Coalesced snapshot requests with single-flight locking, guarded dragged stage boxes against mid-drag DOM re-renders, and eliminated redundant Echo/polling contention
+
 ## [v1.8.0] - 2026-11-23 | type: minor
 
 > Visual per-source OBS properties editor, human-readable input kind labels, empty JSON object payload fixes, and reliable action acknowledgment with live snapshot fallback

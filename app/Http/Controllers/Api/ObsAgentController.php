@@ -12,8 +12,8 @@ use App\Services\Obs\ObsCommandService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Pusher\Pusher;
+use Throwable;
 
 class ObsAgentController extends Controller
 {
@@ -167,18 +167,36 @@ class ObsAgentController extends Controller
 
         $version = (string) round(microtime(true) * 1000);
 
-        Cache::put("obs.preview.frame.{$studio->id}", [
+        ObsCommandService::previewCacheStore()->put("obs.preview.frame.{$studio->id}", [
             'mime' => $mime,
             'base64' => $base64,
             'scene_name' => $validated['scene_name'],
             'version' => $version,
-        ], now()->addSeconds(45));
+        ], now()->addSeconds(50));
 
-        event(new ObsPreviewFrameUpdated(
-            studioId: $studio->id,
-            sceneName: $validated['scene_name'],
-            frameVersion: $version,
-        ));
+        $inlineDataUri = "data:{$mime};base64,{$base64}";
+        if (strlen($inlineDataUri) <= 180_000) {
+            try {
+                event(new ObsPreviewFrameUpdated(
+                    studioId: $studio->id,
+                    sceneName: $validated['scene_name'],
+                    frameVersion: $version,
+                    imageData: $inlineDataUri,
+                ));
+            } catch (Throwable) {
+                event(new ObsPreviewFrameUpdated(
+                    studioId: $studio->id,
+                    sceneName: $validated['scene_name'],
+                    frameVersion: $version,
+                ));
+            }
+        } else {
+            event(new ObsPreviewFrameUpdated(
+                studioId: $studio->id,
+                sceneName: $validated['scene_name'],
+                frameVersion: $version,
+            ));
+        }
 
         return response()->json([
             'ok' => true,

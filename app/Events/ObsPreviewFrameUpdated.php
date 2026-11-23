@@ -17,6 +17,7 @@ class ObsPreviewFrameUpdated implements ShouldBroadcastNow
         public int $studioId,
         public string $sceneName,
         public string $frameVersion,
+        public ?string $imageData = null,
     ) {}
 
     /**
@@ -39,10 +40,16 @@ class ObsPreviewFrameUpdated implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
-        return [
+        $payload = [
             'studio_id' => $this->studioId,
             'scene_name' => $this->sceneName,
             'version' => $this->frameVersion,
         ];
+
+        if ($this->imageData !== null) {
+            $payload['image_data'] = $this->imageData;
+        }
+
+        return $payload;
     }
 }

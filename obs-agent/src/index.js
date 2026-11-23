@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -90,13 +91,20 @@ class StudioWorker {
         this.reconnectTimer = null;
         this.statsTimer = null;
         this.refreshDebounceTimer = null;
+        this.refreshInFlight = false;
+        this.refreshQueued = false;
+        this.partialPushTimer = null;
         this.previewTimer = null;
         this.previewInFlight = false;
+        this.lastPreviewHash = null;
+        this.lastPreviewUploadedAt = 0;
+        this.lastStatsSignature = '';
+        this.lastHeartbeatAt = 0;
         this.previewConfig = {
             active: false,
             sceneName: null,
-            intervalMs: 650,
-            width: 960,
+            intervalMs: 2500,
+            width: 640,
             expiresAt: 0,
         };
         this.commandChannel = null;
@@ -126,6 +134,7 @@ class StudioWorker {
                 payload.status = statusOverride;
             }
             await apiRequest('/api/obs-agent/state', 'POST', payload);
+            this.lastHeartbeatAt = Date.now();
         } catch (error) {
             console.error(`${this.logPrefix()} Failed to push state:`, error.message);
         }
@@ -140,9 +149,69 @@ class StudioWorker {
                 studio_id: this.studio.id,
                 status,
             });
+            this.lastHeartbeatAt = Date.now();
         } catch {
             // Transient heartbeat error
         }
+    }
+
+    schedulePartialScenePush(sceneName) {
+        if (this.stopped || !this.obsConnected) {
+            return;
+        }
+        if (this.partialPushTimer) {
+            clearTimeout(this.partialPushTimer);
+        }
+        this.partialPushTimer = setTimeout(async () => {
+            this.partialPushTimer = null;
+            const partial = {
+                sceneItemsByScene: {
+                    ...this.liveState.sceneItemsByScene,
+                },
+            };
+            if (sceneName === this.liveState.currentProgramScene) {
+                partial.sceneItems = this.liveState.sceneItemsByScene[sceneName] ?? [];
+            }
+            this.lastPreviewHash = null;
+            await this.pushState(partial);
+            if (this.previewConfig.active) {
+                this.captureAndUploadPreviewFrame(true);
+            }
+        }, 200);
+    }
+
+    patchSceneItemTransform(sceneName, sceneItemId, sceneItemTransform) {
+        const list = this.liveState.sceneItemsByScene?.[sceneName];
+        if (!Array.isArray(list)) {
+            this.scheduleRefreshAllState(200);
+            return;
+        }
+
+        let matched = false;
+        const updated = list.map((item) => {
+            if (Number(item.sceneItemId) !== Number(sceneItemId)) {
+                return item;
+            }
+            matched = true;
+            return {
+                ...item,
+                sceneItemTransform: {
+                    ...(item.sceneItemTransform || {}),
+                    ...(sceneItemTransform || {}),
+                },
+            };
+        });
+
+        if (!matched) {
+            this.scheduleRefreshAllState(200);
+            return;
+        }
+
+        this.liveState.sceneItemsByScene[sceneName] = updated;
+        if (sceneName === this.liveState.currentProgramScene) {
+            this.liveState.sceneItems = updated;
+        }
+        this.schedulePartialScenePush(sceneName);
     }
 
     async hydrateSceneItems(sceneName) {
@@ -167,17 +236,14 @@ class StudioWorker {
     }
 
     async hydrateAllScenesItems(scenes) {
-        const byScene = {};
+        const entries = await Promise.all(
+            scenes
+                .map((scene) => scene?.sceneName)
+                .filter(Boolean)
+                .map(async (sName) => [sName, await this.hydrateSceneItems(sName)])
+        );
 
-        for (const scene of scenes) {
-            const sName = scene?.sceneName;
-            if (!sName) {
-                continue;
-            }
-            byScene[sName] = await this.hydrateSceneItems(sName);
-        }
-
-        return byScene;
+        return Object.fromEntries(entries);
     }
 
     async hydrateInputsMetadata() {
@@ -196,28 +262,29 @@ class StudioWorker {
                 inputKind: input.inputKind,
             }));
 
-            const audioInputs = [];
-            for (const input of inputs) {
-                try {
-                    const [{ inputMuted }, vol] = await Promise.all([
-                        this.obs.call('GetInputMute', { inputName: input.inputName }),
-                        this.obs.call('GetInputVolume', { inputName: input.inputName }),
-                    ]);
-                    audioInputs.push({
-                        inputName: input.inputName,
-                        inputKind: input.inputKind,
-                        inputMuted: Boolean(inputMuted),
-                        inputVolumeMul: Number(vol.inputVolumeMul ?? 1),
-                        inputVolumeDb: Number(vol.inputVolumeDb ?? 0),
-                    });
-                } catch {
-                    // Non-audio inputs don't expose mute/volume
-                }
-            }
+            const audioResults = await Promise.all(
+                inputs.map(async (input) => {
+                    try {
+                        const [{ inputMuted }, vol] = await Promise.all([
+                            this.obs.call('GetInputMute', { inputName: input.inputName }),
+                            this.obs.call('GetInputVolume', { inputName: input.inputName }),
+                        ]);
+                        return {
+                            inputName: input.inputName,
+                            inputKind: input.inputKind,
+                            inputMuted: Boolean(inputMuted),
+                            inputVolumeMul: Number(vol.inputVolumeMul ?? 1),
+                            inputVolumeDb: Number(vol.inputVolumeDb ?? 0),
+                        };
+                    } catch {
+                        return null;
+                    }
+                })
+            );
 
             return {
                 allInputs,
-                audioInputs,
+                audioInputs: audioResults.filter(Boolean),
                 inputKinds: Array.isArray(kindsRes?.inputKinds) ? kindsRes.inputKinds : [],
             };
         } catch {
@@ -229,7 +296,12 @@ class StudioWorker {
         if (!this.obsConnected || this.stopped) {
             return;
         }
+        if (this.refreshInFlight) {
+            this.refreshQueued = true;
+            return;
+        }
 
+        this.refreshInFlight = true;
         try {
             const [version, sceneList, collectionList, studioMode, streamStatus, recordStatus, stats, videoSettings] = await Promise.all([
                 this.obs.call('GetVersion'),
@@ -301,11 +373,18 @@ class StudioWorker {
             };
 
             await this.pushState(this.liveState);
+            this.lastPreviewHash = null;
             if (this.previewConfig.active) {
-                this.captureAndUploadPreviewFrame();
+                this.captureAndUploadPreviewFrame(true);
             }
         } catch (error) {
             console.error(`${this.logPrefix()} State hydration error:`, error.message);
+        } finally {
+            this.refreshInFlight = false;
+            if (this.refreshQueued) {
+                this.refreshQueued = false;
+                this.scheduleRefreshAllState(120);
+            }
         }
     }
 
@@ -324,13 +403,14 @@ class StudioWorker {
 
     stopPreviewLoop() {
         this.previewConfig.active = false;
+        this.lastPreviewHash = null;
         if (this.previewTimer) {
             clearInterval(this.previewTimer);
             this.previewTimer = null;
         }
     }
 
-    async captureAndUploadPreviewFrame() {
+    async captureAndUploadPreviewFrame(force = false) {
         if (this.stopped || !this.obsConnected || !this.previewConfig.active || this.previewInFlight) {
             return;
         }
@@ -349,16 +429,29 @@ class StudioWorker {
             const shot = await this.obs.call('GetSourceScreenshot', {
                 sourceName: targetScene,
                 imageFormat: 'jpeg',
-                imageWidth: Math.min(1920, Math.max(320, Number(this.previewConfig.width || 960))),
-                imageCompressionQuality: 65,
+                imageWidth: Math.min(1280, Math.max(320, Number(this.previewConfig.width || 640))),
+                imageCompressionQuality: 52,
             });
 
             if (shot?.imageData) {
+                const frameHash = crypto
+                    .createHash('sha1')
+                    .update(`${targetScene}:${shot.imageData}`)
+                    .digest('hex');
+
+                const staleHeartbeat = Date.now() - this.lastPreviewUploadedAt >= 15000;
+                if (!force && frameHash === this.lastPreviewHash && !staleHeartbeat) {
+                    return;
+                }
+
                 await apiRequest('/api/obs-agent/preview-frame', 'POST', {
                     studio_id: this.studio.id,
                     scene_name: targetScene,
                     image_data: shot.imageData,
                 });
+
+                this.lastPreviewHash = frameHash;
+                this.lastPreviewUploadedAt = Date.now();
             }
         } catch {
             // Skip frame if scene temporarily unavailable
@@ -374,22 +467,35 @@ class StudioWorker {
             return { active: false };
         }
 
-        const intervalMs = Math.min(5000, Math.max(350, Number(data?.intervalMs || 650)));
+        const nextScene = data?.sceneName || null;
+        const intervalMs = Math.min(10000, Math.max(800, Number(data?.intervalMs || 2500)));
+        const nextWidth = Math.min(1280, Math.max(320, Number(data?.width || 640)));
+        const wasSameStream = this.previewConfig.active
+            && this.previewConfig.sceneName === nextScene
+            && this.previewConfig.intervalMs === intervalMs
+            && this.previewConfig.width === nextWidth
+            && Boolean(this.previewTimer);
+
         this.previewConfig = {
             active: true,
-            sceneName: data?.sceneName || null,
+            sceneName: nextScene,
             intervalMs,
-            width: Number(data?.width || 960),
-            expiresAt: Date.now() + 35000,
+            width: nextWidth,
+            expiresAt: Date.now() + 45000,
         };
 
+        if (wasSameStream) {
+            return { active: true, sceneName: nextScene, intervalMs, renewed: true };
+        }
+
+        this.lastPreviewHash = null;
         if (this.previewTimer) {
             clearInterval(this.previewTimer);
         }
 
-        this.captureAndUploadPreviewFrame();
+        this.captureAndUploadPreviewFrame(true);
         this.previewTimer = setInterval(() => {
-            this.captureAndUploadPreviewFrame();
+            this.captureAndUploadPreviewFrame(false);
         }, intervalMs);
 
         return { active: true, sceneName: this.previewConfig.sceneName, intervalMs };
@@ -492,7 +598,9 @@ class StudioWorker {
     async executeCommand(payload) {
         const { command_uuid: uuid, request_type: requestType, request_data: requestData = {} } = payload;
         const normalizedData = this.normalizeObsPayload(requestType, requestData);
-        console.log(`${this.logPrefix()} Executing ${requestType} (${uuid})`);
+        if (requestType !== 'obsisstant.SetPreviewStream') {
+            console.log(`${this.logPrefix()} Executing ${requestType} (${uuid})`);
+        }
 
         try {
             if (!this.obsConnected) {
@@ -509,7 +617,8 @@ class StudioWorker {
                 });
                 responseData = settingsRes ?? {};
             } else if (requestType === 'obsisstant.SetPreviewStream') {
-                responseData = this.handleSetPreviewStream(normalizedData);
+                this.handleSetPreviewStream(normalizedData);
+                return;
             } else if (requestType === 'obsisstant.ExecuteBatch') {
                 const batch = Array.isArray(normalizedData.requests)
                     ? normalizedData.requests.map((step) => ({
@@ -524,7 +633,19 @@ class StudioWorker {
                 responseData = { refreshed: true };
             } else {
                 responseData = (await this.obs.call(requestType, normalizedData)) ?? {};
-                this.scheduleRefreshAllState(120);
+                const incrementalEventCommands = new Set([
+                    'SetSceneItemTransform',
+                    'SetSceneItemEnabled',
+                    'SetSceneItemLocked',
+                    'SetInputMute',
+                    'SetInputVolume',
+                    'SetCurrentProgramScene',
+                    'SetCurrentPreviewScene',
+                    'SetStudioModeEnabled',
+                ]);
+                if (!incrementalEventCommands.has(requestType)) {
+                    this.scheduleRefreshAllState(180);
+                }
             }
 
             await apiRequest(`/api/obs-agent/commands/${uuid}/ack`, 'POST', {
@@ -557,6 +678,10 @@ class StudioWorker {
                 sceneItems: items,
                 sceneItemsByScene: this.liveState.sceneItemsByScene,
             });
+            if (this.previewConfig.active) {
+                this.lastPreviewHash = null;
+                this.captureAndUploadPreviewFrame(true);
+            }
         });
 
         this.obs.on('CurrentPreviewSceneChanged', async ({ sceneName }) => {
@@ -570,7 +695,7 @@ class StudioWorker {
         });
 
         this.obs.on('SceneListChanged', async () => {
-            this.scheduleRefreshAllState(120);
+            this.scheduleRefreshAllState(160);
         });
 
         this.obs.on('CurrentSceneCollectionChanged', () => {
@@ -582,18 +707,38 @@ class StudioWorker {
         });
 
         this.obs.on('SceneNameChanged', async () => {
-            this.scheduleRefreshAllState(120);
+            this.scheduleRefreshAllState(160);
         });
 
-        this.obs.on('SceneItemCreated', () => this.scheduleRefreshAllState(120));
-        this.obs.on('SceneItemRemoved', () => this.scheduleRefreshAllState(120));
-        this.obs.on('SceneItemListReindexed', () => this.scheduleRefreshAllState(120));
-        this.obs.on('SceneItemTransformChanged', () => this.scheduleRefreshAllState(250));
-        this.obs.on('SceneItemLockStateChanged', () => this.scheduleRefreshAllState(120));
-        this.obs.on('InputCreated', () => this.scheduleRefreshAllState(150));
-        this.obs.on('InputRemoved', () => this.scheduleRefreshAllState(150));
-        this.obs.on('InputNameChanged', () => this.scheduleRefreshAllState(150));
-        this.obs.on('InputSettingsChanged', () => this.scheduleRefreshAllState(200));
+        this.obs.on('SceneItemCreated', () => this.scheduleRefreshAllState(160));
+        this.obs.on('SceneItemRemoved', () => this.scheduleRefreshAllState(160));
+        this.obs.on('SceneItemListReindexed', () => this.scheduleRefreshAllState(160));
+        this.obs.on('SceneItemTransformChanged', ({ sceneName, sceneItemId, sceneItemTransform }) => {
+            this.patchSceneItemTransform(sceneName, sceneItemId, sceneItemTransform);
+        });
+        this.obs.on('SceneItemLockStateChanged', async ({ sceneName, sceneItemId, sceneItemLocked }) => {
+            const currentList = this.liveState.sceneItemsByScene[sceneName] || [];
+            const updatedList = currentList.map((item) =>
+                item.sceneItemId === sceneItemId ? { ...item, sceneItemLocked } : item
+            );
+            this.liveState.sceneItemsByScene[sceneName] = updatedList;
+
+            const partial = { sceneItemsByScene: this.liveState.sceneItemsByScene };
+            if (sceneName === this.liveState.currentProgramScene) {
+                this.liveState.sceneItems = updatedList;
+                partial.sceneItems = updatedList;
+            }
+            await this.pushState(partial);
+        });
+        this.obs.on('InputCreated', () => this.scheduleRefreshAllState(180));
+        this.obs.on('InputRemoved', () => this.scheduleRefreshAllState(180));
+        this.obs.on('InputNameChanged', () => this.scheduleRefreshAllState(180));
+        this.obs.on('InputSettingsChanged', () => {
+            this.lastPreviewHash = null;
+            if (this.previewConfig.active) {
+                this.captureAndUploadPreviewFrame(true);
+            }
+        });
 
         this.obs.on('SceneItemEnableStateChanged', async ({ sceneName, sceneItemId, sceneItemEnabled }) => {
             const currentList = this.liveState.sceneItemsByScene[sceneName] || [];
@@ -607,7 +752,11 @@ class StudioWorker {
                 this.liveState.sceneItems = updatedList;
                 partial.sceneItems = updatedList;
             }
+            this.lastPreviewHash = null;
             await this.pushState(partial);
+            if (this.previewConfig.active) {
+                this.captureAndUploadPreviewFrame(true);
+            }
         });
 
         this.obs.on('InputMuteStateChanged', async ({ inputName, inputMuted }) => {
@@ -719,21 +868,29 @@ class StudioWorker {
             if (this.obsConnected) {
                 try {
                     const stats = await this.obs.call('GetStats');
-                    this.liveState.stats = {
+                    const nextStats = {
                         activeFps: Number((stats.activeFps ?? 0).toFixed(1)),
                         cpuUsage: Number((stats.cpuUsage ?? 0).toFixed(1)),
                         memoryUsage: Number((stats.memoryUsage ?? 0).toFixed(1)),
                         renderSkippedFrames: stats.renderSkippedFrames ?? 0,
                         outputSkippedFrames: stats.outputSkippedFrames ?? 0,
                     };
-                    await this.pushState({ stats: this.liveState.stats });
+                    this.liveState.stats = nextStats;
+
+                    const sig = `${Math.round(nextStats.activeFps)}:${Math.round(nextStats.cpuUsage)}:${nextStats.renderSkippedFrames}:${nextStats.outputSkippedFrames}`;
+                    if (sig !== this.lastStatsSignature) {
+                        this.lastStatsSignature = sig;
+                        await this.pushState({ stats: nextStats });
+                    } else if (Date.now() - this.lastHeartbeatAt >= 24000) {
+                        await this.pushHeartbeat('online');
+                    }
                 } catch {
                     // Ignore transient stat poll errors
                 }
-            } else {
+            } else if (Date.now() - this.lastHeartbeatAt >= 20000) {
                 await this.pushHeartbeat('offline');
             }
-        }, 10000);
+        }, 12000);
     }
 
     async updateConfig(entry) {
@@ -762,6 +919,10 @@ class StudioWorker {
         if (this.refreshDebounceTimer) {
             clearTimeout(this.refreshDebounceTimer);
             this.refreshDebounceTimer = null;
+        }
+        if (this.partialPushTimer) {
+            clearTimeout(this.partialPushTimer);
+            this.partialPushTimer = null;
         }
         if (this.reconnectTimer) {
             clearTimeout(this.reconnectTimer);

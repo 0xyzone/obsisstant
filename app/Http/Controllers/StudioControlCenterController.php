@@ -13,7 +13,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Cache;
 
 class StudioControlCenterController extends Controller
 {
@@ -76,7 +75,7 @@ class StudioControlCenterController extends Controller
             ])
             ->values();
 
-        $frame = Cache::get("obs.preview.frame.{$studio->id}");
+        $frame = ObsCommandService::previewCacheStore()->get("obs.preview.frame.{$studio->id}");
 
         return response()->json([
             'status' => $studio->status,
@@ -174,18 +173,18 @@ class StudioControlCenterController extends Controller
         $validated = $request->validate([
             'active' => ['required', 'boolean'],
             'scene_name' => ['nullable', 'string', 'max:255'],
-            'interval_ms' => ['nullable', 'integer', 'min:350', 'max:5000'],
-            'width' => ['nullable', 'integer', 'min:320', 'max:1920'],
+            'interval_ms' => ['nullable', 'integer', 'min:800', 'max:10000'],
+            'width' => ['nullable', 'integer', 'min:320', 'max:1280'],
         ]);
 
-        $log = $commandService->dispatch(
+        $log = $commandService->dispatchTransient(
             studio: $studio,
             requestType: 'obsisstant.SetPreviewStream',
             requestData: [
                 'active' => (bool) $validated['active'],
                 'sceneName' => $validated['scene_name'] ?? null,
-                'intervalMs' => (int) ($validated['interval_ms'] ?? 650),
-                'width' => (int) ($validated['width'] ?? 960),
+                'intervalMs' => (int) ($validated['interval_ms'] ?? 2500),
+                'width' => (int) ($validated['width'] ?? 640),
             ],
             user: $request->user(),
         );
@@ -199,7 +198,7 @@ class StudioControlCenterController extends Controller
 
     public function previewFrame(ObsStudio $studio): Response
     {
-        $frame = Cache::get("obs.preview.frame.{$studio->id}");
+        $frame = ObsCommandService::previewCacheStore()->get("obs.preview.frame.{$studio->id}");
 
         $bytes = null;
         if (is_array($frame)) {

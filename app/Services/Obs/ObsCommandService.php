@@ -9,11 +9,25 @@ use App\Models\ObsMacro;
 use App\Models\ObsScreen;
 use App\Models\ObsStudio;
 use App\Models\User;
+use Illuminate\Contracts\Cache\Repository;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use stdClass;
 
 class ObsCommandService
 {
+    /**
+     * Route volatile preview frames off MySQL database cache onto fast local file/memory storage.
+     */
+    public static function previewCacheStore(): Repository
+    {
+        $defaultDriver = (string) config('cache.default', 'database');
+
+        return in_array($defaultDriver, ['array', 'file', 'redis', 'memcached', 'apc'], true)
+            ? Cache::store($defaultDriver)
+            : Cache::store('file');
+    }
+
     /**
      * Ensure empty associative payloads (such as inputSettings or sceneItemTransform)
      * serialize to JSON objects `{}` instead of JSON arrays `[]` for OBS WebSocket v5.
@@ -70,6 +84,32 @@ class ObsCommandService
         event(new ObsCommandDispatched($log));
 
         return $log;
+    }
+
+    /**
+     * Dispatch a high-frequency ephemeral control message directly over Reverb
+     * without writing rows into obs_command_logs.
+     *
+     * @param  array<string, mixed>  $requestData
+     */
+    public function dispatchTransient(
+        ObsStudio $studio,
+        string $requestType,
+        array $requestData = [],
+        ?User $user = null,
+    ): ObsCommandLog {
+        $transientLog = new ObsCommandLog([
+            'obs_studio_id' => $studio->id,
+            'user_id' => $user?->id,
+            'command_uuid' => (string) Str::uuid(),
+            'request_type' => $requestType,
+            'request_data' => $requestData,
+            'status' => 'dispatched',
+        ]);
+
+        event(new ObsCommandDispatched($transientLog));
+
+        return $transientLog;
     }
 
     public function pushScreenToObs(

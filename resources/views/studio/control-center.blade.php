@@ -912,8 +912,9 @@
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
                         <label for="live-view-mode" class="field-label">Live View</label>
                         <select id="live-view-mode" class="s-select" style="min-block-size: 1.875rem; font-size: 0.75rem;">
-                            <option value="snapshot" @selected($studio->isOnline())>OBS Pixel Feed (Snapshots)</option>
-                            <option value="layout" @selected(! $studio->isOnline())>Layout Grid Only</option>
+                            <option value="snapshot" @selected($studio->isOnline())>OBS Preview · Balanced (2.5s)</option>
+                            <option value="snapshot-fast">OBS Preview · Active (1.2s)</option>
+                            <option value="layout" @selected(! $studio->isOnline())>Layout Grid Only (0 Load)</option>
                             <option value="vcam">Local OBS Virtual Cam (WebRTC)</option>
                         </select>
                         <button
@@ -1236,8 +1237,11 @@
                 let selectedSceneItemId = null;
                 let previewLeaseTimer = null;
                 let previewFallbackTimer = null;
+                let snapshotInFlight = null;
                 let lastEchoPreviewAt = 0;
+                let lastEchoStateAt = 0;
                 let lastSeenPreviewVersion = null;
+                let isDraggingStage = false;
                 let vcamStream = null;
                 let pendingDeleteScene = null;
                 let pendingDeleteSourceName = null;
@@ -1481,34 +1485,57 @@
                     });
                 };
 
-                const refreshStudioSnapshot = async () => {
-                    try {
-                        const res = await fetch(endpoints.snapshot, { headers: { Accept: 'application/json' } });
-                        if (!res.ok) return null;
-                        const data = await res.json();
-                        if (data.status) studioStatus = data.status;
-                        if (data.live_state) liveState = data.live_state;
-                        if (Array.isArray(data.recent_logs)) renderRecentLogs(data.recent_logs);
-                        renderAll();
-
-                        const previewImgEl = document.getElementById('live-preview-img');
-                        if (
-                            data.preview_version
-                            && data.preview_version !== lastSeenPreviewVersion
-                            && document.getElementById('live-view-mode')?.value === 'snapshot'
-                            && previewImgEl
-                        ) {
-                            lastSeenPreviewVersion = data.preview_version;
-                            previewImgEl.src = `${endpoints.previewFrame}?v=${encodeURIComponent(data.preview_version)}`;
-                            previewImgEl.hidden = false;
-                        }
-                        return data;
-                    } catch {
-                        return null;
-                    }
+                const isSnapshotMode = () => {
+                    const mode = document.getElementById('live-view-mode')?.value;
+                    return mode === 'snapshot' || mode === 'snapshot-fast';
                 };
 
-                const waitForCommandResult = (commandUuid, timeoutMs = 4000) => new Promise((resolve) => {
+                const refreshStudioSnapshot = async () => {
+                    if (snapshotInFlight) return snapshotInFlight;
+
+                    snapshotInFlight = (async () => {
+                        try {
+                            const res = await fetch(endpoints.snapshot, { headers: { Accept: 'application/json' } });
+                            if (!res.ok) return null;
+                            const data = await res.json();
+                            if (data.status) studioStatus = data.status;
+                            if (data.live_state) liveState = data.live_state;
+                            if (Array.isArray(data.recent_logs)) renderRecentLogs(data.recent_logs);
+                            renderAll();
+
+                            const previewImgEl = document.getElementById('live-preview-img');
+                            if (
+                                data.preview_version
+                                && data.preview_version !== lastSeenPreviewVersion
+                                && isSnapshotMode()
+                                && previewImgEl
+                                && !window.Echo
+                            ) {
+                                lastSeenPreviewVersion = data.preview_version;
+                                previewImgEl.src = `${endpoints.previewFrame}?v=${encodeURIComponent(data.preview_version)}`;
+                                previewImgEl.hidden = false;
+                            }
+                            return data;
+                        } catch {
+                            return null;
+                        } finally {
+                            snapshotInFlight = null;
+                        }
+                    })();
+
+                    return snapshotInFlight;
+                };
+
+                let snapshotDebounceTimer = null;
+                const scheduleSnapshotRefresh = (delayMs = 260) => {
+                    clearTimeout(snapshotDebounceTimer);
+                    snapshotDebounceTimer = setTimeout(() => {
+                        snapshotDebounceTimer = null;
+                        refreshStudioSnapshot();
+                    }, delayMs);
+                };
+
+                const waitForCommandResult = (commandUuid, timeoutMs = 4500) => new Promise((resolve) => {
                     let done = false;
                     const finish = (data) => {
                         if (done) return;
@@ -1540,10 +1567,11 @@
                             finish(null);
                             return;
                         }
-                        setTimeout(poll, 240);
+                        setTimeout(poll, 350);
                     };
 
-                    setTimeout(poll, 160);
+                    // Let Echo push resolve instantaneously; only fall back to HTTP if delayed
+                    setTimeout(poll, window.Echo ? 750 : 220);
                 });
 
                 const postJson = async (url, body = {}) => {
@@ -1576,15 +1604,17 @@
 
                         if (!wait) return res;
 
-                        const settled = await waitForCommandResult(res.command_uuid, 4000);
-                        await refreshStudioSnapshot();
+                        const settled = await waitForCommandResult(res.command_uuid, 4500);
+                        if (Date.now() - lastEchoStateAt > 500) {
+                            scheduleSnapshotRefresh(220);
+                        }
 
                         if (settled?.status === 'failed') {
                             showToast(`OBS Error: ${settled.error_message || `${label} failed`}`, 'error');
                         } else if (settled?.status === 'succeeded') {
                             if (!silent) showToast(`${label} complete`, 'success');
                         } else {
-                            setTimeout(refreshStudioSnapshot, 800);
+                            scheduleSnapshotRefresh(700);
                         }
 
                         return { ...res, settled };
@@ -1735,7 +1765,7 @@
                             editingScene = sName;
                             selectedSceneItemId = null;
                             renderAll();
-                            if (document.getElementById('live-view-mode')?.value === 'snapshot') {
+                            if (isSnapshotMode()) {
                                 enableSnapshotPreview(true);
                             }
                         });
@@ -2077,6 +2107,8 @@
                 };
 
                 const renderStageLayers = () => {
+                    if (isDraggingStage) return;
+
                     const surface = document.getElementById('stage-layers');
                     const canvas = document.getElementById('stage-canvas');
                     if (!surface || !canvas) return;
@@ -2122,6 +2154,7 @@
                             const startClientX = ev.clientX;
                             const startClientY = ev.clientY;
                             const startTf = { ...rect };
+                            isDraggingStage = true;
 
                             box.setPointerCapture(ev.pointerId);
 
@@ -2150,9 +2183,15 @@
                                 }
                             };
 
-                            const onUp = (upEv) => {
+                            const finishDrag = () => {
+                                isDraggingStage = false;
                                 box.removeEventListener('pointermove', onMove);
                                 box.removeEventListener('pointerup', onUp);
+                                box.removeEventListener('pointercancel', finishDrag);
+                            };
+
+                            const onUp = (upEv) => {
+                                finishDrag();
 
                                 const dxObs = ((upEv.clientX - startClientX) / canvasRect.width) * rect.baseW;
                                 const dyObs = ((upEv.clientY - startClientY) / canvasRect.height) * rect.baseH;
@@ -2179,6 +2218,7 @@
 
                             box.addEventListener('pointermove', onMove);
                             box.addEventListener('pointerup', onUp);
+                            box.addEventListener('pointercancel', finishDrag);
                         });
 
                         surface.appendChild(box);
@@ -2971,39 +3011,55 @@
                     }
                 };
 
+                const getSnapshotConfig = () => {
+                    const mode = document.getElementById('live-view-mode')?.value;
+                    if (mode === 'snapshot-fast') {
+                        return { active: true, intervalMs: 1200, width: 768, label: 'OBS preview active (1.2s · change-synced)' };
+                    }
+                    if (mode === 'snapshot') {
+                        return { active: true, intervalMs: 2500, width: 640, label: 'OBS preview active (2.5s · change-synced)' };
+                    }
+                    return { active: false, intervalMs: 2500, width: 640, label: 'Layout mode' };
+                };
+
                 const enableSnapshotPreview = async (active) => {
                     clearInterval(previewLeaseTimer);
                     clearInterval(previewFallbackTimer);
-                    if (!active) {
-                        if (previewImg) previewImg.hidden = true;
+                    if (!active || document.hidden) {
+                        if (!active && previewImg) previewImg.hidden = true;
                         await postJson(endpoints.previewToggle, { active: false }).catch(() => {});
                         return;
                     }
 
+                    const cfg = getSnapshotConfig();
+                    if (!cfg.active) return;
+                    if (previewStatusLabel) previewStatusLabel.textContent = cfg.label;
+
                     const renew = () => postJson(endpoints.previewToggle, {
                         active: true,
                         scene_name: editingScene || null,
-                        interval_ms: 550,
-                        width: 960,
+                        interval_ms: cfg.intervalMs,
+                        width: cfg.width,
                     }).catch(() => {});
 
                     await renew();
                     if (previewImg) {
                         previewImg.onerror = () => { previewImg.hidden = true; };
                         previewImg.onload = () => { previewImg.hidden = false; };
-                        previewImg.src = `${endpoints.previewFrame}?t=${Date.now()}`;
-                    }
-                    setTimeout(() => {
-                        if (document.getElementById('live-view-mode')?.value === 'snapshot' && previewImg && previewImg.hidden) {
+                        if (!window.Echo) {
                             previewImg.src = `${endpoints.previewFrame}?t=${Date.now()}`;
                         }
-                    }, 750);
-                    previewLeaseTimer = setInterval(renew, 18000);
-                    previewFallbackTimer = setInterval(() => {
-                        if (Date.now() - lastEchoPreviewAt > 2000) {
-                            refreshStudioSnapshot();
-                        }
-                    }, 1800);
+                    }
+
+                    previewLeaseTimer = setInterval(() => {
+                        if (!document.hidden && isSnapshotMode()) renew();
+                    }, 25000);
+
+                    if (!window.Echo) {
+                        previewFallbackTimer = setInterval(() => {
+                            if (!document.hidden && isSnapshotMode()) refreshStudioSnapshot();
+                        }, Math.max(3000, cfg.intervalMs));
+                    }
                 };
 
                 document.getElementById('live-view-mode')?.addEventListener('change', async (ev) => {
@@ -3011,8 +3067,7 @@
                     stopVirtualCam();
                     await enableSnapshotPreview(false);
 
-                    if (mode === 'snapshot') {
-                        if (previewStatusLabel) previewStatusLabel.textContent = 'OBS snapshot feed active (~1.8 fps)';
+                    if (mode === 'snapshot' || mode === 'snapshot-fast') {
                         await enableSnapshotPreview(true);
                     } else if (mode === 'vcam') {
                         if (!navigator.mediaDevices?.getUserMedia) {
@@ -3037,6 +3092,17 @@
                     }
                 });
 
+                document.addEventListener('visibilitychange', () => {
+                    if (!isSnapshotMode()) return;
+                    if (document.hidden) {
+                        clearInterval(previewLeaseTimer);
+                        clearInterval(previewFallbackTimer);
+                        postJson(endpoints.previewToggle, { active: false }).catch(() => {});
+                    } else {
+                        enableSnapshotPreview(true);
+                    }
+                });
+
                 window.addEventListener('beforeunload', () => {
                     stopVirtualCam();
                     clearInterval(previewLeaseTimer);
@@ -3049,6 +3115,7 @@
                     window.Echo = new window.EchoFactory(echoCfg);
                     window.Echo.private(`obs.studio.${studioId}`)
                         .listen('.obs.studio.state', (payload) => {
+                            lastEchoStateAt = Date.now();
                             if (payload.status) studioStatus = payload.status;
                             if (payload.live_state) liveState = payload.live_state;
                             renderAll();
@@ -3056,8 +3123,10 @@
                         .listen('.obs.preview.frame', (payload) => {
                             lastEchoPreviewAt = Date.now();
                             if (payload.version) lastSeenPreviewVersion = payload.version;
-                            if (document.getElementById('live-view-mode')?.value === 'snapshot' && previewImg) {
-                                previewImg.src = `${endpoints.previewFrame}?v=${encodeURIComponent(payload.version || Date.now())}`;
+                            if (isSnapshotMode() && previewImg) {
+                                previewImg.src = payload.image_data
+                                    ? payload.image_data
+                                    : `${endpoints.previewFrame}?v=${encodeURIComponent(payload.version || Date.now())}`;
                                 previewImg.hidden = false;
                             }
                         })
@@ -3069,16 +3138,14 @@
                             if (payload.status === 'failed' && payload.error_message) {
                                 showToast(`OBS Error: ${payload.error_message}`, 'error');
                             }
-                            refreshStudioSnapshot();
+                            scheduleSnapshotRefresh(350);
                         });
                 }
 
                 renderAll();
 
-                // Auto-start OBS Pixel Feed underlay on launch whenever Studio is online
-                const initialViewMode = document.getElementById('live-view-mode')?.value;
-                if (initialViewMode === 'snapshot') {
-                    if (previewStatusLabel) previewStatusLabel.textContent = 'OBS snapshot feed active (~1.8 fps)';
+                // Auto-start Balanced OBS Pixel Feed underlay on launch whenever Studio is online
+                if (isSnapshotMode() && !document.hidden) {
                     enableSnapshotPreview(true);
                 }
             })();
