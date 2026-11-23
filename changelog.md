@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.10.5] - 2026-11-24 | type: macro
+
+> Proxy production Reverb WebSockets through public/.htaccess for ob.suminshrestha.com.np
+
+### Fixed
+- Add domain-scoped HTTPS redirect and WebSocket [P,L] proxy rewrite rules in public/.htaccess forwarding /app traffic on ob.suminshrestha.com.np to ws://127.0.0.1:8085 without affecting local MAMP
+
 ## [v1.10.4] - 2026-11-24 | type: macro
 
 > Harden run_reverb.sh for cPanel Linux hosts and add doctor diagnostics

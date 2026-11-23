@@ -5,6 +5,19 @@
 
     RewriteEngine On
 
+    # Force HTTPS for production domain only
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP_HOST} ^ob\.suminshrestha\.com\.np$ [NC]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Proxy WebSocket connections to Laravel Reverb on production (port 8085)
+    RewriteCond %{HTTP_HOST} ^ob\.suminshrestha\.com\.np$ [NC]
+    RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    RewriteRule ^app/(.*) ws://127.0.0.1:8085/app/$1 [P,L]
+    RewriteCond %{HTTP_HOST} ^ob\.suminshrestha\.com\.np$ [NC]
+    RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    RewriteRule ^app$ ws://127.0.0.1:8085/app [P,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
