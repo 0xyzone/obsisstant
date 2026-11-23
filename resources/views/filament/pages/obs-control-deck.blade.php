@@ -162,6 +162,12 @@
                         <x-filament::button size="sm" wire:click="createNewScene">Create scene</x-filament::button>
                     </div>
 
+                    @if ($studio->isStudioModeEnabled())
+                        <p class="obs-deck-empty" style="margin-bottom: 0.75rem;">
+                            Studio Mode is ON — clicking a scene cues Preview; click Transition in Outputs to send it Live.
+                        </p>
+                    @endif
+
                     <div class="obs-scene-grid">
                         @forelse ($scenes as $scene)
                             @php
@@ -171,7 +177,7 @@
                             @endphp
                             <x-filament::button
                                 :color="$isProgram ? 'primary' : ($isPreview ? 'warning' : 'gray')"
-                                wire:click="switchScene('{{ addslashes($sName) }}')"
+                                wire:click="switchScene({{ \Illuminate\Support\Js::from($sName) }})"
                             >
                                 {{ $sName }}
                             </x-filament::button>
@@ -197,7 +203,7 @@
                                 </div>
                                 <div class="obs-btn-row">
                                     @if ($kind === 'browser_source')
-                                        <x-filament::button size="xs" color="gray" wire:click="refreshBrowserSource('{{ addslashes($sourceName) }}')">
+                                        <x-filament::button size="xs" color="gray" wire:click="refreshBrowserSource({{ \Illuminate\Support\Js::from($sourceName) }})">
                                             Refresh
                                         </x-filament::button>
                                     @endif
@@ -235,7 +241,7 @@
                                         <x-filament::button
                                             size="xs"
                                             :color="$muted ? 'danger' : 'gray'"
-                                            wire:click="toggleInputMute('{{ addslashes($inName) }}', {{ $muted ? 'false' : 'true' }})"
+                                            wire:click="toggleInputMute({{ \Illuminate\Support\Js::from($inName) }}, {{ $muted ? 'false' : 'true' }})"
                                         >
                                             {{ $muted ? 'Muted' : 'Live' }}
                                         </x-filament::button>
@@ -248,7 +254,7 @@
                                     step="1"
                                     value="{{ $db }}"
                                     class="obs-range-slider"
-                                    x-on:change="$wire.setInputVolumeDb('{{ addslashes($inName) }}', parseFloat($event.target.value))"
+                                    x-on:change="$wire.setInputVolumeDb({{ \Illuminate\Support\Js::from($inName) }}, parseFloat($event.target.value))"
                                 >
                             </div>
                         @empty

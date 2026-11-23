@@ -167,7 +167,7 @@ class StudioMediaStorageTest extends TestCase
             ->assertOk()
             ->assertSee('Storage Settings')
             ->assertSee('~/Desktop/StreamOverlayAssets', false)
-            ->assertSee(json_encode(route('studio.media-upload', ['studio' => $studio->slug])), false)
+            ->assertSee(json_encode(route('studio.media-upload', ['studio' => $studio->slug], false)), false)
             ->assertSee('obsisstant.PickLocalDirectory');
     }
 }

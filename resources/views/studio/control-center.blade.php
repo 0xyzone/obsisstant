@@ -1373,6 +1373,19 @@
                 import('https://esm.run/invokers-polyfill').catch(() => {});
             }
         </script>
+        @php
+            $controlCenterEndpoints = [
+                'command' => route('studio.command', ['studio' => $studio->slug], false),
+                'commandResult' => route('studio.command-result', ['studio' => $studio->slug, 'commandUuid' => '__UUID__'], false),
+                'snapshot' => route('studio.snapshot', ['studio' => $studio->slug], false),
+                'previewToggle' => route('studio.preview-toggle', ['studio' => $studio->slug], false),
+                'previewFrame' => route('studio.preview-frame', ['studio' => $studio->slug], false),
+                'mediaUpload' => route('studio.media-upload', ['studio' => $studio->slug], false),
+                'mediaStoragePath' => route('studio.media-storage-path', ['studio' => $studio->slug], false),
+                'bootstrapToken' => route('agent-installer.bootstrap-token', [], false),
+                'storageSettingsPage' => '/admin/studio-settings',
+            ];
+        @endphp
         <script>
             (() => {
                 const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -1380,17 +1393,7 @@
                 const studioId = @json($studio->id);
                 const screensData = @json($screensPayload);
 
-                const endpoints = {
-                    command: @json(route('studio.command', ['studio' => $studio->slug])),
-                    commandResult: @json(route('studio.command-result', ['studio' => $studio->slug, 'commandUuid' => '__UUID__'])),
-                    snapshot: @json(route('studio.snapshot', ['studio' => $studio->slug])),
-                    previewToggle: @json(route('studio.preview-toggle', ['studio' => $studio->slug])),
-                    previewFrame: @json(route('studio.preview-frame', ['studio' => $studio->slug])),
-                    mediaUpload: @json(route('studio.media-upload', ['studio' => $studio->slug])),
-                    mediaStoragePath: @json(route('studio.media-storage-path', ['studio' => $studio->slug])),
-                    bootstrapToken: @json(route('agent-installer.bootstrap-token')),
-                    storageSettingsPage: @json(url('/admin/studio-settings')),
-                };
+                const endpoints = @json($controlCenterEndpoints);
 
                 const initialInstallerPayload = @json($installerPayload);
                 let configuredMediaDir = @json($mediaStoragePath, JSON_UNESCAPED_SLASHES);
@@ -3788,7 +3791,12 @@
                 // Real-time Reverb Echo + Pure WebSocket Whisper Sync
                 const echoCfg = @json($echoConfig);
                 if (window.EchoFactory && echoCfg?.key) {
-                    window.Echo = new window.EchoFactory(echoCfg);
+                    const runtimeCfg = { ...echoCfg };
+                    if (['ob', 'localhost', '127.0.0.1'].includes(runtimeCfg.wsHost) && window.location.hostname) {
+                        runtimeCfg.wsHost = window.location.hostname;
+                        runtimeCfg.forceTLS = window.location.protocol === 'https:';
+                    }
+                    window.Echo = new window.EchoFactory(runtimeCfg);
                     studioChannel = window.Echo.private(`obs.studio.${studioId}`)
                         .subscribed(() => {
                             if (isSnapshotMode() && !document.hidden) {

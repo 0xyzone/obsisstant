@@ -276,7 +276,7 @@
                                 onchange="if (this.value) window.location.href = this.value;"
                             >
                                 @foreach ($studios as $item)
-                                    <option value="{{ route('obs.deck.show', ['studio' => $item->slug]) }}" @selected($item->id === $studio->id)>
+                                    <option value="{{ route('obs.deck.show', ['studio' => $item->slug], false) }}" @selected($item->id === $studio->id)>
                                         {{ $item->name }} ({{ ucfirst($item->status) }})
                                     </option>
                                 @endforeach
@@ -291,8 +291,8 @@
                     <span id="studio-status" class="status-pill {{ $studio->status === 'streaming' ? 'status-pill--streaming' : ($studio->isOnline() ? 'status-pill--online' : '') }}">
                         {{ strtoupper($studio->status) }}
                     </span>
-                    <a href="{{ route('studio.show', ['studio' => $studio->slug]) }}" style="color: var(--gold); text-decoration: none; font-size: 0.85rem; font-weight: 500;">Studio</a>
-                    <a href="{{ route('knowledge-base') }}" style="color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500;">Docs</a>
+                    <a href="{{ route('studio.show', ['studio' => $studio->slug], false) }}" style="color: var(--gold); text-decoration: none; font-size: 0.85rem; font-weight: 500;">Studio</a>
+                    <a href="{{ route('knowledge-base', [], false) }}" style="color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500;">Docs</a>
                     <a href="{{ url('/admin/obs-control-deck') }}" style="color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500;">Admin</a>
                 </div>
             </header>
@@ -307,7 +307,7 @@
                     </span>
                 </div>
                 <a
-                    href="{{ route('studio.show', ['studio' => $studio->slug]) }}"
+                    href="{{ route('studio.show', ['studio' => $studio->slug], false) }}"
                     class="deck-btn deck-btn--active"
                     style="min-block-size: 2.35rem; padding: 0.4rem 0.9rem; font-size: 0.8rem; text-decoration: none;"
                 >
@@ -340,7 +340,10 @@
 
             <section class="glass">
                 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-block-end: 0.75rem;">
-                    <h2 class="section-title" style="margin: 0;">Scenes</h2>
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
+                        <h2 class="section-title" style="margin: 0;">Scenes</h2>
+                        <span id="deck-action-feedback" style="font-size: 0.72rem; color: var(--gold);"></span>
+                    </div>
                     <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
                         <span id="deck-studio-mode-note" style="font-size: 0.72rem; color: var(--muted);">
                             {{ $studio->isStudioModeEnabled() ? 'Studio Mode ON (Cut switches Live)' : 'Direct Cut' }}
@@ -386,16 +389,17 @@
 
         <div id="toast" class="toast" role="status" hidden></div>
 
-        <script src="{{ asset('js/filament/filament/echo.js') }}"></script>
+        <script src="/js/filament/filament/echo.js"></script>
         <script>
             (() => {
                 const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
-                const cmdUrl = @json(route('obs.deck.command', ['studio' => $studio->slug]));
-                const macroUrlTpl = @json(route('obs.deck.macro', ['studio' => $studio->slug, 'macro' => '__MACRO__']));
-                const screenLiveUrlTpl = @json(route('obs.deck.screen-live', ['screen' => '__SCREEN__']));
-                const snapshotUrl = @json(route('studio.snapshot', ['studio' => $studio->slug]));
-                const cmdResultTpl = @json(route('studio.command-result', ['studio' => $studio->slug, 'commandUuid' => '__UUID__']));
+                const cmdUrl = {!! json_encode(route('obs.deck.command', ['studio' => $studio->slug], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
+                const macroUrlTpl = {!! json_encode(route('obs.deck.macro', ['studio' => $studio->slug, 'macro' => '__MACRO__'], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
+                const screenLiveUrlTpl = {!! json_encode(route('obs.deck.screen-live', ['screen' => '__SCREEN__'], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
+                const snapshotUrl = {!! json_encode(route('studio.snapshot', ['studio' => $studio->slug], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
+                const cmdResultTpl = {!! json_encode(route('studio.command-result', ['studio' => $studio->slug, 'commandUuid' => '__UUID__'], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
                 const toast = document.getElementById('toast');
+                const feedbackEl = document.getElementById('deck-action-feedback');
                 let toastTimer = null;
                 let studioOnline = @json($studio->isOnline());
                 let currentProgramScene = @json($studio->getCurrentProgramScene());
@@ -403,6 +407,10 @@
                 const pendingResolvers = new Map();
 
                 const showToast = (msg, isError = false) => {
+                    if (feedbackEl) {
+                        feedbackEl.textContent = msg;
+                        feedbackEl.style.color = isError ? '#fca5a5' : 'var(--gold)';
+                    }
                     if (!toast) return;
                     clearTimeout(toastTimer);
                     toast.textContent = msg;
@@ -638,7 +646,12 @@
 
                 const echoCfg = @json($echoConfig);
                 if (window.EchoFactory && echoCfg && echoCfg.key) {
-                    window.Echo = new window.EchoFactory(echoCfg);
+                    const runtimeCfg = { ...echoCfg };
+                    if (['ob', 'localhost', '127.0.0.1'].includes(runtimeCfg.wsHost) && window.location.hostname) {
+                        runtimeCfg.wsHost = window.location.hostname;
+                        runtimeCfg.forceTLS = window.location.protocol === 'https:';
+                    }
+                    window.Echo = new window.EchoFactory(runtimeCfg);
                     window.Echo.private(@json("obs.studio.{$studio->id}"))
                         .listen('.obs.studio.state', (payload) => {
                             lastEchoAt = Date.now();
@@ -654,6 +667,18 @@
                             }
                         });
                 }
+
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        refreshSnapshot();
+                    }
+                });
+
+                setInterval(() => {
+                    if (!document.hidden && Date.now() - lastEchoAt > 14000) {
+                        refreshSnapshot();
+                    }
+                }, 15000);
             })();
         </script>
     </body>

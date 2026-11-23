@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.11.3] - 2026-11-24 | type: macro
+
+> Fix cross-origin deck URLs, LAN Echo host detection, Livewire Control Deck quotes, and snapshot fallback sync
+
+### Fixed
+- Use same-origin relative endpoint URLs across Mobile Deck and Studio Control Center so phones and alternate hosts never fail requests
+- Adapt runtime Reverb Echo host and TLS to window.location on LAN hosts and add visibility and interval snapshot fallback sync
+- Use Js::from for Filament Control Deck scene/source/audio actions and show an inline Studio Mode preview hint
+
 ## [v1.11.2] - 2026-11-24 | type: macro
 
 > Fix Mobile Deck scene switching, dynamic scene sync, error feedback, and offline agent banner

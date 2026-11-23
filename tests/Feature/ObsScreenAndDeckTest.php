@@ -156,10 +156,13 @@ class ObsScreenAndDeckTest extends TestCase
             ->assertSee('deck-studio-switcher', false)
             ->assertSee('Studio Two')
             ->assertSee('deck-offline-banner', false)
+            ->assertSee('deck-action-feedback', false)
             ->assertSee('Connect / Install Agent')
             ->assertSee('Intro')
             ->assertSee('BRB')
-            ->assertSee('sendDeckCommand', false);
+            ->assertSee('sendDeckCommand', false)
+            ->assertSee(json_encode('/deck/'.$primary->slug.'/command'), false)
+            ->assertSee(json_encode('/studio/'.$primary->slug.'/snapshot'), false);
 
         $this->actingAs($user)
             ->get(route('obs.deck.show', ['studio' => $secondary->slug]))
