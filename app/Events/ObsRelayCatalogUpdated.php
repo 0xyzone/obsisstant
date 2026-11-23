@@ -16,6 +16,7 @@ class ObsRelayCatalogUpdated implements ShouldBroadcastNow
     public function __construct(
         public string $reason = 'updated',
         public ?int $studioId = null,
+        public ?int $userId = null,
     ) {}
 
     /**
@@ -23,9 +24,15 @@ class ObsRelayCatalogUpdated implements ShouldBroadcastNow
      */
     public function broadcastOn(): array
     {
-        return [
+        $channels = [
             new PrivateChannel('obs.relay'),
         ];
+
+        if ($this->userId !== null) {
+            $channels[] = new PrivateChannel("obs.user.{$this->userId}.relay");
+        }
+
+        return $channels;
     }
 
     public function broadcastAs(): string

@@ -17,16 +17,25 @@ class ObsStatsOverview extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        $activeStudios = ObsStudio::query()->where('is_active', true)->count();
+        $user = auth()->user();
+        $studioIds = ObsStudio::query()
+            ->ownedBy($user)
+            ->pluck('id');
+
+        $activeStudios = ObsStudio::query()->ownedBy($user)->where('is_active', true)->count();
         $onlineStudios = ObsStudio::query()
+            ->ownedBy($user)
             ->whereIn('status', ['online', 'streaming', 'recording'])
             ->count();
-        $screensCount = ObsScreen::query()->count();
-        $macrosCount = ObsMacro::query()->count();
+        $screensCount = ObsScreen::query()->ownedBy($user)->count();
+        $macrosCount = ObsMacro::query()->ownedBy($user)->count();
         $recentCommands = ObsCommandLog::query()
+            ->whereIn('obs_studio_id', $studioIds)
             ->where('created_at', '>=', now()->subDay())
             ->count();
-        $totalCommands = ObsCommandLog::query()->count();
+        $totalCommands = ObsCommandLog::query()
+            ->whereIn('obs_studio_id', $studioIds)
+            ->count();
 
         return [
             Stat::make('Studios online', $onlineStudios.' / '.$activeStudios)

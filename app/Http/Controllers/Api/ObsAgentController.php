@@ -8,6 +8,7 @@ use App\Events\ObsStudioStateUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\ObsCommandLog;
 use App\Models\ObsStudio;
+use App\Models\User;
 use App\Services\Obs\ObsCommandService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,24 +21,33 @@ class ObsAgentController extends Controller
     public function bootstrap(Request $request): JsonResponse
     {
         $isRelayMode = (bool) $request->attributes->get('obs_relay_mode', false);
+        $relayScope = (string) $request->attributes->get('obs_relay_scope', 'studio');
+        $relayUser = $request->attributes->get('obs_relay_user');
 
         if ($isRelayMode) {
             $studios = ObsStudio::query()
                 ->where('is_active', true)
+                ->when($relayScope === 'user' && $relayUser instanceof User, fn ($q) => $q->ownedBy($relayUser))
                 ->orderBy('id')
                 ->get()
                 ->map(fn (ObsStudio $studio): array => $this->formatStudioBootstrap($studio))
                 ->values();
 
+            $relayChannel = ($relayScope === 'user' && $relayUser instanceof User)
+                ? "private-obs.user.{$relayUser->id}.relay"
+                : 'private-obs.relay';
+
             return response()->json([
                 'mode' => 'relay',
+                'scope' => $relayScope,
+                'user_id' => $relayUser instanceof User ? $relayUser->id : null,
                 'studios' => $studios,
                 'reverb' => [
                     'key' => config('reverb.apps.apps.0.key'),
                     'host' => config('reverb.apps.apps.0.options.host'),
                     'port' => (int) config('reverb.apps.apps.0.options.port', 443),
                     'scheme' => config('reverb.apps.apps.0.options.scheme', 'https'),
-                    'relay_channel' => 'private-obs.relay',
+                    'relay_channel' => $relayChannel,
                 ],
             ]);
         }
@@ -55,6 +65,7 @@ class ObsAgentController extends Controller
                 'port' => (int) config('reverb.apps.apps.0.options.port', 443),
                 'scheme' => config('reverb.apps.apps.0.options.scheme', 'https'),
                 'channel' => $formatted['channel'],
+                'studio_channel' => $formatted['studio_channel'],
             ],
             'pending_commands' => $formatted['pending_commands'],
         ]);
@@ -63,6 +74,8 @@ class ObsAgentController extends Controller
     public function authenticateBroadcast(Request $request): JsonResponse
     {
         $isRelayMode = (bool) $request->attributes->get('obs_relay_mode', false);
+        $relayScope = (string) $request->attributes->get('obs_relay_scope', 'studio');
+        $relayUser = $request->attributes->get('obs_relay_user');
 
         $validated = $request->validate([
             'socket_id' => ['required', 'string'],
@@ -70,12 +83,17 @@ class ObsAgentController extends Controller
         ]);
 
         if ($isRelayMode) {
-            $authorized = $validated['channel_name'] === 'private-obs.relay';
+            $expectedRelayChannel = ($relayScope === 'user' && $relayUser instanceof User)
+                ? "private-obs.user.{$relayUser->id}.relay"
+                : 'private-obs.relay';
 
-            if (! $authorized && preg_match('/^private-obs\.studio\.(\d+)\.commands$/', $validated['channel_name'], $matches)) {
+            $authorized = $validated['channel_name'] === $expectedRelayChannel;
+
+            if (! $authorized && preg_match('/^private-obs\.studio\.(\d+)(?:\.commands)?$/', $validated['channel_name'], $matches)) {
                 $authorized = ObsStudio::query()
                     ->where('id', (int) $matches[1])
                     ->where('is_active', true)
+                    ->when($relayScope === 'user' && $relayUser instanceof User, fn ($q) => $q->ownedBy($relayUser))
                     ->exists();
             }
 
@@ -84,9 +102,12 @@ class ObsAgentController extends Controller
             }
         } else {
             $studio = $this->resolveStudio($request);
-            $expectedChannel = "private-obs.studio.{$studio->id}.commands";
+            $allowedChannels = [
+                "private-obs.studio.{$studio->id}.commands",
+                "private-obs.studio.{$studio->id}",
+            ];
 
-            if ($validated['channel_name'] !== $expectedChannel) {
+            if (! in_array($validated['channel_name'], $allowedChannels, true)) {
                 return response()->json(['message' => 'Unauthorized channel for this OBS Studio agent.'], 403);
             }
         }
@@ -297,6 +318,7 @@ class ObsAgentController extends Controller
                 'obs_password' => $studio->obs_password,
             ],
             'channel' => "private-obs.studio.{$studio->id}.commands",
+            'studio_channel' => "private-obs.studio.{$studio->id}",
             'pending_commands' => $pendingCommands,
         ];
     }

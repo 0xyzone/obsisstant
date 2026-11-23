@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\ObsScreen;
+use App\Models\ObsStudio;
+use App\Models\User;
 use App\Services\Obs\ObsScreenPresetService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -18,6 +20,9 @@ class ObsScreenFactory extends Factory
         $type = 'lower_thirds';
 
         return [
+            'user_id' => static fn (array $attributes): mixed => ! empty($attributes['obs_studio_id'])
+                ? ObsStudio::query()->whereKey($attributes['obs_studio_id'])->value('user_id')
+                : User::factory(),
             'obs_studio_id' => null,
             'name' => $name,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)),

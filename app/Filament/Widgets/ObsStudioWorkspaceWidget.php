@@ -23,6 +23,7 @@ class ObsStudioWorkspaceWidget extends Widget
     public function getStudios(): Collection
     {
         return ObsStudio::query()
+            ->ownedBy(auth()->user())
             ->withCount(['screens', 'macros'])
             ->orderByDesc('is_active')
             ->orderBy('name')
@@ -34,7 +35,12 @@ class ObsStudioWorkspaceWidget extends Widget
      */
     public function getRecentLogs(): Collection
     {
+        $studioIds = ObsStudio::query()
+            ->ownedBy(auth()->user())
+            ->pluck('id');
+
         return ObsCommandLog::query()
+            ->whereIn('obs_studio_id', $studioIds)
             ->with('studio')
             ->latest('id')
             ->limit(6)

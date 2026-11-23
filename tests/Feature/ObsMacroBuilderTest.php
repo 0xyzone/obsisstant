@@ -117,7 +117,7 @@ class ObsMacroBuilderTest extends TestCase
     public function test_admin_can_create_and_edit_macro_using_command_picker_and_synced_inputs(): void
     {
         $user = User::factory()->create();
-        $studio = ObsStudio::factory()->online()->create([
+        $studio = ObsStudio::factory()->online()->for($user)->create([
             'name' => 'Studio Main',
             'live_state' => [
                 'scenes' => [

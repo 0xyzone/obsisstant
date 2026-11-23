@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ObsStudios\Pages;
 
 use App\Filament\Resources\ObsStudios\ObsStudioResource;
+use App\Models\User;
 use App\Services\Obs\ObsLocalRelayService;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -24,12 +25,12 @@ class ListObsStudios extends ListRecords
         if ($status['running']) {
             $pidLabel = $status['pid'] ? " (PID {$status['pid']})" : '';
 
-            return "Workspace Relay active{$pidLabel} — studios created or edited here connect automatically.";
+            return "OBS Agent active{$pidLabel} — studios created or edited here connect automatically.";
         }
 
         return $relay->isLocalControlAvailable()
-            ? 'Local Workspace Relay is stopped. Click Start Local Relay to sync all active studios automatically.'
-            : 'Use Pair External Relay to connect a studio computer once — all studios auto-sync afterwards.';
+            ? 'Start Local Agent for your workstation or click Pair OBS Agent to connect any remote streaming PC.'
+            : 'Click Pair OBS Agent to copy your personal Relay Token and launch command on your streaming PC.';
     }
 
     protected function getHeaderActions(): array
@@ -40,7 +41,7 @@ class ListObsStudios extends ListRecords
 
         return [
             Action::make('startLocalRelay')
-                ->label($status['running'] ? 'Restart Local Relay' : 'Start Local Relay')
+                ->label($status['running'] ? 'Restart Local Agent' : 'Start Local Agent')
                 ->icon($status['running'] ? Heroicon::OutlinedArrowPath : Heroicon::OutlinedPlay)
                 ->color($status['running'] ? 'gray' : 'primary')
                 ->visible($localAvailable)
@@ -51,19 +52,19 @@ class ListObsStudios extends ListRecords
                     if ($fresh['running']) {
                         Notification::make()
                             ->success()
-                            ->title('Workspace Relay active')
+                            ->title('OBS Agent active')
                             ->body("obs-agent synced automatically ({$result}).")
                             ->send();
                     } else {
                         Notification::make()
                             ->danger()
-                            ->title('Could not start Workspace Relay')
+                            ->title('Could not start OBS Agent')
                             ->body($result ?: 'Check storage/logs/obs-agent.log for details.')
                             ->send();
                     }
                 }),
             Action::make('stopLocalRelay')
-                ->label('Stop Relay')
+                ->label('Stop Agent')
                 ->icon(Heroicon::OutlinedStop)
                 ->color('danger')
                 ->visible($localAvailable && $status['running'])
@@ -72,36 +73,53 @@ class ListObsStudios extends ListRecords
                     $relay->stop();
                     Notification::make()
                         ->warning()
-                        ->title('Workspace Relay stopped')
+                        ->title('OBS Agent stopped')
                         ->send();
                 }),
             Action::make('pairRelay')
-                ->label('Pair External Relay')
+                ->label('Pair OBS Agent')
                 ->icon(Heroicon::OutlinedCommandLine)
                 ->color('gray')
-                ->modalHeading('One-Time Workspace Relay Pairing')
-                ->modalDescription('Pair an external studio PC once. Every Studio created or edited in Obsisstant auto-syncs without editing .env files.')
-                ->modalSubmitAction(false)
+                ->modalHeading('Pair Your Streaming Computer (One-Time Setup)')
+                ->modalDescription('Run obs-agent on the computer running OBS Studio using your personal Relay Token. All Studios created under your account sync automatically and stay isolated from other users.')
+                ->modalSubmitActionLabel('Rotate Personal Relay Token')
+                ->modalSubmitAction(fn (Action $action): Action => $action->color('warning')->requiresConfirmation())
                 ->modalCancelActionLabel('Close')
-                ->fillForm(fn (): array => [
-                    'relay_token' => (string) (config('obs.relay_token') ?: 'Not set in .env (OBS_RELAY_TOKEN)'),
-                    'external_command' => $relay->externalCommandExample(),
-                    'recent_logs' => $relay->recentLogs(15),
-                ])
+                ->fillForm(function () use ($relay): array {
+                    $user = auth()->user();
+                    $personalToken = $user instanceof User ? $user->getOrCreateRelayToken() : 'Sign in to view token';
+
+                    return [
+                        'relay_token' => $personalToken,
+                        'external_command' => $relay->externalCommandExample($personalToken),
+                        'recent_logs' => $relay->recentLogs(15),
+                    ];
+                })
                 ->schema([
                     TextInput::make('relay_token')
-                        ->label('Workspace Relay Token (One-Time Setup)')
+                        ->label('Personal Account Relay Token (Syncs All Your Studios)')
                         ->disabled()
                         ->copyable(),
                     TextInput::make('external_command')
-                        ->label('Run on Studio Computer (inside obs-agent/)')
+                        ->label('Run Inside obs-agent/ on Your Streaming PC')
                         ->disabled()
                         ->copyable(),
                     Textarea::make('recent_logs')
-                        ->label('Recent Local Relay Log')
+                        ->label('Recent Local Agent Log')
                         ->rows(6)
                         ->disabled(),
-                ]),
+                ])
+                ->action(function (): void {
+                    $user = auth()->user();
+                    if ($user instanceof User) {
+                        $user->rotateRelayToken();
+                        Notification::make()
+                            ->success()
+                            ->title('Personal Relay Token rotated')
+                            ->body('Update OBSISSTANT_RELAY_TOKEN on your OBS computer and restart obs-agent.')
+                            ->send();
+                    }
+                }),
             CreateAction::make(),
         ];
     }

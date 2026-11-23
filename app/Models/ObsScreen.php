@@ -5,12 +5,15 @@ namespace App\Models;
 use App\Services\Obs\ObsScreenPresetService;
 use Database\Factories\ObsScreenFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 #[Fillable([
+    'user_id',
     'obs_studio_id',
     'name',
     'slug',
@@ -32,6 +35,11 @@ class ObsScreen extends Model
     protected static function booted(): void
     {
         static::creating(function (ObsScreen $screen): void {
+            if ($screen->user_id === null) {
+                $screen->user_id = $screen->obs_studio_id
+                    ? ObsStudio::query()->whereKey($screen->obs_studio_id)->value('user_id')
+                    : Auth::id();
+            }
             if (blank($screen->slug)) {
                 $screen->slug = Str::slug($screen->name).'-'.Str::lower(Str::random(4));
             }
@@ -62,6 +70,20 @@ class ObsScreen extends Model
             'state' => 'array',
             'is_live' => 'boolean',
         ];
+    }
+
+    /**
+     * @param  Builder<ObsScreen>  $query
+     * @return Builder<ObsScreen>
+     */
+    public function scopeOwnedBy(Builder $query, ?User $user): Builder
+    {
+        return $query->where('user_id', $user?->id ?? -1);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function studio(): BelongsTo

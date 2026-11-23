@@ -39,12 +39,16 @@ class ObsScreenAndDeckTest extends TestCase
 
     public function test_mobile_deck_requires_authentication_and_renders_for_signed_in_user(): void
     {
-        $studio = ObsStudio::factory()->online()->create(['name' => 'Main Studio']);
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $studio = ObsStudio::factory()->online()->for($user)->create(['name' => 'Main Studio']);
 
         $this->get(route('obs.deck.show', ['studio' => $studio->slug]))
             ->assertRedirect();
 
-        $user = User::factory()->create();
+        $this->actingAs($otherUser)
+            ->get(route('obs.deck.show', ['studio' => $studio->slug]))
+            ->assertForbidden();
 
         $this->actingAs($user)
             ->get(route('obs.deck.show', ['studio' => $studio->slug]))
@@ -58,7 +62,7 @@ class ObsScreenAndDeckTest extends TestCase
         Event::fake([ObsCommandDispatched::class, ObsScreenUpdated::class]);
 
         $user = User::factory()->create();
-        $studio = ObsStudio::factory()->online()->create();
+        $studio = ObsStudio::factory()->online()->for($user)->create();
         $screen = ObsScreen::factory()->create([
             'obs_studio_id' => $studio->id,
             'slug' => 'hero-overlay',

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Pages\Auth\Login;
+use App\Filament\Pages\Auth\Register;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -147,5 +148,25 @@ class UserSchemaAndAuthTest extends TestCase
             ->assertHasFormErrors(['username']);
 
         $this->assertGuest();
+    }
+
+    public function test_users_can_self_register_with_username_and_receive_personal_relay_token(): void
+    {
+        $this->get('/admin/register')->assertOk();
+
+        Livewire::test(Register::class)
+            ->fillForm([
+                'name' => 'Streamer Alice',
+                'username' => 'streamer_alice',
+                'password' => 'SuperSecret123!',
+                'passwordConfirmation' => 'SuperSecret123!',
+            ])
+            ->call('register')
+            ->assertHasNoFormErrors()
+            ->assertRedirect();
+
+        $alice = User::query()->where('username', 'streamer_alice')->firstOrFail();
+        $this->assertAuthenticatedAs($alice);
+        $this->assertStringStartsWith('usr_', (string) $alice->relay_token);
     }
 }

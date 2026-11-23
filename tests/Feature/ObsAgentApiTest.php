@@ -7,6 +7,7 @@ use App\Events\ObsRelayCatalogUpdated;
 use App\Events\ObsStudioStateUpdated;
 use App\Models\ObsCommandLog;
 use App\Models\ObsStudio;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
@@ -56,11 +57,26 @@ class ObsAgentApiTest extends TestCase
             ->assertOk()
             ->assertJsonStructure(['auth']);
 
+        $this->withToken($studio->agent_token)
+            ->postJson('/api/obs-agent/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.studio.{$studio->id}",
+            ])
+            ->assertOk()
+            ->assertJsonStructure(['auth']);
+
         $otherStudioId = $studio->id + 999;
         $this->withToken($studio->agent_token)
             ->postJson('/api/obs-agent/broadcasting/auth', [
                 'socket_id' => '12345.67890',
                 'channel_name' => "private-obs.studio.{$otherStudioId}.commands",
+            ])
+            ->assertForbidden();
+
+        $this->withToken($studio->agent_token)
+            ->postJson('/api/obs-agent/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.studio.{$otherStudioId}",
             ])
             ->assertForbidden();
     }
@@ -181,5 +197,66 @@ class ObsAgentApiTest extends TestCase
 
         $studio->update(['obs_port' => 4456]);
         Event::assertDispatched(ObsRelayCatalogUpdated::class, 2);
+    }
+
+    public function test_personal_user_relay_token_isolates_studios_and_channels_per_user(): void
+    {
+        Event::fake([ObsStudioStateUpdated::class]);
+
+        $alice = User::factory()->create();
+        $bob = User::factory()->create();
+
+        $aliceActive = ObsStudio::factory()->for($alice)->create(['name' => 'Alice Studio', 'is_active' => true]);
+        ObsStudio::factory()->for($alice)->create(['name' => 'Alice Archived', 'is_active' => false]);
+        $bobActive = ObsStudio::factory()->for($bob)->create(['name' => 'Bob Studio', 'is_active' => true]);
+
+        $aliceToken = $alice->getOrCreateRelayToken();
+        $this->assertStringStartsWith('usr_', $aliceToken);
+
+        $this->withToken($aliceToken)
+            ->getJson('/api/obs-agent/bootstrap')
+            ->assertOk()
+            ->assertJsonPath('mode', 'relay')
+            ->assertJsonPath('scope', 'user')
+            ->assertJsonPath('user_id', $alice->id)
+            ->assertJsonCount(1, 'studios')
+            ->assertJsonPath('studios.0.studio.id', $aliceActive->id)
+            ->assertJsonPath('studios.0.studio_channel', "private-obs.studio.{$aliceActive->id}")
+            ->assertJsonPath('reverb.relay_channel', "private-obs.user.{$alice->id}.relay");
+
+        $this->withToken($aliceToken)
+            ->postJson('/api/obs-agent/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.user.{$alice->id}.relay",
+            ])
+            ->assertOk();
+
+        $this->withToken($aliceToken)
+            ->postJson('/api/obs-agent/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.studio.{$aliceActive->id}",
+            ])
+            ->assertOk();
+
+        $this->withToken($aliceToken)
+            ->postJson('/api/obs-agent/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.studio.{$bobActive->id}",
+            ])
+            ->assertForbidden();
+
+        $this->withToken($aliceToken)
+            ->postJson('/api/obs-agent/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.user.{$bob->id}.relay",
+            ])
+            ->assertForbidden();
+
+        $this->withToken($aliceToken)
+            ->postJson('/api/obs-agent/state', [
+                'studio_id' => $bobActive->id,
+                'live_state' => ['currentProgramScene' => 'Hijacked'],
+            ])
+            ->assertNotFound();
     }
 }

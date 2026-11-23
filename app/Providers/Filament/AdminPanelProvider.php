@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
+use App\Filament\Pages\Auth\Register;
 use App\Filament\Widgets\ObsStatsOverview;
 use App\Filament\Widgets\ObsStudioWorkspaceWidget;
 use Filament\Http\Middleware\Authenticate;
@@ -36,6 +37,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('2.25rem')
             ->favicon(fn (): string => asset(app()->isProduction() ? 'favicon-prod.svg' : 'favicon-local.svg'))
             ->login(Login::class)
+            ->registration(Register::class)
             ->darkMode(true, isForced: true)
             ->font('Poppins')
             ->monoFont('Poppins')

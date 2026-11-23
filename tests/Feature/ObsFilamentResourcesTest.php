@@ -29,7 +29,9 @@ class ObsFilamentResourcesTest extends TestCase
         Event::fake([ObsCommandDispatched::class, ObsScreenUpdated::class]);
 
         $user = User::factory()->create();
-        $studio = ObsStudio::factory()->online()->create(['name' => 'Studio Alpha']);
+        $otherUser = User::factory()->create();
+        $studio = ObsStudio::factory()->online()->for($user)->create(['name' => 'Studio Alpha']);
+        $foreignStudio = ObsStudio::factory()->online()->for($otherUser)->create(['name' => 'Studio Foreign']);
         $screen = ObsScreen::factory()->create(['obs_studio_id' => $studio->id]);
         $macro = ObsMacro::factory()->create(['obs_studio_id' => $studio->id]);
 
@@ -38,6 +40,7 @@ class ObsFilamentResourcesTest extends TestCase
         Livewire::test(ObsControlDeck::class)
             ->assertOk()
             ->assertSee('Studio Alpha')
+            ->assertDontSee('Studio Foreign')
             ->set('newSceneName', 'Interview Cam')
             ->call('createNewScene')
             ->call('switchScene', 'Main Scene')
@@ -61,15 +64,25 @@ class ObsFilamentResourcesTest extends TestCase
         Event::fake([ObsScreenUpdated::class]);
 
         $user = User::factory()->create();
-        $studio = ObsStudio::factory()->create();
+        $otherUser = User::factory()->create();
+        $studio = ObsStudio::factory()->for($user)->create();
+        $foreignStudio = ObsStudio::factory()->for($otherUser)->create();
         $screen = ObsScreen::factory()->create(['obs_studio_id' => $studio->id]);
+        $foreignScreen = ObsScreen::factory()->create(['obs_studio_id' => $foreignStudio->id]);
         $macro = ObsMacro::factory()->create(['obs_studio_id' => $studio->id]);
+        $foreignMacro = ObsMacro::factory()->create(['obs_studio_id' => $foreignStudio->id]);
 
         $this->actingAs($user);
 
-        Livewire::test(ListObsStudios::class)->assertCanSeeTableRecords([$studio]);
-        Livewire::test(ListObsScreens::class)->assertCanSeeTableRecords([$screen]);
-        Livewire::test(ListObsMacros::class)->assertCanSeeTableRecords([$macro]);
+        Livewire::test(ListObsStudios::class)
+            ->assertCanSeeTableRecords([$studio])
+            ->assertCanNotSeeTableRecords([$foreignStudio]);
+        Livewire::test(ListObsScreens::class)
+            ->assertCanSeeTableRecords([$screen])
+            ->assertCanNotSeeTableRecords([$foreignScreen]);
+        Livewire::test(ListObsMacros::class)
+            ->assertCanSeeTableRecords([$macro])
+            ->assertCanNotSeeTableRecords([$foreignMacro]);
 
         Livewire::test(CreateObsStudio::class)
             ->fillForm([

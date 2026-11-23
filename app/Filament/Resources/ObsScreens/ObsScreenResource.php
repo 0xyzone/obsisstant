@@ -30,6 +30,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 use UnitEnum;
 
@@ -45,6 +46,11 @@ class ObsScreenResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->ownedBy(auth()->user());
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -55,7 +61,11 @@ class ObsScreenResource extends Resource
                     ->schema([
                         Select::make('obs_studio_id')
                             ->label('Target Studio (Optional)')
-                            ->relationship('studio', 'name')
+                            ->relationship(
+                                name: 'studio',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query): Builder => $query->ownedBy(auth()->user()),
+                            )
                             ->searchable()
                             ->preload()
                             ->nullable()
@@ -78,7 +88,11 @@ class ObsScreenResource extends Resource
                             ->live(onBlur: true)
                             ->afterStateUpdated(function (Set $set, ?string $state, ?ObsScreen $record): void {
                                 if ($record === null && filled($state)) {
-                                    $set('slug', Str::slug($state));
+                                    $baseSlug = Str::slug($state);
+                                    $uniqueSlug = ObsScreen::query()->where('slug', $baseSlug)->exists()
+                                        ? $baseSlug.'-'.Str::lower(Str::random(4))
+                                        : $baseSlug;
+                                    $set('slug', $uniqueSlug);
                                     $set('obs_source_name', 'Obsisstant - '.$state);
                                 }
                             }),
@@ -236,8 +250,8 @@ class ObsScreenResource extends Resource
                     ->schema([
                         Select::make('studio_id')
                             ->label('Target OBS Studio')
-                            ->options(fn (): array => ObsStudio::query()->where('is_active', true)->pluck('name', 'id')->all())
-                            ->default(fn (ObsScreen $record): ?int => $record->obs_studio_id ?? ObsStudio::query()->value('id'))
+                            ->options(fn (): array => ObsStudio::query()->ownedBy(auth()->user())->where('is_active', true)->pluck('name', 'id')->all())
+                            ->default(fn (ObsScreen $record): ?int => $record->obs_studio_id ?? ObsStudio::query()->ownedBy(auth()->user())->value('id'))
                             ->required(),
                         TextInput::make('scene_name')
                             ->label('OBS Scene Name')
@@ -245,7 +259,7 @@ class ObsScreenResource extends Resource
                             ->required(),
                     ])
                     ->action(function (array $data, ObsScreen $record, ObsCommandService $commandService): void {
-                        $studio = ObsStudio::query()->findOrFail($data['studio_id']);
+                        $studio = ObsStudio::query()->ownedBy(auth()->user())->findOrFail($data['studio_id']);
                         $commandService->pushScreenToObs($studio, $record, $data['scene_name'], auth()->user());
 
                         Notification::make()

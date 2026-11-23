@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\ObsStudio;
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,22 +23,21 @@ class AuthenticateObsAgent
 
         if ($relayToken !== '' && hash_equals($relayToken, $normalized)) {
             $request->attributes->set('obs_relay_mode', true);
+            $request->attributes->set('obs_relay_scope', 'global');
 
-            $studioId = $request->input('studio_id') ?? $request->query('studio_id');
-            if ($studioId !== null && $studioId !== '') {
-                $studio = ObsStudio::query()
-                    ->where('id', (int) $studioId)
-                    ->where('is_active', true)
-                    ->first();
+            return $this->resolveRelayStudio($request, $next);
+        }
 
-                if (! $studio instanceof ObsStudio) {
-                    return response()->json(['message' => 'Target OBS Studio not found or inactive.'], 404);
-                }
+        $relayUser = User::query()
+            ->where('relay_token', $normalized)
+            ->first();
 
-                $request->attributes->set('obs_studio', $studio);
-            }
+        if ($relayUser instanceof User) {
+            $request->attributes->set('obs_relay_mode', true);
+            $request->attributes->set('obs_relay_scope', 'user');
+            $request->attributes->set('obs_relay_user', $relayUser);
 
-            return $next($request);
+            return $this->resolveRelayStudio($request, $next, $relayUser);
         }
 
         $studio = ObsStudio::query()
@@ -50,7 +50,28 @@ class AuthenticateObsAgent
         }
 
         $request->attributes->set('obs_relay_mode', false);
+        $request->attributes->set('obs_relay_scope', 'studio');
         $request->attributes->set('obs_studio', $studio);
+
+        return $next($request);
+    }
+
+    private function resolveRelayStudio(Request $request, Closure $next, ?User $scopedUser = null): Response
+    {
+        $studioId = $request->input('studio_id') ?? $request->query('studio_id');
+        if ($studioId !== null && $studioId !== '') {
+            $studio = ObsStudio::query()
+                ->where('id', (int) $studioId)
+                ->where('is_active', true)
+                ->when($scopedUser instanceof User, fn ($q) => $q->where('user_id', $scopedUser->id))
+                ->first();
+
+            if (! $studio instanceof ObsStudio) {
+                return response()->json(['message' => 'Target OBS Studio not found or unauthorized.'], 404);
+            }
+
+            $request->attributes->set('obs_studio', $studio);
+        }
 
         return $next($request);
     }

@@ -3,6 +3,7 @@
 namespace App\Services\Obs;
 
 use App\Models\ObsStudio;
+use App\Models\User;
 use Illuminate\Support\Collection;
 
 class ObsRequestCatalog
@@ -243,9 +244,12 @@ class ObsRequestCatalog
      *     scene_items: array<string, string>
      * }
      */
-    public static function syncedOptions(?int $studioId = null): array
+    public static function syncedOptions(?int $studioId = null, ?User $user = null): array
     {
-        $query = ObsStudio::query()->where('is_active', true)->orderBy('id');
+        $query = ObsStudio::query()
+            ->where('is_active', true)
+            ->when($user instanceof User, fn ($q) => $q->ownedBy($user))
+            ->orderBy('id');
 
         if ($studioId !== null) {
             $studio = $query->where('id', $studioId)->first();

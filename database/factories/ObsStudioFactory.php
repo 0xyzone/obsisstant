@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\ObsStudio;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -16,6 +17,7 @@ class ObsStudioFactory extends Factory
         $name = fake()->unique()->words(2, true).' Studio';
 
         return [
+            'user_id' => User::factory(),
             'name' => $name,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(4)),
             'agent_token' => 'obs_'.Str::random(48),

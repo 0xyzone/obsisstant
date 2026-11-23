@@ -84,6 +84,7 @@ class StudioWorker {
     constructor(entry) {
         this.studio = entry.studio;
         this.channelName = entry.channel;
+        this.studioChannelName = entry.studio_channel || `private-obs.studio.${entry.studio.id}`;
         this.pendingCommands = entry.pending_commands || [];
         this.obs = new OBSWebSocket();
         this.obsConnected = false;
@@ -108,6 +109,7 @@ class StudioWorker {
             expiresAt: 0,
         };
         this.commandChannel = null;
+        this.studioChannel = null;
         this.liveState = emptyLiveState();
         this.signature = this.buildSignature(this.studio);
         this.bindObsEvents();
@@ -444,11 +446,30 @@ class StudioWorker {
                     return;
                 }
 
-                await apiRequest('/api/obs-agent/preview-frame', 'POST', {
-                    studio_id: this.studio.id,
-                    scene_name: targetScene,
-                    image_data: shot.imageData,
-                });
+                // Prefer direct peer-to-Reverb WebSocket whispers (0 HTTP/PHP requests per frame)
+                let sentViaWebSocket = false;
+                if (this.studioChannel?.subscribed && shot.imageData.length <= 180000) {
+                    try {
+                        sentViaWebSocket = Boolean(
+                            this.studioChannel.trigger('client-obs.preview.frame', {
+                                studio_id: this.studio.id,
+                                scene_name: targetScene,
+                                version: String(Date.now()),
+                                image_data: shot.imageData,
+                            })
+                        );
+                    } catch {
+                        sentViaWebSocket = false;
+                    }
+                }
+
+                if (!sentViaWebSocket) {
+                    await apiRequest('/api/obs-agent/preview-frame', 'POST', {
+                        studio_id: this.studio.id,
+                        scene_name: targetScene,
+                        image_data: shot.imageData,
+                    });
+                }
 
                 this.lastPreviewHash = frameHash;
                 this.lastPreviewUploadedAt = Date.now();
@@ -850,6 +871,14 @@ class StudioWorker {
         this.commandChannel.bind('obs.command.dispatched', (payload) => {
             this.executeCommand(payload);
         });
+
+        this.studioChannel = pusherClient.subscribe(this.studioChannelName);
+        this.studioChannel.bind('pusher:subscription_succeeded', () => {
+            console.log(`${this.logPrefix()} WebSocket preview whisper stream ready on ${this.studioChannelName}`);
+        });
+        this.studioChannel.bind('client-obs.preview.subscribe', (payload) => {
+            this.handleSetPreviewStream(payload);
+        });
     }
 
     async start() {
@@ -935,6 +964,10 @@ class StudioWorker {
         if (this.commandChannel && pusherClient) {
             pusherClient.unsubscribe(this.channelName);
             this.commandChannel = null;
+        }
+        if (this.studioChannel && pusherClient) {
+            pusherClient.unsubscribe(this.studioChannelName);
+            this.studioChannel = null;
         }
         if (this.obsConnected) {
             this.obsConnected = false;
@@ -1042,7 +1075,7 @@ async function main() {
 
         catalogPollTimer = setInterval(() => {
             syncFromBootstrap().catch((err) => console.error('[obs-agent] Periodic catalog check error:', err.message));
-        }, 30000);
+        }, 300000);
     } else if (bootstrap?.studio) {
         console.log(`[obs-agent] Single-Studio mode active for "${bootstrap.studio.name}" (#${bootstrap.studio.id}).`);
     }

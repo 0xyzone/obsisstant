@@ -106,12 +106,12 @@ class ObsLocalRelayService
         return implode(PHP_EOL, array_slice($all, -$lines));
     }
 
-    public function externalCommandExample(): string
+    public function externalCommandExample(?string $relayToken = null): string
     {
         $appUrl = rtrim((string) config('app.url', 'https://ob'), '/');
-        $relayToken = trim((string) config('obs.relay_token', '')) ?: 'your_workspace_relay_token';
+        $token = trim((string) ($relayToken ?: config('obs.relay_token', ''))) ?: 'your_personal_relay_token';
 
-        return "OBSISSTANT_URL={$appUrl} OBSISSTANT_RELAY_TOKEN={$relayToken} npm start";
+        return "OBSISSTANT_URL={$appUrl} OBSISSTANT_RELAY_TOKEN={$token} npm start";
     }
 
     private function scriptPath(): string

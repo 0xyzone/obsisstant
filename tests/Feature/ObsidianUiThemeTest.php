@@ -58,7 +58,7 @@ class ObsidianUiThemeTest extends TestCase
     public function test_reverb_status_pill_and_version_pill_appear_across_app_and_filament_panels(): void
     {
         $user = User::factory()->create();
-        $studio = ObsStudio::factory()->online()->create(['name' => 'Studio Alpha']);
+        $studio = ObsStudio::factory()->online()->for($user)->create(['name' => 'Studio Alpha']);
         $versionTag = 'v'.ChangelogService::getCurrentVersion();
 
         ReverbStatusService::fakeUsing(static fn (): bool => false);
@@ -139,7 +139,7 @@ class ObsidianUiThemeTest extends TestCase
     public function test_authenticated_filament_dashboard_renders_studio_workspace_and_mobile_dock(): void
     {
         $user = User::factory()->create();
-        $studio = ObsStudio::factory()->online()->create(['name' => 'Studio Bravo']);
+        $studio = ObsStudio::factory()->online()->for($user)->create(['name' => 'Studio Bravo']);
         ObsScreen::factory()->create(['obs_studio_id' => $studio->id]);
         ObsMacro::factory()->create(['obs_studio_id' => $studio->id]);
 

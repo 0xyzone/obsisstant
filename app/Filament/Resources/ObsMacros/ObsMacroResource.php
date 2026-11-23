@@ -31,6 +31,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use UnitEnum;
@@ -47,6 +48,11 @@ class ObsMacroResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->ownedBy(auth()->user());
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -58,7 +64,11 @@ class ObsMacroResource extends Resource
                     ->schema([
                         Select::make('obs_studio_id')
                             ->label('Studio (Optional)')
-                            ->relationship('studio', 'name')
+                            ->relationship(
+                                name: 'studio',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query): Builder => $query->ownedBy(auth()->user()),
+                            )
                             ->searchable()
                             ->preload()
                             ->nullable()
@@ -70,7 +80,11 @@ class ObsMacroResource extends Resource
                             ->live(onBlur: true)
                             ->afterStateUpdated(function (Set $set, ?string $state, ?ObsMacro $record): void {
                                 if ($record === null && filled($state)) {
-                                    $set('slug', Str::slug($state));
+                                    $baseSlug = Str::slug($state);
+                                    $uniqueSlug = ObsMacro::query()->where('slug', $baseSlug)->exists()
+                                        ? $baseSlug.'-'.Str::lower(Str::random(4))
+                                        : $baseSlug;
+                                    $set('slug', $uniqueSlug);
                                 }
                             }),
                         TextInput::make('slug')
@@ -300,7 +314,7 @@ class ObsMacroResource extends Resource
 
                                 Select::make('screen_slug')
                                     ->label('Target Overlay Screen')
-                                    ->options(fn (): array => ObsScreen::query()->pluck('name', 'slug')->all())
+                                    ->options(fn (): array => ObsScreen::query()->ownedBy(auth()->user())->pluck('name', 'slug')->all())
                                     ->searchable()
                                     ->visible(fn (Get $get): bool => $get('type') === 'screen_update')
                                     ->required(fn (Get $get): bool => $get('type') === 'screen_update')
@@ -342,7 +356,7 @@ class ObsMacroResource extends Resource
         $rawStudioId = $get('../../obs_studio_id');
         $studioId = filled($rawStudioId) ? (int) $rawStudioId : null;
 
-        return ObsRequestCatalog::syncedOptions($studioId);
+        return ObsRequestCatalog::syncedOptions($studioId, auth()->user());
     }
 
     /**
@@ -402,12 +416,12 @@ class ObsMacroResource extends Resource
                     ->schema([
                         Select::make('studio_id')
                             ->label('Target OBS Studio')
-                            ->options(fn (): array => ObsStudio::query()->where('is_active', true)->pluck('name', 'id')->all())
-                            ->default(fn (ObsMacro $record): ?int => $record->obs_studio_id ?? ObsStudio::query()->value('id'))
+                            ->options(fn (): array => ObsStudio::query()->ownedBy(auth()->user())->where('is_active', true)->pluck('name', 'id')->all())
+                            ->default(fn (ObsMacro $record): ?int => $record->obs_studio_id ?? ObsStudio::query()->ownedBy(auth()->user())->value('id'))
                             ->required(),
                     ])
                     ->action(function (array $data, ObsMacro $record, ObsCommandService $commandService): void {
-                        $studio = ObsStudio::query()->findOrFail($data['studio_id']);
+                        $studio = ObsStudio::query()->ownedBy(auth()->user())->findOrFail($data['studio_id']);
                         $commandService->executeMacro($studio, $record, auth()->user());
 
                         Notification::make()

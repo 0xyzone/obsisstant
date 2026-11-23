@@ -7,6 +7,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.9.0] - 2026-11-23 | type: minor
+
+> 100% WebSocket preview whispers over Reverb and strict per-user multi-tenant isolation with self-registration and personal Relay tokens
+
+### Added
+- Pure WebSocket Preview Whispers (obs-agent, Reverb, /studio): Authorized obs-agent on private-obs.studio.{id} to receive client-obs.preview.subscribe controls and stream compressed frames directly via client-obs.preview.frame whispers over Reverb RAM with zero per-frame PHP/MySQL HTTP requests (keeping HTTP preview endpoints only as fallback)
+- Strict Per-User Multi-Tenant Ownership (add_user_scoping_and_relay_token): Scoped obs_studios, obs_screens, obs_macros, Studio Control Center, Mobile Deck, Filament resources/widgets, and private Reverb broadcast channels strictly to the owning user_id
+- Self-Registration & Personal Account Relay Tokens (Auth\Register, /admin/register, AuthenticateObsAgent, ListObsStudios): Enabled username-based user registration with auto-provisioned usr_ personal Relay Tokens and in-app Pair OBS Agent setup/rotation modal
+
+### Changed
+- Agent Bootstrap Reconciliation Polling: Increased backup catalog reconciliation interval to 5 minutes since private per-user relay channels push catalog updates immediately
+
 ## [v1.8.1] - 2026-11-23 | type: macro
 
 > Load-balanced preview delivery over Reverb WebSocket with frame deduplication, file caching, transient preview leases, and incremental obs-agent sync

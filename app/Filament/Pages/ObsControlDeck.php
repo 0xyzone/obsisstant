@@ -46,7 +46,8 @@ class ObsControlDeck extends Page
 
     public function mount(): void
     {
-        $firstStudio = ObsStudio::query()->where('is_active', true)->orderBy('id')->first();
+        $user = auth()->user();
+        $firstStudio = ObsStudio::query()->ownedBy($user)->where('is_active', true)->orderBy('id')->first();
         $this->studioId = $firstStudio?->id;
 
         $firstScreen = $this->getScreens()->first();
@@ -59,13 +60,14 @@ class ObsControlDeck extends Page
      */
     public function getListeners(): array
     {
-        if (! $this->studioId) {
+        $studio = $this->getStudio();
+        if (! $studio instanceof ObsStudio) {
             return [];
         }
 
         return [
-            "echo-private:obs.studio.{$this->studioId},.obs.studio.state" => 'handleStudioStateEvent',
-            "echo-private:obs.studio.{$this->studioId},.obs.command.acknowledged" => 'handleCommandAckEvent',
+            "echo-private:obs.studio.{$studio->id},.obs.studio.state" => 'handleStudioStateEvent',
+            "echo-private:obs.studio.{$studio->id},.obs.command.acknowledged" => 'handleCommandAckEvent',
         ];
     }
 
@@ -106,7 +108,9 @@ class ObsControlDeck extends Page
             return null;
         }
 
-        return ObsStudio::query()->find($this->studioId);
+        return ObsStudio::query()
+            ->ownedBy(auth()->user())
+            ->find($this->studioId);
     }
 
     /**
@@ -114,7 +118,11 @@ class ObsControlDeck extends Page
      */
     public function getStudios(): Collection
     {
-        return ObsStudio::query()->where('is_active', true)->orderBy('name')->get();
+        return ObsStudio::query()
+            ->ownedBy(auth()->user())
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
     }
 
     /**
@@ -123,6 +131,7 @@ class ObsControlDeck extends Page
     public function getScreens(): Collection
     {
         return ObsScreen::query()
+            ->ownedBy(auth()->user())
             ->when($this->studioId, fn ($q) => $q->where(fn ($sub) => $sub->where('obs_studio_id', $this->studioId)->orWhereNull('obs_studio_id')))
             ->orderBy('name')
             ->get();
@@ -134,6 +143,7 @@ class ObsControlDeck extends Page
     public function getMacros(): Collection
     {
         return ObsMacro::query()
+            ->ownedBy(auth()->user())
             ->when($this->studioId, fn ($q) => $q->where(fn ($sub) => $sub->where('obs_studio_id', $this->studioId)->orWhereNull('obs_studio_id')))
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -145,12 +155,13 @@ class ObsControlDeck extends Page
      */
     public function getRecentLogs(): Collection
     {
-        if (! $this->studioId) {
+        $studio = $this->getStudio();
+        if (! $studio instanceof ObsStudio) {
             return new Collection;
         }
 
         return ObsCommandLog::query()
-            ->where('obs_studio_id', $this->studioId)
+            ->where('obs_studio_id', $studio->id)
             ->latest('id')
             ->limit(8)
             ->get();
@@ -258,7 +269,7 @@ class ObsControlDeck extends Page
     public function runMacro(int $macroId): void
     {
         $studio = $this->getStudio();
-        $macro = ObsMacro::query()->find($macroId);
+        $macro = ObsMacro::query()->ownedBy(auth()->user())->find($macroId);
         if (! $studio instanceof ObsStudio || ! $macro instanceof ObsMacro) {
             return;
         }
@@ -274,7 +285,9 @@ class ObsControlDeck extends Page
     public function pushSelectedScreenToObs(): void
     {
         $studio = $this->getStudio();
-        $screen = $this->selectedScreenId ? ObsScreen::query()->find($this->selectedScreenId) : null;
+        $screen = $this->selectedScreenId
+            ? ObsScreen::query()->ownedBy(auth()->user())->find($this->selectedScreenId)
+            : null;
         if (! $studio instanceof ObsStudio || ! $screen instanceof ObsScreen) {
             return;
         }
@@ -289,7 +302,9 @@ class ObsControlDeck extends Page
 
     public function updateLiveOverlay(bool $showLowerThird = true): void
     {
-        $screen = $this->selectedScreenId ? ObsScreen::query()->find($this->selectedScreenId) : null;
+        $screen = $this->selectedScreenId
+            ? ObsScreen::query()->ownedBy(auth()->user())->find($this->selectedScreenId)
+            : null;
         if (! $screen instanceof ObsScreen) {
             return;
         }
@@ -308,7 +323,9 @@ class ObsControlDeck extends Page
 
     public function triggerLiveAlert(bool $visible = true): void
     {
-        $screen = $this->selectedScreenId ? ObsScreen::query()->find($this->selectedScreenId) : null;
+        $screen = $this->selectedScreenId
+            ? ObsScreen::query()->ownedBy(auth()->user())->find($this->selectedScreenId)
+            : null;
         if (! $screen instanceof ObsScreen) {
             return;
         }
@@ -372,7 +389,9 @@ class ObsControlDeck extends Page
 
     protected function syncSelectedScreenFields(): void
     {
-        $screen = $this->selectedScreenId ? ObsScreen::query()->find($this->selectedScreenId) : null;
+        $screen = $this->selectedScreenId
+            ? ObsScreen::query()->ownedBy(auth()->user())->find($this->selectedScreenId)
+            : null;
         if (! $screen instanceof ObsScreen) {
             return;
         }

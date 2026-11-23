@@ -1237,6 +1237,8 @@
                 let selectedSceneItemId = null;
                 let previewLeaseTimer = null;
                 let previewFallbackTimer = null;
+                let previewControlFallbackTimer = null;
+                let studioChannel = null;
                 let snapshotInFlight = null;
                 let lastEchoPreviewAt = 0;
                 let lastEchoStateAt = 0;
@@ -3014,20 +3016,44 @@
                 const getSnapshotConfig = () => {
                     const mode = document.getElementById('live-view-mode')?.value;
                     if (mode === 'snapshot-fast') {
-                        return { active: true, intervalMs: 1200, width: 768, label: 'OBS preview active (1.2s · change-synced)' };
+                        return { active: true, intervalMs: 1200, width: 768, label: 'OBS preview via WebSocket (1.2s · change-synced)' };
                     }
                     if (mode === 'snapshot') {
-                        return { active: true, intervalMs: 2500, width: 640, label: 'OBS preview active (2.5s · change-synced)' };
+                        return { active: true, intervalMs: 2500, width: 640, label: 'OBS preview via WebSocket (2.5s · change-synced)' };
                     }
                     return { active: false, intervalMs: 2500, width: 640, label: 'Layout mode' };
+                };
+
+                const sendPreviewControl = (controlPayload, allowHttpFallback = false) => {
+                    if (studioChannel?.subscription?.subscribed) {
+                        try {
+                            studioChannel.whisper('obs.preview.subscribe', controlPayload);
+                            return Promise.resolve({ via: 'websocket' });
+                        } catch {
+                            // Fall through to HTTP toggle fallback when whisper fails
+                        }
+                    }
+
+                    if (!allowHttpFallback) {
+                        return Promise.resolve({ via: 'pending' });
+                    }
+
+                    return postJson(endpoints.previewToggle, {
+                        active: Boolean(controlPayload.active),
+                        scene_name: controlPayload.sceneName ?? null,
+                        interval_ms: controlPayload.intervalMs ?? 2500,
+                        width: controlPayload.width ?? 640,
+                    }).catch(() => {});
                 };
 
                 const enableSnapshotPreview = async (active) => {
                     clearInterval(previewLeaseTimer);
                     clearInterval(previewFallbackTimer);
+                    clearTimeout(previewControlFallbackTimer);
+
                     if (!active || document.hidden) {
                         if (!active && previewImg) previewImg.hidden = true;
-                        await postJson(endpoints.previewToggle, { active: false }).catch(() => {});
+                        await sendPreviewControl({ active: false }, !studioChannel?.subscription?.subscribed);
                         return;
                     }
 
@@ -3035,14 +3061,26 @@
                     if (!cfg.active) return;
                     if (previewStatusLabel) previewStatusLabel.textContent = cfg.label;
 
-                    const renew = () => postJson(endpoints.previewToggle, {
+                    const controlPayload = {
                         active: true,
-                        scene_name: editingScene || null,
-                        interval_ms: cfg.intervalMs,
+                        sceneName: editingScene || null,
+                        intervalMs: cfg.intervalMs,
                         width: cfg.width,
-                    }).catch(() => {});
+                    };
 
-                    await renew();
+                    if (studioChannel?.subscription?.subscribed) {
+                        await sendPreviewControl(controlPayload, false);
+                    } else if (!window.Echo) {
+                        await sendPreviewControl(controlPayload, true);
+                    } else {
+                        // Wait briefly for Echo channel auth to complete, only using HTTP if WebSocket never joined
+                        previewControlFallbackTimer = setTimeout(() => {
+                            if (!studioChannel?.subscription?.subscribed && !document.hidden && isSnapshotMode()) {
+                                sendPreviewControl(controlPayload, true);
+                            }
+                        }, 1600);
+                    }
+
                     if (previewImg) {
                         previewImg.onerror = () => { previewImg.hidden = true; };
                         previewImg.onload = () => { previewImg.hidden = false; };
@@ -3052,7 +3090,14 @@
                     }
 
                     previewLeaseTimer = setInterval(() => {
-                        if (!document.hidden && isSnapshotMode()) renew();
+                        if (!document.hidden && isSnapshotMode()) {
+                            sendPreviewControl({
+                                active: true,
+                                sceneName: editingScene || null,
+                                intervalMs: cfg.intervalMs,
+                                width: cfg.width,
+                            }, !studioChannel?.subscription?.subscribed);
+                        }
                     }, 25000);
 
                     if (!window.Echo) {
@@ -3097,7 +3142,8 @@
                     if (document.hidden) {
                         clearInterval(previewLeaseTimer);
                         clearInterval(previewFallbackTimer);
-                        postJson(endpoints.previewToggle, { active: false }).catch(() => {});
+                        clearTimeout(previewControlFallbackTimer);
+                        sendPreviewControl({ active: false }, !studioChannel?.subscription?.subscribed);
                     } else {
                         enableSnapshotPreview(true);
                     }
@@ -3107,29 +3153,38 @@
                     stopVirtualCam();
                     clearInterval(previewLeaseTimer);
                     clearInterval(previewFallbackTimer);
+                    clearTimeout(previewControlFallbackTimer);
                 });
 
-                // Real-time Reverb Echo Sync
+                const applyIncomingPreviewFrame = (payload) => {
+                    lastEchoPreviewAt = Date.now();
+                    if (payload?.version) lastSeenPreviewVersion = payload.version;
+                    if (isSnapshotMode() && previewImg) {
+                        previewImg.src = payload?.image_data
+                            ? payload.image_data
+                            : `${endpoints.previewFrame}?v=${encodeURIComponent(payload?.version || Date.now())}`;
+                        previewImg.hidden = false;
+                    }
+                };
+
+                // Real-time Reverb Echo + Pure WebSocket Whisper Sync
                 const echoCfg = @json($echoConfig);
                 if (window.EchoFactory && echoCfg?.key) {
                     window.Echo = new window.EchoFactory(echoCfg);
-                    window.Echo.private(`obs.studio.${studioId}`)
+                    studioChannel = window.Echo.private(`obs.studio.${studioId}`)
+                        .subscribed(() => {
+                            if (isSnapshotMode() && !document.hidden) {
+                                enableSnapshotPreview(true);
+                            }
+                        })
                         .listen('.obs.studio.state', (payload) => {
                             lastEchoStateAt = Date.now();
                             if (payload.status) studioStatus = payload.status;
                             if (payload.live_state) liveState = payload.live_state;
                             renderAll();
                         })
-                        .listen('.obs.preview.frame', (payload) => {
-                            lastEchoPreviewAt = Date.now();
-                            if (payload.version) lastSeenPreviewVersion = payload.version;
-                            if (isSnapshotMode() && previewImg) {
-                                previewImg.src = payload.image_data
-                                    ? payload.image_data
-                                    : `${endpoints.previewFrame}?v=${encodeURIComponent(payload.version || Date.now())}`;
-                                previewImg.hidden = false;
-                            }
-                        })
+                        .listenForWhisper('obs.preview.frame', applyIncomingPreviewFrame)
+                        .listen('.obs.preview.frame', applyIncomingPreviewFrame)
                         .listen('.obs.command.acknowledged', (payload) => {
                             const resolver = pendingCommandResolvers.get(payload.command_uuid);
                             if (resolver) {
@@ -3144,7 +3199,7 @@
 
                 renderAll();
 
-                // Auto-start Balanced OBS Pixel Feed underlay on launch whenever Studio is online
+                // Auto-start Balanced OBS WebSocket Preview when Studio is online
                 if (isSnapshotMode() && !document.hidden) {
                     enableSnapshotPreview(true);
                 }

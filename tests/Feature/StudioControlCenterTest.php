@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\ChangelogService;
 use App\Services\ReverbStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
@@ -32,7 +33,8 @@ class StudioControlCenterTest extends TestCase
     {
         ReverbStatusService::fakeUsing(static fn (): bool => true);
 
-        $studio = ObsStudio::factory()->online()->create([
+        $user = User::factory()->create();
+        $studio = ObsStudio::factory()->online()->for($user)->create([
             'name' => 'Broadcast A',
             'live_state' => [
                 'currentProgramScene' => 'Main Scene',
@@ -66,7 +68,6 @@ class StudioControlCenterTest extends TestCase
 
         $this->get(route('studio.index'))->assertRedirect();
 
-        $user = User::factory()->create();
         $versionTag = 'v'.ChangelogService::getCurrentVersion();
 
         $this->actingAs($user)
@@ -90,6 +91,8 @@ class StudioControlCenterTest extends TestCase
             ->assertSee('Height (px)')
             ->assertSee('Delete Source')
             ->assertSee('INPUT_KIND_CATALOG')
+            ->assertSee('listenForWhisper', false)
+            ->assertSee('obs.preview.subscribe', false)
             ->assertSee('Host Camera')
             ->assertDontSee('@vite/client', false);
     }
@@ -97,7 +100,7 @@ class StudioControlCenterTest extends TestCase
     public function test_studio_snapshot_and_empty_object_json_serialization_work_correctly(): void
     {
         $user = User::factory()->create();
-        $studio = ObsStudio::factory()->online()->create([
+        $studio = ObsStudio::factory()->online()->for($user)->create([
             'name' => 'Snapshot Studio',
             'agent_token' => 'snapshot-token-999',
             'live_state' => [
@@ -170,7 +173,7 @@ class StudioControlCenterTest extends TestCase
         Event::fake([ObsCommandDispatched::class, ObsScreenUpdated::class]);
 
         $user = User::factory()->create();
-        $studio = ObsStudio::factory()->online()->create(['name' => 'Control One']);
+        $studio = ObsStudio::factory()->online()->for($user)->create(['name' => 'Control One']);
         $screen = ObsScreen::factory()->create(['obs_studio_id' => $studio->id]);
         $macro = ObsMacro::factory()->create(['obs_studio_id' => $studio->id]);
 
@@ -230,7 +233,7 @@ class StudioControlCenterTest extends TestCase
         Event::fake([ObsPreviewFrameUpdated::class, ObsStudioStateUpdated::class]);
 
         $user = User::factory()->create();
-        $studio = ObsStudio::factory()->create([
+        $studio = ObsStudio::factory()->for($user)->create([
             'agent_token' => 'studio-token-123456',
             'live_state' => [
                 'sceneItemsByScene' => [
@@ -304,5 +307,98 @@ class StudioControlCenterTest extends TestCase
         $this->assertSame('Camera', $studio->getSceneItems('Main Scene')[0]['sourceName']);
         $this->assertSame('Podcast Layout', $studio->getCurrentSceneCollection());
         $this->assertSame(['Default', 'Podcast Layout'], $studio->getSceneCollections());
+    }
+
+    public function test_users_are_strictly_isolated_across_studios_actions_and_reverb_channels(): void
+    {
+        $owner = User::factory()->create();
+        $intruder = User::factory()->create();
+
+        $studio = ObsStudio::factory()->online()->for($owner)->create(['name' => 'Private Studio']);
+        $screen = ObsScreen::factory()->create(['obs_studio_id' => $studio->id]);
+        $macro = ObsMacro::factory()->create(['obs_studio_id' => $studio->id]);
+
+        $this->actingAs($intruder)
+            ->get(route('studio.show', ['studio' => $studio->slug]))
+            ->assertForbidden();
+
+        $this->actingAs($intruder)
+            ->getJson(route('studio.snapshot', ['studio' => $studio->slug]))
+            ->assertForbidden();
+
+        $this->actingAs($intruder)
+            ->postJson(route('studio.command', ['studio' => $studio->slug]), [
+                'request_type' => 'StartStream',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($intruder)
+            ->postJson(route('studio.macro', ['studio' => $studio->slug, 'macro' => $macro->id]))
+            ->assertForbidden();
+
+        $this->actingAs($intruder)
+            ->postJson(route('studio.screen-live', ['studio' => $studio->slug, 'screen' => $screen->id]), [
+                'state' => ['guest_name' => 'Hacked'],
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($intruder)
+            ->postJson(route('studio.preview-toggle', ['studio' => $studio->slug]), [
+                'active' => true,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($intruder)
+            ->get(route('studio.preview-frame', ['studio' => $studio->slug]))
+            ->assertForbidden();
+
+        $this->actingAs($intruder)
+            ->postJson(route('obs.deck.command', ['studio' => $studio->slug]), [
+                'request_type' => 'ToggleStream',
+            ])
+            ->assertForbidden();
+
+        // Owner's /studio index ignores foreign studios
+        $this->actingAs($intruder)
+            ->get(route('studio.index'))
+            ->assertRedirect('/admin/obs-studios');
+
+        // Channel authorizer denies intruder on owner's studio and personal relay channels
+        config([
+            'broadcasting.default' => 'reverb',
+            'broadcasting.connections.reverb.key' => 'testkey',
+            'broadcasting.connections.reverb.secret' => 'testsecret',
+            'broadcasting.connections.reverb.app_id' => '12345',
+        ]);
+        Broadcast::forgetDrivers();
+        require base_path('routes/channels.php');
+
+        $this->actingAs($intruder)
+            ->post('/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.studio.{$studio->id}",
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($intruder)
+            ->post('/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.user.{$owner->id}.relay",
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($owner)
+            ->post('/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.studio.{$studio->id}",
+            ])
+            ->assertOk();
+
+        $this->actingAs($owner)
+            ->post('/broadcasting/auth', [
+                'socket_id' => '12345.67890',
+                'channel_name' => "private-obs.user.{$owner->id}.relay",
+            ])
+            ->assertOk();
     }
 }

@@ -23,6 +23,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 use UnitEnum;
 
@@ -38,6 +39,11 @@ class ObsStudioResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->ownedBy(auth()->user());
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -52,7 +58,11 @@ class ObsStudioResource extends Resource
                             ->live(onBlur: true)
                             ->afterStateUpdated(function (Set $set, ?string $state, ?ObsStudio $record): void {
                                 if ($record === null && filled($state)) {
-                                    $set('slug', Str::slug($state));
+                                    $baseSlug = Str::slug($state);
+                                    $uniqueSlug = ObsStudio::query()->where('slug', $baseSlug)->exists()
+                                        ? $baseSlug.'-'.Str::lower(Str::random(4))
+                                        : $baseSlug;
+                                    $set('slug', $uniqueSlug);
                                 }
                             }),
                         TextInput::make('slug')

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ObsMacro;
 use App\Models\ObsScreen;
 use App\Models\ObsStudio;
+use App\Models\User;
 use App\Services\Obs\ObsCommandService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -13,9 +14,13 @@ use Illuminate\Http\Request;
 
 class ObsMobileDeckController extends Controller
 {
-    public function index(): RedirectResponse
+    public function index(Request $request): RedirectResponse
     {
-        $studio = ObsStudio::query()->where('is_active', true)->orderBy('id')->first();
+        $studio = ObsStudio::query()
+            ->ownedBy($request->user())
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->first();
 
         if (! $studio instanceof ObsStudio) {
             return redirect('/admin/obs-studios');
@@ -24,14 +29,22 @@ class ObsMobileDeckController extends Controller
         return redirect()->route('obs.deck.show', ['studio' => $studio->slug]);
     }
 
-    public function show(ObsStudio $studio): View
+    public function show(Request $request, ObsStudio $studio): View
     {
-        $studios = ObsStudio::query()->where('is_active', true)->orderBy('name')->get();
+        $user = $this->authorizeStudio($request, $studio);
+
+        $studios = ObsStudio::query()
+            ->ownedBy($user)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
         $screens = ObsScreen::query()
+            ->ownedBy($user)
             ->where(fn ($query) => $query->where('obs_studio_id', $studio->id)->orWhereNull('obs_studio_id'))
             ->orderBy('name')
             ->get();
         $macros = ObsMacro::query()
+            ->ownedBy($user)
             ->where(fn ($query) => $query->where('obs_studio_id', $studio->id)->orWhereNull('obs_studio_id'))
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -48,6 +61,8 @@ class ObsMobileDeckController extends Controller
 
     public function dispatchCommand(Request $request, ObsStudio $studio, ObsCommandService $commandService): JsonResponse
     {
+        $user = $this->authorizeStudio($request, $studio);
+
         $validated = $request->validate([
             'request_type' => ['required', 'string', 'max:120'],
             'request_data' => ['nullable', 'array'],
@@ -57,7 +72,7 @@ class ObsMobileDeckController extends Controller
             studio: $studio,
             requestType: $validated['request_type'],
             requestData: $validated['request_data'] ?? [],
-            user: $request->user(),
+            user: $user,
         );
 
         return response()->json([
@@ -69,7 +84,10 @@ class ObsMobileDeckController extends Controller
 
     public function runMacro(Request $request, ObsStudio $studio, ObsMacro $macro, ObsCommandService $commandService): JsonResponse
     {
-        $results = $commandService->executeMacro($studio, $macro, $request->user());
+        $user = $this->authorizeStudio($request, $studio);
+        abort_if((int) $macro->user_id !== $user->id, 403);
+
+        $results = $commandService->executeMacro($studio, $macro, $user);
 
         return response()->json([
             'ok' => true,
@@ -79,6 +97,9 @@ class ObsMobileDeckController extends Controller
 
     public function updateScreenLive(Request $request, ObsScreen $screen, ObsCommandService $commandService): JsonResponse
     {
+        $user = $request->user();
+        abort_if(! $user instanceof User || (int) $screen->user_id !== $user->id, 403);
+
         $validated = $request->validate([
             'state' => ['required', 'array'],
         ]);
@@ -89,5 +110,13 @@ class ObsMobileDeckController extends Controller
             'ok' => true,
             'state' => $updated->getMergedState(),
         ]);
+    }
+
+    private function authorizeStudio(Request $request, ObsStudio $studio): User
+    {
+        $user = $request->user();
+        abort_if(! $user instanceof User || (int) $studio->user_id !== $user->id, 403);
+
+        return $user;
     }
 }

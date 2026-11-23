@@ -6,6 +6,7 @@ use App\Models\ObsCommandLog;
 use App\Models\ObsMacro;
 use App\Models\ObsScreen;
 use App\Models\ObsStudio;
+use App\Models\User;
 use App\Services\ChangelogService;
 use App\Services\Obs\ObsCommandService;
 use Illuminate\Contracts\View\View;
@@ -16,27 +17,39 @@ use Illuminate\Http\Response;
 
 class StudioControlCenterController extends Controller
 {
-    public function index(): View|RedirectResponse
+    public function index(Request $request): View|RedirectResponse
     {
-        $studio = ObsStudio::query()->where('is_active', true)->orderBy('id')->first();
+        $studio = ObsStudio::query()
+            ->ownedBy($request->user())
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->first();
 
         if (! $studio instanceof ObsStudio) {
             return redirect('/admin/obs-studios');
         }
 
-        return $this->show($studio);
+        return $this->show($request, $studio);
     }
 
-    public function show(ObsStudio $studio): View
+    public function show(Request $request, ObsStudio $studio): View
     {
-        $studios = ObsStudio::query()->where('is_active', true)->orderBy('name')->get();
+        $user = $this->authorizeStudio($request, $studio);
+
+        $studios = ObsStudio::query()
+            ->ownedBy($user)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
 
         $screens = ObsScreen::query()
+            ->ownedBy($user)
             ->where(fn ($query) => $query->where('obs_studio_id', $studio->id)->orWhereNull('obs_studio_id'))
             ->orderBy('name')
             ->get();
 
         $macros = ObsMacro::query()
+            ->ownedBy($user)
             ->where(fn ($query) => $query->where('obs_studio_id', $studio->id)->orWhereNull('obs_studio_id'))
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -59,8 +72,10 @@ class StudioControlCenterController extends Controller
         ]);
     }
 
-    public function snapshot(ObsStudio $studio): JsonResponse
+    public function snapshot(Request $request, ObsStudio $studio): JsonResponse
     {
+        $this->authorizeStudio($request, $studio);
+
         $recentLogs = ObsCommandLog::query()
             ->where('obs_studio_id', $studio->id)
             ->latest('id')
@@ -89,6 +104,8 @@ class StudioControlCenterController extends Controller
 
     public function dispatchCommand(Request $request, ObsStudio $studio, ObsCommandService $commandService): JsonResponse
     {
+        $this->authorizeStudio($request, $studio);
+
         $validated = $request->validate([
             'request_type' => ['required', 'string', 'max:120'],
             'request_data' => ['nullable', 'array'],
@@ -108,8 +125,10 @@ class StudioControlCenterController extends Controller
         ]);
     }
 
-    public function commandResult(ObsStudio $studio, string $commandUuid): JsonResponse
+    public function commandResult(Request $request, ObsStudio $studio, string $commandUuid): JsonResponse
     {
+        $this->authorizeStudio($request, $studio);
+
         $log = ObsCommandLog::query()
             ->where('obs_studio_id', $studio->id)
             ->where('command_uuid', $commandUuid)
@@ -127,7 +146,10 @@ class StudioControlCenterController extends Controller
 
     public function runMacro(Request $request, ObsStudio $studio, ObsMacro $macro, ObsCommandService $commandService): JsonResponse
     {
-        $results = $commandService->executeMacro($studio, $macro, $request->user());
+        $user = $this->authorizeStudio($request, $studio);
+        abort_if((int) $macro->user_id !== $user->id, 403);
+
+        $results = $commandService->executeMacro($studio, $macro, $user);
 
         return response()->json([
             'ok' => true,
@@ -137,6 +159,9 @@ class StudioControlCenterController extends Controller
 
     public function updateScreenLive(Request $request, ObsStudio $studio, ObsScreen $screen, ObsCommandService $commandService): JsonResponse
     {
+        $user = $this->authorizeStudio($request, $studio);
+        abort_if((int) $screen->user_id !== $user->id, 403);
+
         $validated = $request->validate([
             'state' => ['required', 'array'],
         ]);
@@ -151,6 +176,9 @@ class StudioControlCenterController extends Controller
 
     public function pushScreenToObs(Request $request, ObsStudio $studio, ObsScreen $screen, ObsCommandService $commandService): JsonResponse
     {
+        $user = $this->authorizeStudio($request, $studio);
+        abort_if((int) $screen->user_id !== $user->id, 403);
+
         $validated = $request->validate([
             'scene_name' => ['nullable', 'string', 'max:255'],
         ]);
@@ -159,7 +187,7 @@ class StudioControlCenterController extends Controller
             studio: $studio,
             screen: $screen,
             sceneName: $validated['scene_name'] ?? null,
-            user: $request->user(),
+            user: $user,
         );
 
         return response()->json([
@@ -170,6 +198,8 @@ class StudioControlCenterController extends Controller
 
     public function togglePreview(Request $request, ObsStudio $studio, ObsCommandService $commandService): JsonResponse
     {
+        $user = $this->authorizeStudio($request, $studio);
+
         $validated = $request->validate([
             'active' => ['required', 'boolean'],
             'scene_name' => ['nullable', 'string', 'max:255'],
@@ -186,7 +216,7 @@ class StudioControlCenterController extends Controller
                 'intervalMs' => (int) ($validated['interval_ms'] ?? 2500),
                 'width' => (int) ($validated['width'] ?? 640),
             ],
-            user: $request->user(),
+            user: $user,
         );
 
         return response()->json([
@@ -196,8 +226,10 @@ class StudioControlCenterController extends Controller
         ]);
     }
 
-    public function previewFrame(ObsStudio $studio): Response
+    public function previewFrame(Request $request, ObsStudio $studio): Response
     {
+        $this->authorizeStudio($request, $studio);
+
         $frame = ObsCommandService::previewCacheStore()->get("obs.preview.frame.{$studio->id}");
 
         $bytes = null;
@@ -222,5 +254,13 @@ class StudioControlCenterController extends Controller
             'X-OBS-Preview-Scene' => (string) ($frame['scene_name'] ?? ''),
             'X-OBS-Preview-Version' => (string) ($frame['version'] ?? ''),
         ]);
+    }
+
+    private function authorizeStudio(Request $request, ObsStudio $studio): User
+    {
+        $user = $request->user();
+        abort_if(! $user instanceof User || (int) $studio->user_id !== $user->id, 403);
+
+        return $user;
     }
 }

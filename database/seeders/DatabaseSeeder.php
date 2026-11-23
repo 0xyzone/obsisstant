@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::query()->firstOrCreate(
+        $admin = User::query()->firstOrCreate(
             ['username' => 'admin'],
             [
                 'name' => 'Super Admin',
@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
         $studio = ObsStudio::query()->firstOrCreate(
             ['slug' => 'main-studio'],
             [
+                'user_id' => $admin->id,
                 'name' => 'Main Studio',
                 'agent_token' => 'obs_'.Str::random(48),
                 'obs_host' => '127.0.0.1',
@@ -71,6 +72,7 @@ class DatabaseSeeder extends Seeder
             ObsScreen::query()->firstOrCreate(
                 ['slug' => $preset['slug']],
                 [
+                    'user_id' => $admin->id,
                     'obs_studio_id' => $studio->id,
                     'name' => $preset['name'],
                     'public_token' => Str::random(32),
@@ -89,6 +91,7 @@ class DatabaseSeeder extends Seeder
         ObsMacro::query()->firstOrCreate(
             ['slug' => 'go-live-sequence'],
             [
+                'user_id' => $admin->id,
                 'obs_studio_id' => $studio->id,
                 'name' => 'Go Live Sequence',
                 'icon' => 'heroicon-o-play-circle',
@@ -118,6 +121,7 @@ class DatabaseSeeder extends Seeder
         ObsMacro::query()->firstOrCreate(
             ['slug' => 'intermission-brb'],
             [
+                'user_id' => $admin->id,
                 'obs_studio_id' => $studio->id,
                 'name' => 'Intermission (BRB)',
                 'icon' => 'heroicon-o-pause-circle',

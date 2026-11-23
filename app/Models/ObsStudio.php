@@ -6,13 +6,17 @@ use App\Events\ObsRelayCatalogUpdated;
 use Database\Factories\ObsStudioFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Throwable;
 
 #[Fillable([
+    'user_id',
     'name',
     'slug',
     'agent_token',
@@ -33,6 +37,9 @@ class ObsStudio extends Model
     protected static function booted(): void
     {
         static::creating(function (ObsStudio $studio): void {
+            if ($studio->user_id === null && Auth::check()) {
+                $studio->user_id = Auth::id();
+            }
             if (blank($studio->slug)) {
                 $studio->slug = Str::slug($studio->name).'-'.Str::lower(Str::random(4));
             }
@@ -46,6 +53,7 @@ class ObsStudio extends Model
                 event(new ObsRelayCatalogUpdated(
                     reason: 'created',
                     studioId: $studio->id,
+                    userId: $studio->user_id,
                 ));
             } catch (Throwable) {
                 // Never block studio creation if Reverb server is offline
@@ -58,6 +66,7 @@ class ObsStudio extends Model
                     event(new ObsRelayCatalogUpdated(
                         reason: 'updated',
                         studioId: $studio->id,
+                        userId: $studio->user_id,
                     ));
                 } catch (Throwable) {
                     // Never block studio updates if Reverb server is offline
@@ -70,11 +79,26 @@ class ObsStudio extends Model
                 event(new ObsRelayCatalogUpdated(
                     reason: 'deleted',
                     studioId: $studio->id,
+                    userId: $studio->user_id,
                 ));
             } catch (Throwable) {
                 // Never block studio deletion if Reverb server is offline
             }
         });
+    }
+
+    /**
+     * @param  Builder<ObsStudio>  $query
+     * @return Builder<ObsStudio>
+     */
+    public function scopeOwnedBy(Builder $query, ?User $user): Builder
+    {
+        return $query->where('user_id', $user?->id ?? -1);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**
