@@ -5,28 +5,28 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
         <title>Changelog · {{ config('app.name', 'Obsisstant') }} v{{ $currentVersion }}</title>
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700|jetbrains-mono:400,500,600" rel="stylesheet">
+        <link href="https://fonts.bunny.net/css?family=syne:700,800|plus-jakarta-sans:400,500,600,700|jetbrains-mono:400,500,600&display=swap" rel="stylesheet">
         <style>
             :root {
                 color-scheme: dark;
-                --bg-obsidian: #060607;
-                --bg-charcoal: #0d0c0a;
-                --surface-glass: rgba(18, 16, 13, 0.72);
-                --surface-glass-strong: rgba(24, 21, 16, 0.84);
+                --bg-obsidian: #050506;
+                --bg-charcoal: #0d0c09;
+                --surface-glass: rgba(17, 15, 11, 0.72);
+                --surface-glass-strong: rgba(23, 20, 14, 0.86);
                 --surface-chip: rgba(255, 255, 255, 0.045);
-                --border-gold: rgba(212, 175, 55, 0.25);
-                --border-gold-strong: rgba(243, 211, 122, 0.48);
+                --border-gold: rgba(255, 215, 0, 0.28);
+                --border-gold-strong: rgba(255, 215, 0, 0.56);
                 --border-subtle: rgba(255, 255, 255, 0.09);
-                --gold-100: #fbf3d5;
-                --gold-300: #f3d37a;
-                --gold-400: #e2b84b;
-                --gold-500: #c9972c;
-                --text-primary: #f7f3e9;
-                --text-secondary: #d0c7b4;
-                --text-muted: #a79e8d;
+                --gold-100: #fff6d1;
+                --gold-300: #ffe680;
+                --gold-400: #ffd700;
+                --gold-500: #d4af37;
+                --text-primary: #faf6ec;
+                --text-secondary: #d4ccb8;
+                --text-muted: #9e9582;
                 --radius-card: 1.5rem;
                 --radius-pill: 9999px;
-                --shadow-glass: 0 22px 50px -18px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 229, 153, 0.14);
+                --shadow-glass: 0 22px 50px -18px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 232, 140, 0.16);
             }
 
             *,
@@ -38,7 +38,7 @@
             html {
                 background-color: var(--bg-obsidian);
                 color: var(--text-primary);
-                font-family: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                 -webkit-font-smoothing: antialiased;
             }
 
@@ -146,9 +146,10 @@
             }
 
             .brand-title {
-                font-weight: 700;
-                font-size: 0.95rem;
-                letter-spacing: 0.01em;
+                font-family: 'Syne', ui-sans-serif, system-ui, sans-serif;
+                font-weight: 800;
+                font-size: 1rem;
+                letter-spacing: -0.02em;
                 color: var(--text-primary);
             }
 
@@ -244,10 +245,12 @@
 
             .hero-heading {
                 margin: 0;
-                font-size: clamp(1.65rem, 1.2rem + 2vw, 2.5rem);
-                font-weight: 700;
-                line-height: 1.15;
-                letter-spacing: -0.02em;
+                font-family: 'Syne', ui-sans-serif, system-ui, sans-serif;
+                font-size: clamp(2.15rem, 1.35rem + 2.8vw, 3.85rem);
+                font-weight: 800;
+                line-height: 0.98;
+                letter-spacing: -0.035em;
+                text-wrap: balance;
                 color: var(--text-primary);
             }
 

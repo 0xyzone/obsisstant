@@ -6,26 +6,29 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>{{ $studio->name }} · Mobile Control Deck</title>
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700|jetbrains-mono:500,600" rel="stylesheet">
+        <link href="https://fonts.bunny.net/css?family=syne:700,800|plus-jakarta-sans:400,500,600,700|jetbrains-mono:500,600&display=swap" rel="stylesheet">
         <style>
             :root {
                 color-scheme: dark;
-                --bg: #060607;
-                --glass: rgba(20, 18, 14, 0.78);
-                --border-gold: rgba(212, 175, 55, 0.28);
-                --gold: #f3d37a;
-                --gold-strong: #d4af37;
-                --text: #f7f3e9;
-                --muted: #b5ab99;
+                --bg: #050506;
+                --glass: rgba(17, 15, 11, 0.76);
+                --border-gold: rgba(255, 215, 0, 0.28);
+                --gold: #ffd700;
+                --gold-strong: #f5c451;
+                --text: #faf6ec;
+                --muted: #9e9582;
             }
 
             *, *::before, *::after { box-sizing: border-box; }
             html, body {
                 margin: 0;
                 min-block-size: 100dvb;
-                background: radial-gradient(circle at 15% 10%, rgba(212, 175, 55, 0.16), transparent 45%), #060607;
+                background:
+                    radial-gradient(circle at 14% 10%, rgba(255, 215, 0, 0.2), transparent 44%),
+                    radial-gradient(circle at 86% 84%, rgba(212, 175, 55, 0.14), transparent 50%),
+                    #050506;
                 color: var(--text);
-                font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+                font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
             }
 
             .shell {
@@ -137,8 +140,8 @@
         <div class="shell">
             <header class="glass topbar">
                 <div>
-                    <div style="font-size: 1.05rem; font-weight: 700;">{{ $studio->name }}</div>
-                    <div style="font-size: 0.78rem; color: var(--muted);">Mobile Wireless Stream Deck</div>
+                    <div style="font-family: 'Syne', ui-sans-serif, system-ui, sans-serif; font-size: clamp(1.35rem, 1.05rem + 1.2vw, 2rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; color: var(--gold);">{{ $studio->name }}</div>
+                    <div style="font-size: 0.76rem; color: var(--muted);">Mobile Wireless Stream Deck</div>
                 </div>
 
                 <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">

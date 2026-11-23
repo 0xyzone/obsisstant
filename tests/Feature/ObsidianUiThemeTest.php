@@ -1,0 +1,65 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\ObsMacro;
+use App\Models\ObsScreen;
+use App\Models\ObsStudio;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ObsidianUiThemeTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_landing_page_renders_product_showcase_with_live_counts_and_presets(): void
+    {
+        $studio = ObsStudio::factory()->online()->create(['name' => 'Alpha Rig']);
+        ObsScreen::factory()->count(2)->create(['obs_studio_id' => $studio->id]);
+        ObsMacro::factory()->create(['obs_studio_id' => $studio->id]);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk()
+            ->assertSee('OBSISSTANT')
+            ->assertSee('COMMAND')
+            ->assertSee('EVERY OBS')
+            ->assertSee('Starting Soon')
+            ->assertSee('Lower Thirds')
+            ->assertSee('syne:700,800')
+            ->assertSee('/admin/obs-control-deck')
+            ->assertSee(route('obs.deck.index'))
+            ->assertSee(route('changelog'));
+    }
+
+    public function test_filament_login_renders_forced_obsidian_theme_and_control_access_hero(): void
+    {
+        $response = $this->get('/admin/login');
+
+        $response->assertOk()
+            ->assertSee('CONTROL ACCESS')
+            ->assertSee('filament-obs-theme.css')
+            ->assertSee('syne:700,800')
+            ->assertSee('dark', false);
+    }
+
+    public function test_authenticated_filament_dashboard_renders_stats_overview_and_mobile_dock(): void
+    {
+        $user = User::factory()->create();
+        $studio = ObsStudio::factory()->online()->create();
+        ObsScreen::factory()->create(['obs_studio_id' => $studio->id]);
+        ObsMacro::factory()->create(['obs_studio_id' => $studio->id]);
+
+        $this->assertFileExists(public_path('css/filament-obs-theme.css'));
+
+        $response = $this->actingAs($user)->get('/admin');
+
+        $response->assertOk()
+            ->assertSee('OBSISSTANT')
+            ->assertSee('Studios Online')
+            ->assertSee('Live Screen Canvases')
+            ->assertSee('obs-mobile-dock')
+            ->assertSee('filament-obs-theme.css');
+    }
+}

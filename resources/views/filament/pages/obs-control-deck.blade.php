@@ -22,7 +22,7 @@
                     <select
                         id="studio-selector"
                         wire:model.live="studioId"
-                        class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                        class="rounded-xl border border-amber-400/35 bg-black/70 px-3 py-2 text-sm text-amber-50 focus:border-amber-400 focus:outline-none"
                     >
                         @forelse ($studios as $item)
                             <option value="{{ $item->id }}">{{ $item->name }} ({{ strtoupper($item->status) }})</option>
@@ -35,8 +35,8 @@
                         <x-filament::badge :color="match($studio->status) { 'streaming' => 'danger', 'recording' => 'warning', 'online' => 'success', default => 'gray' }">
                             {{ strtoupper($studio->status) }}
                         </x-filament::badge>
-                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                            OBS {{ $studio->live_state['obsVersion'] ?? '—' }} · Program: <strong>{{ $studio->getCurrentProgramScene() ?? '—' }}</strong>
+                        <span class="font-mono text-xs text-amber-200/75">
+                            OBS {{ $studio->live_state['obsVersion'] ?? '—' }} · Program: <strong class="text-amber-300">{{ $studio->getCurrentProgramScene() ?? '—' }}</strong>
                         </span>
                     @endif
                 </div>
@@ -60,26 +60,26 @@
             </div>
 
             @if ($studio)
-                <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-                    <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
-                        <div class="text-xs text-gray-500">FPS</div>
-                        <div class="text-lg font-bold">{{ $stats['activeFps'] ?? '—' }}</div>
+                <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                    <div class="obs-stat-tile">
+                        <div class="obs-stat-label">FPS</div>
+                        <div class="obs-stat-number">{{ $stats['activeFps'] ?? '—' }}</div>
                     </div>
-                    <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
-                        <div class="text-xs text-gray-500">CPU Usage</div>
-                        <div class="text-lg font-bold">{{ isset($stats['cpuUsage']) ? $stats['cpuUsage'].'%' : '—' }}</div>
+                    <div class="obs-stat-tile">
+                        <div class="obs-stat-label">CPU Usage</div>
+                        <div class="obs-stat-number">{{ isset($stats['cpuUsage']) ? $stats['cpuUsage'].'%' : '—' }}</div>
                     </div>
-                    <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
-                        <div class="text-xs text-gray-500">Memory</div>
-                        <div class="text-lg font-bold">{{ isset($stats['memoryUsage']) ? round($stats['memoryUsage']).' MB' : '—' }}</div>
+                    <div class="obs-stat-tile">
+                        <div class="obs-stat-label">Memory</div>
+                        <div class="obs-stat-number">{{ isset($stats['memoryUsage']) ? round($stats['memoryUsage']).' MB' : '—' }}</div>
                     </div>
-                    <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
-                        <div class="text-xs text-gray-500">Skipped (Render / Out)</div>
-                        <div class="text-lg font-bold">{{ ($stats['renderSkippedFrames'] ?? 0).' / '.($stats['outputSkippedFrames'] ?? 0) }}</div>
+                    <div class="obs-stat-tile">
+                        <div class="obs-stat-label">Skipped</div>
+                        <div class="obs-stat-number">{{ ($stats['renderSkippedFrames'] ?? 0).' / '.($stats['outputSkippedFrames'] ?? 0) }}</div>
                     </div>
-                    <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
-                        <div class="text-xs text-gray-500">Studio Mode</div>
-                        <div class="text-lg font-bold">{{ $studio->isStudioModeEnabled() ? 'ENABLED' : 'OFF' }}</div>
+                    <div class="obs-stat-tile">
+                        <div class="obs-stat-label">Studio Mode</div>
+                        <div class="obs-stat-number">{{ $studio->isStudioModeEnabled() ? 'LIVE' : 'OFF' }}</div>
                     </div>
                 </div>
             @endif
@@ -155,7 +155,7 @@
                             type="text"
                             wire:model="newSceneName"
                             placeholder="New scene name..."
-                            class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                            class="obs-deck-input flex-1 px-3 py-2 text-sm"
                         >
                         <x-filament::button size="sm" wire:click="createNewScene">Create Scene</x-filament::button>
                     </div>
@@ -174,7 +174,7 @@
                                 {{ $sName }}
                             </x-filament::button>
                         @empty
-                            <p class="col-span-full text-sm text-gray-500">Waiting for obs-agent connection to sync OBS scenes.</p>
+                            <p class="col-span-full text-sm text-gray-400">Waiting for obs-agent connection to sync OBS scenes.</p>
                         @endforelse
                     </div>
                 </x-filament::section>
@@ -188,10 +188,10 @@
                                 $sourceName = (string) ($item['sourceName'] ?? '');
                                 $kind = (string) ($item['inputKind'] ?? '');
                             @endphp
-                            <div class="flex items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-800">
+                            <div class="obs-deck-subcard flex items-center justify-between gap-2 px-3 py-2">
                                 <div>
                                     <div class="text-sm font-medium">{{ $sourceName }}</div>
-                                    <div class="text-xs text-gray-500">{{ $kind ?: 'source' }}</div>
+                                    <div class="font-mono text-xs text-amber-200/60">{{ $kind ?: 'source' }}</div>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     @if ($kind === 'browser_source')
@@ -209,7 +209,7 @@
                                 </div>
                             </div>
                         @empty
-                            <p class="text-sm text-gray-500">No active scene items synced yet.</p>
+                            <p class="text-sm text-gray-400">No active scene items synced yet.</p>
                         @endforelse
                     </div>
                 </x-filament::section>
@@ -225,11 +225,11 @@
                                 $muted = (bool) ($input['inputMuted'] ?? false);
                                 $db = round((float) ($input['inputVolumeDb'] ?? 0), 1);
                             @endphp
-                            <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+                            <div class="obs-deck-subcard p-3">
                                 <div class="flex items-center justify-between gap-2">
                                     <span class="text-sm font-semibold">{{ $inName }}</span>
                                     <div class="flex items-center gap-2">
-                                        <span class="text-xs text-gray-500">{{ $db }} dB</span>
+                                        <span class="font-mono text-xs text-amber-200/75">{{ $db }} dB</span>
                                         <x-filament::button
                                             size="xs"
                                             :color="$muted ? 'danger' : 'success'"
@@ -250,7 +250,7 @@
                                 >
                             </div>
                         @empty
-                            <p class="text-sm text-gray-500">No OBS audio inputs detected yet.</p>
+                            <p class="text-sm text-gray-400">No OBS audio inputs detected yet.</p>
                         @endforelse
                     </div>
                 </x-filament::section>
@@ -260,7 +260,7 @@
                         <div class="flex flex-wrap items-center gap-2">
                             <select
                                 wire:model.live="selectedScreenId"
-                                class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                                class="obs-deck-input flex-1 px-3 py-2 text-sm"
                             >
                                 @foreach ($screens as $scr)
                                     <option value="{{ $scr->id }}">{{ $scr->name }} ({{ $scr->template_type }})</option>
@@ -277,8 +277,8 @@
                         </div>
 
                         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <input type="text" wire:model="liveGuestName" placeholder="Lower-third name" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900">
-                            <input type="text" wire:model="liveGuestRole" placeholder="Role / subtitle" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900">
+                            <input type="text" wire:model="liveGuestName" placeholder="Lower-third name" class="obs-deck-input px-3 py-2 text-sm">
+                            <input type="text" wire:model="liveGuestRole" placeholder="Role / subtitle" class="obs-deck-input px-3 py-2 text-sm">
                         </div>
 
                         <div class="flex flex-wrap gap-2">
@@ -290,10 +290,10 @@
                             </x-filament::button>
                         </div>
 
-                        <div class="border-t border-gray-200 pt-3 dark:border-gray-800">
+                        <div class="border-t border-amber-400/20 pt-3">
                             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                <input type="text" wire:model="liveAlertTitle" placeholder="Alert title" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900">
-                                <input type="text" wire:model="liveAlertMessage" placeholder="Pop-up alert message..." class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900">
+                                <input type="text" wire:model="liveAlertTitle" placeholder="Alert title" class="obs-deck-input px-3 py-2 text-sm">
+                                <input type="text" wire:model="liveAlertMessage" placeholder="Pop-up alert message..." class="obs-deck-input px-3 py-2 text-sm">
                             </div>
                             <div class="mt-2 flex flex-wrap gap-2">
                                 <x-filament::button size="sm" color="warning" wire:click="triggerLiveAlert(true)">
