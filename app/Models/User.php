@@ -14,7 +14,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'username', 'email', 'contact_number', 'current_address', 'password', 'relay_token'])]
+#[Fillable(['name', 'username', 'email', 'contact_number', 'current_address', 'password', 'relay_token', 'media_storage_path'])]
 #[Hidden(['password', 'remember_token', 'relay_token'])]
 class User extends Authenticatable implements FilamentUser
 {

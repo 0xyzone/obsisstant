@@ -23,6 +23,7 @@ use Throwable;
     'obs_host',
     'obs_port',
     'obs_password',
+    'media_storage_path',
     'status',
     'is_active',
     'last_seen_at',

@@ -13,7 +13,9 @@ use App\Services\Obs\ObsCommandService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Pusher\Pusher;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class ObsAgentController extends Controller
@@ -276,6 +278,34 @@ class ObsAgentController extends Controller
             'command_uuid' => $freshLog->command_uuid,
             'status' => $freshLog->status,
         ]);
+    }
+
+    public function downloadMediaFile(Request $request, string $token): Response
+    {
+        $studio = $this->resolveStudio($request);
+        $cacheKey = "obs.media.upload.{$token}";
+        $meta = ObsCommandService::previewCacheStore()->get($cacheKey);
+
+        if (! is_array($meta) || empty($meta['storage_path'])) {
+            abort(404, 'Uploaded media token expired or not found.');
+        }
+
+        abort_if((int) ($meta['studio_id'] ?? 0) !== $studio->id, 403, 'Media upload does not belong to this studio.');
+
+        $storagePath = (string) $meta['storage_path'];
+        if (! Storage::disk('local')->exists($storagePath)) {
+            abort(404, 'Staged media file missing.');
+        }
+
+        ObsCommandService::previewCacheStore()->forget($cacheKey);
+
+        return response()
+            ->download(
+                Storage::disk('local')->path($storagePath),
+                (string) ($meta['filename'] ?? 'image.png'),
+                ['Content-Type' => (string) ($meta['mime'] ?? 'application/octet-stream')],
+            )
+            ->deleteFileAfterSend(true);
     }
 
     private function resolveStudio(Request $request): ObsStudio

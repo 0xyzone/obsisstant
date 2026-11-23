@@ -1,8 +1,14 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import OBSWebSocket, { EventSubscription } from 'obs-websocket-js';
+
+const execFileAsync = promisify(execFile);
 import Pusher from 'pusher-js';
 import WebSocket from 'ws';
 
@@ -372,6 +378,11 @@ class StudioWorker {
                     renderSkippedFrames: stats.renderSkippedFrames ?? 0,
                     outputSkippedFrames: stats.outputSkippedFrames ?? 0,
                 },
+                agentHost: {
+                    platform: process.platform,
+                    homeDir: os.homedir(),
+                    defaultMediaDir: path.join(os.homedir(), 'Pictures', 'Obsisstant'),
+                },
             };
 
             await this.pushState(this.liveState);
@@ -584,6 +595,91 @@ class StudioWorker {
         return { sceneName, inputName, sceneItemId, url };
     }
 
+    expandUserPath(inputPath) {
+        const defaultDir = path.join(os.homedir(), 'Pictures', 'Obsisstant');
+        const raw = String(inputPath || '').trim() || defaultDir;
+        if (raw === '~') {
+            return os.homedir();
+        }
+        if (raw.startsWith('~/') || raw.startsWith('~\\')) {
+            return path.join(os.homedir(), raw.slice(2));
+        }
+
+        return path.resolve(raw);
+    }
+
+    async handleSaveMediaFile(data) {
+        const targetDir = this.expandUserPath(data?.targetDir);
+        const filename = path.basename(String(data?.filename || `obs-upload-${Date.now()}.png`));
+        const downloadUrl = String(data?.downloadUrl || '');
+        if (!downloadUrl) {
+            throw new Error('Missing uploaded media download URL.');
+        }
+
+        const parsedDownload = new URL(downloadUrl);
+        if (parsedDownload.origin !== new URL(BASE_URL).origin) {
+            throw new Error('Refusing media download from mismatched server origin.');
+        }
+
+        const res = await fetch(downloadUrl, {
+            headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
+        });
+        if (!res.ok) {
+            throw new Error(`Failed downloading staged image (${res.status}).`);
+        }
+
+        const bytes = Buffer.from(await res.arrayBuffer());
+        await fs.promises.mkdir(targetDir, { recursive: true });
+        const destination = path.join(targetDir, filename);
+        await fs.promises.writeFile(destination, bytes);
+
+        return {
+            file: destination,
+            targetDir,
+            filename,
+            bytes: bytes.length,
+        };
+    }
+
+    async handlePickLocalDirectory(data) {
+        const prompt = String(data?.prompt || 'Select Obsisstant OBS Image Storage Folder').replace(/["\\]/g, '');
+
+        if (process.platform === 'darwin') {
+            const script = [
+                'tell application "System Events" to activate',
+                `POSIX path of (choose folder with prompt "${prompt}")`,
+            ].join('\n');
+
+            try {
+                const { stdout } = await execFileAsync('osascript', ['-e', script], { timeout: 60000 });
+                const picked = stdout.trim().replace(/\/+$/, '');
+                return { path: picked, cancelled: picked === '' };
+            } catch (error) {
+                const msg = String(error?.stderr || error?.message || '');
+                if (msg.includes('-128') || msg.toLowerCase().includes('cancel')) {
+                    return { cancelled: true };
+                }
+                throw new Error(`macOS Finder folder picker failed: ${msg}`);
+            }
+        }
+
+        if (process.platform === 'win32') {
+            const ps = [
+                'Add-Type -AssemblyName System.Windows.Forms;',
+                '$f = New-Object System.Windows.Forms.FolderBrowserDialog;',
+                `$f.Description = "${prompt}";`,
+                'if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $f.SelectedPath }',
+            ].join(' ');
+            const { stdout } = await execFileAsync('powershell', ['-NoProfile', '-Command', ps], { timeout: 60000 });
+            const picked = stdout.trim();
+            return picked ? { path: picked, cancelled: false } : { cancelled: true };
+        }
+
+        const { stdout } = await execFileAsync('zenity', ['--file-selection', '--directory', `--title=${prompt}`], { timeout: 60000 });
+        const picked = stdout.trim();
+        return picked ? { path: picked, cancelled: false } : { cancelled: true };
+    }
+
     normalizeObsPayload(requestType, rawData) {
         const data = rawData && typeof rawData === 'object' && !Array.isArray(rawData)
             ? { ...rawData }
@@ -632,6 +728,10 @@ class StudioWorker {
 
             if (requestType === 'obsisstant.PushBrowserScreen') {
                 responseData = await this.handlePushBrowserScreen(normalizedData);
+            } else if (requestType === 'obsisstant.SaveMediaFile') {
+                responseData = await this.handleSaveMediaFile(normalizedData);
+            } else if (requestType === 'obsisstant.PickLocalDirectory') {
+                responseData = await this.handlePickLocalDirectory(normalizedData);
             } else if (requestType === 'obsisstant.FetchInputSettings') {
                 const settingsRes = await this.obs.call('GetInputSettings', {
                     inputName: normalizedData.inputName,

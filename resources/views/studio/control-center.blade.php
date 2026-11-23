@@ -682,6 +682,32 @@
                 cursor: wait;
             }
 
+            .upload-box {
+                display: grid;
+                gap: 0.45rem;
+                padding: 0.55rem;
+                border-radius: 0.5rem;
+                border: 1px dashed var(--hairline-strong);
+                background: rgba(205, 173, 105, 0.04);
+            }
+
+            .upload-box-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+            }
+
+            .upload-preview-thumb {
+                max-inline-size: 100%;
+                max-block-size: 6rem;
+                object-fit: contain;
+                border-radius: 0.375rem;
+                border: 1px solid var(--hairline);
+                background: #080807;
+            }
+
             /* Native Top-Layer Modals with Smooth Entry/Exit & Fallback */
             dialog.obs-dialog {
                 margin: auto;
@@ -831,6 +857,7 @@
 
             <div class="studio-bar-right">
                 <x-reverb-status-pill />
+                <a href="{{ url('/admin/studio-settings') }}" class="s-btn">Storage Settings</a>
                 <a href="{{ route('obs.deck.show', ['studio' => $studio->slug]) }}" class="s-btn">Mobile Deck</a>
                 <a href="{{ route('knowledge-base') }}" class="s-btn">Knowledge Base</a>
                 <a href="{{ url('/admin') }}" class="s-btn s-btn-gold">Admin Panel</a>
@@ -1229,8 +1256,12 @@
                     snapshot: @json(route('studio.snapshot', ['studio' => $studio->slug])),
                     previewToggle: @json(route('studio.preview-toggle', ['studio' => $studio->slug])),
                     previewFrame: @json(route('studio.preview-frame', ['studio' => $studio->slug])),
+                    mediaUpload: @json(route('studio.media-upload', ['studio' => $studio->slug])),
+                    mediaStoragePath: @json(route('studio.media-storage-path', ['studio' => $studio->slug])),
+                    storageSettingsPage: @json(url('/admin/studio-settings')),
                 };
 
+                let configuredMediaDir = @json($mediaStoragePath, JSON_UNESCAPED_SLASHES);
                 let liveState = @json($liveState ?: new stdClass());
                 let studioStatus = @json($studio->status);
                 let editingScene = @json($initialEditingScene);
@@ -1882,6 +1913,169 @@
                     rawJsonEdited = false;
                 };
 
+                const refreshStorageFolderLabels = () => {
+                    document.querySelectorAll('[data-storage-folder-label]').forEach((el) => {
+                        el.textContent = configuredMediaDir;
+                        el.title = configuredMediaDir;
+                    });
+                };
+
+                const uploadImageToDesktopFolder = async (file, setStatus) => {
+                    const formData = new FormData();
+                    formData.append('image', file);
+                    if (setStatus) setStatus(`Uploading ${file.name} to ${configuredMediaDir}...`);
+
+                    const res = await fetch(endpoints.mediaUpload, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrf,
+                        },
+                        body: formData,
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok || !data.ok) {
+                        throw new Error(data.message || `Upload failed (HTTP ${res.status})`);
+                    }
+
+                    if (data.mode === 'direct' && data.file) {
+                        if (setStatus) setStatus(`Saved to ${data.file}`);
+                        return data.file;
+                    }
+
+                    if (setStatus) setStatus(`Saving on desktop (${data.target_dir})...`);
+                    const settled = await waitForCommandResult(data.command_uuid, 15000);
+                    if (settled?.status === 'failed') {
+                        throw new Error(settled.error_message || 'OBS Agent could not save image into local folder.');
+                    }
+                    if (!settled?.response_data?.file) {
+                        throw new Error('OBS Agent did not respond yet. Ensure obs-agent is running on your computer.');
+                    }
+                    if (setStatus) setStatus(`Saved to ${settled.response_data.file}`);
+                    return settled.response_data.file;
+                };
+
+                const browseNativeDesktopFolder = async (btnEl) => {
+                    if (studioStatus === 'offline') {
+                        window.open(endpoints.storageSettingsPage, '_blank');
+                        return;
+                    }
+
+                    if (btnEl) btnEl.disabled = true;
+                    showToast('Opening native Finder / desktop folder chooser...');
+                    try {
+                        const res = await postJson(endpoints.command, {
+                            request_type: 'obsisstant.PickLocalDirectory',
+                            request_data: {
+                                prompt: 'Select Obsisstant Image Storage Folder',
+                                initialPath: configuredMediaDir,
+                            },
+                        });
+                        const settled = await waitForCommandResult(res.command_uuid, 60000);
+                        if (settled?.status === 'failed') {
+                            showToast(settled.error_message || 'Could not open native folder picker', 'error');
+                            return;
+                        }
+                        if (settled?.response_data?.cancelled) {
+                            showToast('Folder selection cancelled');
+                            return;
+                        }
+                        const picked = String(settled?.response_data?.path || '').trim();
+                        if (!picked) {
+                            showToast('Folder picker timed out — open Storage Settings to type path manually.', 'error');
+                            return;
+                        }
+                        await postJson(endpoints.mediaStoragePath, { path: picked });
+                        configuredMediaDir = picked;
+                        refreshStorageFolderLabels();
+                        showToast(`Storage folder updated: ${picked}`, 'success');
+                    } catch (err) {
+                        showToast(`Folder pick failed: ${err.message}`, 'error');
+                    } finally {
+                        if (btnEl) btnEl.disabled = false;
+                    }
+                };
+
+                const buildImageUploadWidget = ({ fileInputId, onPathResolved }) => {
+                    const box = document.createElement('div');
+                    box.className = 'upload-box';
+
+                    const head = document.createElement('div');
+                    head.className = 'upload-box-head';
+                    const title = document.createElement('span');
+                    title.className = 'field-label';
+                    title.style.color = 'var(--ink-primary)';
+                    title.textContent = 'Upload Image File';
+
+                    const actions = document.createElement('div');
+                    actions.style.cssText = 'display:inline-flex;gap:0.25rem;align-items:center;';
+                    const pickDirBtn = document.createElement('button');
+                    pickDirBtn.type = 'button';
+                    pickDirBtn.className = 's-btn s-btn-xs';
+                    pickDirBtn.textContent = 'Choose Folder';
+                    pickDirBtn.addEventListener('click', () => browseNativeDesktopFolder(pickDirBtn));
+
+                    const settingsLink = document.createElement('a');
+                    settingsLink.href = endpoints.storageSettingsPage;
+                    settingsLink.target = '_blank';
+                    settingsLink.className = 's-btn s-btn-xs';
+                    settingsLink.textContent = 'Settings';
+
+                    actions.append(pickDirBtn, settingsLink);
+                    head.append(title, actions);
+
+                    const folderInfo = document.createElement('div');
+                    folderInfo.className = 'dock-subtitle';
+                    folderInfo.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+                    folderInfo.textContent = 'Folder: ';
+                    const folderPathSpan = document.createElement('span');
+                    folderPathSpan.setAttribute('data-storage-folder-label', '');
+                    folderPathSpan.textContent = configuredMediaDir;
+                    folderInfo.appendChild(folderPathSpan);
+
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    if (fileInputId) fileInput.id = fileInputId;
+                    fileInput.accept = 'image/png,image/jpeg,image/gif,image/webp,image/bmp';
+                    fileInput.className = 's-input';
+                    fileInput.style.padding = '0.25rem 0.5rem';
+
+                    const thumb = document.createElement('img');
+                    thumb.className = 'upload-preview-thumb';
+                    thumb.alt = 'Uploaded image preview';
+                    thumb.hidden = true;
+
+                    const statusNote = document.createElement('div');
+                    statusNote.className = 'dock-subtitle';
+                    statusNote.hidden = true;
+
+                    fileInput.addEventListener('change', async () => {
+                        const file = fileInput.files?.[0];
+                        if (!file) return;
+
+                        thumb.src = URL.createObjectURL(file);
+                        thumb.hidden = false;
+                        statusNote.hidden = false;
+                        fileInput.disabled = true;
+
+                        try {
+                            const savedPath = await uploadImageToDesktopFolder(file, (txt) => {
+                                statusNote.textContent = txt;
+                            });
+                            showToast(`Image saved to ${savedPath}`, 'success');
+                            await onPathResolved(savedPath, file);
+                        } catch (err) {
+                            statusNote.textContent = err.message;
+                            showToast(`Upload error: ${err.message}`, 'error');
+                        } finally {
+                            fileInput.disabled = false;
+                        }
+                    });
+
+                    box.append(head, folderInfo, fileInput, thumb, statusNote);
+                    return box;
+                };
+
                 const renderVisualSettingsEditor = (inputKind, settings) => {
                     const container = document.getElementById('visual-settings-fields');
                     const refreshBrowserBtn = document.getElementById('btn-refresh-browser');
@@ -1917,6 +2111,7 @@
                         if (!multiline) input.type = type;
                         else input.rows = 3;
                         input.className = multiline ? 's-textarea' : 's-input';
+                        input.setAttribute('data-prop-key', key);
                         input.placeholder = placeholder;
                         input.value = value ?? '';
                         input.addEventListener('input', () => {
@@ -2011,6 +2206,23 @@
                         appendCheckField({ key: 'shutdown', label: 'Shutdown source when hidden', checked: Boolean(sourceSettings.shutdown), onChange: (v) => { visualDraftSettings.shutdown = v; } });
                         appendCheckField({ key: 'restart_when_active', label: 'Refresh browser when scene activates', checked: Boolean(sourceSettings.restart_when_active), onChange: (v) => { visualDraftSettings.restart_when_active = v; } });
                     } else if (kind.includes('image')) {
+                        container.appendChild(buildImageUploadWidget({
+                            fileInputId: 'prop-image-upload-input',
+                            onPathResolved: async (savedPath) => {
+                                const pathInputEl = container.querySelector('[data-prop-key="file"]');
+                                if (pathInputEl) pathInputEl.value = savedPath;
+                                visualDraftSettings.file = savedPath;
+                                commitDraft();
+                                const itemNow = getItemsForEditingScene().find((i) => Number(i.sceneItemId) === selectedSceneItemId);
+                                if (itemNow?.sourceName) {
+                                    await sendObsCommand('SetInputSettings', {
+                                        inputName: itemNow.sourceName,
+                                        inputSettings: { ...visualDraftSettings },
+                                        overlay: true,
+                                    });
+                                }
+                            },
+                        }));
                         appendTextField({ key: 'file', label: 'Image File Path', value: sourceSettings.file ?? '', placeholder: '/path/to/image.png', onChange: (v) => { visualDraftSettings.file = v; } });
                         appendCheckField({ key: 'unload', label: 'Unload image when hidden', checked: Boolean(sourceSettings.unload), onChange: (v) => { visualDraftSettings.unload = v; } });
                     } else if (kind.includes('ffmpeg')) {
@@ -2489,9 +2701,22 @@
                     }
 
                     if (k.includes('image')) {
-                        container.innerHTML = `
+                        container.appendChild(buildImageUploadWidget({
+                            fileInputId: 'add-src-image-upload',
+                            onPathResolved: async (savedPath, file) => {
+                                const fileInputEl = document.getElementById('add-src-file');
+                                if (fileInputEl) fileInputEl.value = savedPath;
+                                const nameInputEl = document.getElementById('add-source-name');
+                                if (nameInputEl && !nameInputEl.value.trim() && file?.name) {
+                                    nameInputEl.value = file.name.replace(/\.[^.]+$/, '');
+                                }
+                            },
+                        }));
+                        const wrap = document.createElement('div');
+                        wrap.className = 'stack-grid';
+                        wrap.innerHTML = `
                             <label class="field-stack">
-                                <span class="field-label">Image File Path (Optional)</span>
+                                <span class="field-label">Or Existing Image File Path</span>
                                 <input type="text" id="add-src-file" class="s-input" placeholder="/Users/you/Pictures/overlay.png">
                             </label>
                             <label class="prop-check">
@@ -2499,6 +2724,7 @@
                                 <input type="checkbox" id="add-src-unload">
                             </label>
                         `;
+                        container.appendChild(wrap);
                         return;
                     }
 

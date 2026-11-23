@@ -85,6 +85,11 @@ class ObsStudioResource extends Resource
                             ->revealable()
                             ->nullable()
                             ->helperText('Saved encrypted in the database and synced automatically to your running obs-agent.'),
+                        TextInput::make('media_storage_path')
+                            ->label('Media Upload Folder Override (Optional)')
+                            ->placeholder('~/Pictures/Obsisstant (leave blank for Account Storage Settings)')
+                            ->maxLength(500)
+                            ->helperText('Desktop/Mac folder where images uploaded for this studio are saved. Defaults to Storage Settings.'),
                         Toggle::make('is_active')
                             ->label('Studio Enabled')
                             ->default(true),

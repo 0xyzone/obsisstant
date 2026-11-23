@@ -13,4 +13,5 @@ Route::prefix('obs-agent')
         Route::post('/preview-frame', [ObsAgentController::class, 'uploadPreviewFrame'])->name('api.obs-agent.preview-frame');
         Route::post('/heartbeat', [ObsAgentController::class, 'heartbeat'])->name('api.obs-agent.heartbeat');
         Route::post('/commands/{commandUuid}/ack', [ObsAgentController::class, 'acknowledgeCommand'])->name('api.obs-agent.commands.ack');
+        Route::get('/media/{token}', [ObsAgentController::class, 'downloadMediaFile'])->name('api.obs-agent.media.download');
     });

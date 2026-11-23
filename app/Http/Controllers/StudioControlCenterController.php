@@ -9,6 +9,7 @@ use App\Models\ObsStudio;
 use App\Models\User;
 use App\Services\ChangelogService;
 use App\Services\Obs\ObsCommandService;
+use App\Services\Obs\ObsMediaStorageService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -69,6 +70,7 @@ class StudioControlCenterController extends Controller
             'macros' => $macros,
             'recentLogs' => $recentLogs,
             'echoConfig' => config('filament.broadcasting.echo'),
+            'mediaStoragePath' => app(ObsMediaStorageService::class)->resolveConfiguredDirectory($studio, $user),
         ]);
     }
 
@@ -253,6 +255,80 @@ class StudioControlCenterController extends Controller
             'Cache-Control' => 'no-store, no-cache, must-revalidate',
             'X-OBS-Preview-Scene' => (string) ($frame['scene_name'] ?? ''),
             'X-OBS-Preview-Version' => (string) ($frame['version'] ?? ''),
+        ]);
+    }
+
+    public function uploadMedia(
+        Request $request,
+        ObsStudio $studio,
+        ObsMediaStorageService $mediaStorage,
+        ObsCommandService $commandService,
+    ): JsonResponse {
+        $user = $this->authorizeStudio($request, $studio);
+
+        $request->validate([
+            'image' => ['required', 'file', 'mimes:png,jpg,jpeg,gif,webp,bmp', 'max:15360'],
+        ]);
+
+        $prepared = $mediaStorage->prepareUpload($request->file('image'), $studio, $user);
+
+        if (! $studio->isOnline() && is_string($prepared['direct_saved_path'])) {
+            ObsCommandService::previewCacheStore()->forget("obs.media.upload.{$prepared['token']}");
+
+            return response()->json([
+                'ok' => true,
+                'mode' => 'direct',
+                'file' => $prepared['direct_saved_path'],
+                'filename' => $prepared['filename'],
+                'target_dir' => $prepared['target_dir'],
+            ]);
+        }
+
+        $log = $commandService->dispatch(
+            studio: $studio,
+            requestType: 'obsisstant.SaveMediaFile',
+            requestData: [
+                'targetDir' => $prepared['target_dir'],
+                'filename' => $prepared['filename'],
+                'downloadUrl' => route('api.obs-agent.media.download', [
+                    'token' => $prepared['token'],
+                    'studio_id' => $studio->id,
+                ]),
+            ],
+            user: $user,
+        );
+
+        return response()->json([
+            'ok' => true,
+            'mode' => 'agent',
+            'command_uuid' => $log->command_uuid,
+            'filename' => $prepared['filename'],
+            'target_dir' => $prepared['target_dir'],
+        ]);
+    }
+
+    public function updateMediaStoragePath(Request $request, ObsStudio $studio): JsonResponse
+    {
+        $user = $this->authorizeStudio($request, $studio);
+
+        $validated = $request->validate([
+            'path' => ['required', 'string', 'max:500'],
+            'scope' => ['nullable', 'string', 'in:user,studio'],
+        ]);
+
+        $cleanPath = trim($validated['path']);
+        if (($validated['scope'] ?? 'user') === 'studio') {
+            $studio->update(['media_storage_path' => $cleanPath]);
+        } else {
+            $user->update(['media_storage_path' => $cleanPath]);
+            if (filled($studio->media_storage_path)) {
+                $studio->update(['media_storage_path' => null]);
+            }
+        }
+
+        return response()->json([
+            'ok' => true,
+            'media_storage_path' => $cleanPath,
         ]);
     }
 

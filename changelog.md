@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.10.0] - 2026-11-23 | type: minor
+
+> Image source file upload to user-configured native Desktop/Mac local storage with Finder folder browser and Storage Settings page
+
+### Added
+- Storage Settings Page (/admin/studio-settings & ObsStudio override): Configure native Desktop/Mac local storage folder per account or studio override, apply quick OS presets, or launch the native Finder/Explorer folder picker via obs-agent (obsisstant.PickLocalDirectory)
+- Image Source Upload Flow (/studio & ObsMediaStorageService): Upload PNG/JPG/GIF/WebP images directly in both Add Source and Image Source Properties with instant thumbnail preview, staging/one-time signed agent download (/api/obs-agent/media/{token} + obsisstant.SaveMediaFile), offline local-disk fallback, and live OBS source update
+
 ## [v1.9.0] - 2026-11-23 | type: minor
 
 > 100% WebSocket preview whispers over Reverb and strict per-user multi-tenant isolation with self-registration and personal Relay tokens

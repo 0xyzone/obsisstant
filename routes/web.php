@@ -29,6 +29,8 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/studio/{studio:slug}/screens/{screen}/push', [StudioControlCenterController::class, 'pushScreenToObs'])->name('studio.screen-push');
     Route::post('/studio/{studio:slug}/preview', [StudioControlCenterController::class, 'togglePreview'])->name('studio.preview-toggle');
     Route::get('/studio/{studio:slug}/preview-frame', [StudioControlCenterController::class, 'previewFrame'])->name('studio.preview-frame');
+    Route::post('/studio/{studio:slug}/media/upload', [StudioControlCenterController::class, 'uploadMedia'])->name('studio.media-upload');
+    Route::post('/studio/{studio:slug}/media/storage-path', [StudioControlCenterController::class, 'updateMediaStoragePath'])->name('studio.media-storage-path');
 
     Route::get('/deck', [ObsMobileDeckController::class, 'index'])->name('obs.deck.index');
     Route::get('/deck/{studio:slug}', [ObsMobileDeckController::class, 'show'])->name('obs.deck.show');
