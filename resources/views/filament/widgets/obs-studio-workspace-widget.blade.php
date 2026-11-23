@@ -3,9 +3,89 @@
     $logs = $this->getRecentLogs();
     $version = $this->getCurrentVersion();
     $primaryStudio = $studios->firstWhere('is_active', true) ?? $studios->first();
+    $hasOnlineStudio = $studios->contains(static fn ($item): bool => $item->isOnline());
+    $hasReachableAgent = $studios->contains(static fn ($item): bool => $item->isAgentReachable());
+    $installer = ! $hasOnlineStudio ? $this->getInstallerPayload() : null;
 @endphp
 
 <x-filament-widgets::widget>
+    @if (! $hasOnlineStudio && is_array($installer))
+        <section
+            id="obs-dashboard-install-prompt"
+            class="obs-panel"
+            style="margin-block-end: 1rem; border-color: rgba(205, 173, 105, 0.45); background: linear-gradient(135deg, rgba(205, 173, 105, 0.08), rgba(18, 18, 16, 0.95));"
+            aria-labelledby="dashboard-install-title"
+        >
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+                <div style="display: grid; gap: 0.25rem; max-inline-size: 46rem;">
+                    @if ($hasReachableAgent)
+                        <h2 id="dashboard-install-title" class="obs-panel-title" style="color: #F4E185;">
+                            OBS Agent is running — waiting for OBS Studio
+                        </h2>
+                        <p class="obs-panel-sub">
+                            Open OBS Studio on your streaming computer, go to <strong>Tools → WebSocket Server Settings</strong>, and check <strong>Enable WebSocket server</strong> (Port 4455).
+                        </p>
+                    @else
+                        <h2 id="dashboard-install-title" class="obs-panel-title" style="color: #F4E185;">
+                            OBS Agent is not installed or running yet
+                        </h2>
+                        <p class="obs-panel-sub">
+                            Download and double-click the pre-configured installer on the Mac or Windows PC running OBS Studio — zero code or token copying required.
+                        </p>
+                    @endif
+                </div>
+
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
+                    <a href="{{ $installer['mac_download_url'] }}" class="obs-action-primary">
+                        Download for Mac (.zip)
+                    </a>
+                    <a href="{{ $installer['windows_download_url'] }}" class="obs-action-primary" style="background: rgba(255,255,255,0.06); color: #F2E8D5; border-color: rgba(205,173,105,0.35);">
+                        Download for Windows (.zip)
+                    </a>
+                    @if ($studios->isEmpty())
+                        <a href="{{ route('filament.admin.resources.obs-studios.create') }}" class="obs-link-quiet">
+                            Create First Studio
+                        </a>
+                    @else
+                        <a href="{{ route('studio.index') }}" class="obs-link-quiet">
+                            Guided Setup in Studio
+                        </a>
+                    @endif
+                </div>
+            </div>
+
+            <details style="margin-block-start: 0.75rem;">
+                <summary style="cursor: pointer; font-size: 0.8125rem; color: #CDAD69;">
+                    Prefer 1-click Terminal / PowerShell setup? (Skips Mac Gatekeeper warnings)
+                </summary>
+                <div style="display: grid; gap: 0.625rem; margin-block-start: 0.625rem; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));">
+                    <div>
+                        <div style="font-size: 0.75rem; color: #A69D8D; margin-block-end: 0.25rem;">macOS Terminal</div>
+                        <input
+                            type="text"
+                            readonly
+                            value="{{ $installer['mac_command'] }}"
+                            onclick="this.select(); navigator.clipboard?.writeText(this.value);"
+                            aria-label="macOS 1-click install command"
+                            style="inline-size: 100%; padding: 0.45rem 0.625rem; border-radius: 0.375rem; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.45); color: #F4E185; font-size: 0.75rem;"
+                        >
+                    </div>
+                    <div>
+                        <div style="font-size: 0.75rem; color: #A69D8D; margin-block-end: 0.25rem;">Windows PowerShell</div>
+                        <input
+                            type="text"
+                            readonly
+                            value="{{ $installer['windows_command'] }}"
+                            onclick="this.select(); navigator.clipboard?.writeText(this.value);"
+                            aria-label="Windows PowerShell 1-click install command"
+                            style="inline-size: 100%; padding: 0.45rem 0.625rem; border-radius: 0.375rem; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.45); color: #F4E185; font-size: 0.75rem;"
+                        >
+                    </div>
+                </div>
+            </details>
+        </section>
+    @endif
+
     <div class="obs-workspace-split">
         {{-- Primary 2/3 Section: Connected OBS Studios & Telemetry Table --}}
         <section class="obs-panel obs-workspace-primary" aria-labelledby="studios-heading">

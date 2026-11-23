@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ObsStudios\Pages;
 
 use App\Filament\Resources\ObsStudios\ObsStudioResource;
 use App\Models\User;
+use App\Services\Obs\ObsAgentInstallerService;
 use App\Services\Obs\ObsLocalRelayService;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -11,6 +12,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Section;
 use Filament\Support\Icons\Heroicon;
 
 class ListObsStudios extends ListRecords
@@ -78,36 +80,68 @@ class ListObsStudios extends ListRecords
                 }),
             Action::make('pairRelay')
                 ->label('Pair OBS Agent')
-                ->icon(Heroicon::OutlinedCommandLine)
-                ->color('gray')
-                ->modalHeading('Pair Your Streaming Computer (One-Time Setup)')
-                ->modalDescription('Run obs-agent on the computer running OBS Studio using your personal Relay Token. All Studios created under your account sync automatically and stay isolated from other users.')
+                ->icon(Heroicon::OutlinedArrowDownTray)
+                ->color('primary')
+                ->modalHeading('Install & Connect OBS Agent (Mac & Windows)')
+                ->modalDescription('Download the pre-configured installer on the computer running OBS Studio and double-click to run — zero code or manual token setup required.')
+                ->extraModalFooterActions([
+                    Action::make('downloadMac')
+                        ->label('Download Mac Installer (.zip)')
+                        ->icon(Heroicon::OutlinedArrowDownTray)
+                        ->color('primary')
+                        ->url(fn (): string => route('agent-installer.download', ['platform' => ObsAgentInstallerService::PLATFORM_MAC])),
+                    Action::make('downloadWindows')
+                        ->label('Download Windows Installer (.zip)')
+                        ->icon(Heroicon::OutlinedArrowDownTray)
+                        ->color('gray')
+                        ->url(fn (): string => route('agent-installer.download', ['platform' => ObsAgentInstallerService::PLATFORM_WINDOWS])),
+                ])
                 ->modalSubmitActionLabel('Rotate Personal Relay Token')
                 ->modalSubmitAction(fn (Action $action): Action => $action->color('warning')->requiresConfirmation())
                 ->modalCancelActionLabel('Close')
                 ->fillForm(function () use ($relay): array {
                     $user = auth()->user();
                     $personalToken = $user instanceof User ? $user->getOrCreateRelayToken() : 'Sign in to view token';
+                    $payload = $user instanceof User
+                        ? app(ObsAgentInstallerService::class)->issueBootstrapPayload($user)
+                        : ['mac_command' => '', 'windows_command' => ''];
 
                     return [
+                        'mac_command' => $payload['mac_command'],
+                        'windows_command' => $payload['windows_command'],
                         'relay_token' => $personalToken,
                         'external_command' => $relay->externalCommandExample($personalToken),
                         'recent_logs' => $relay->recentLogs(15),
                     ];
                 })
                 ->schema([
-                    TextInput::make('relay_token')
-                        ->label('Personal Account Relay Token (Syncs All Your Studios)')
-                        ->disabled()
-                        ->copyable(),
-                    TextInput::make('external_command')
-                        ->label('Run Inside obs-agent/ on Your Streaming PC')
-                        ->disabled()
-                        ->copyable(),
-                    Textarea::make('recent_logs')
-                        ->label('Recent Local Agent Log')
-                        ->rows(6)
-                        ->disabled(),
+                    Section::make('Option 1: 1-Click Terminal / PowerShell Setup (Fastest — Skips Mac Warnings)')
+                        ->schema([
+                            TextInput::make('mac_command')
+                                ->label('Mac Terminal (Paste & Press Enter)')
+                                ->disabled()
+                                ->copyable(),
+                            TextInput::make('windows_command')
+                                ->label('Windows PowerShell (Paste & Press Enter)')
+                                ->disabled()
+                                ->copyable(),
+                        ]),
+                    Section::make('Option 2: Advanced / Manual Relay Credentials')
+                        ->collapsed()
+                        ->schema([
+                            TextInput::make('relay_token')
+                                ->label('Personal Account Relay Token (Syncs All Your Studios)')
+                                ->disabled()
+                                ->copyable(),
+                            TextInput::make('external_command')
+                                ->label('Manual CLI Launch inside obs-agent/')
+                                ->disabled()
+                                ->copyable(),
+                            Textarea::make('recent_logs')
+                                ->label('Recent Local Agent Log')
+                                ->rows(5)
+                                ->disabled(),
+                        ]),
                 ])
                 ->action(function (): void {
                     $user = auth()->user();

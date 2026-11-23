@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.11.0] - 2026-11-24 | type: minor
+
+> Zero-code Mac & Windows OBS Agent one-click installers and automatic offline onboarding prompts
+
+### Added
+- ObsAgentInstallerService and AgentInstallerController generating pre-configured Mac (.zip with LaunchAgent) and Windows (.zip with hidden Startup launcher) bundles plus short-lived 1-click setup scripts (/setup-agent/{token}/mac.sh and win.ps1)
+- Automatic OS-aware Install OBS Agent onboarding prompt across /studio Control Center (auto-dismissing live on connect), Filament Dashboard, and Studios Manager with per-studio installer downloads
+
 ## [v1.10.5] - 2026-11-24 | type: macro
 
 > Proxy production Reverb WebSockets through public/.htaccess for ob.suminshrestha.com.np

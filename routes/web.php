@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgentInstallerController;
 use App\Http\Controllers\ChangelogController;
 use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\LandingController;
@@ -17,8 +18,24 @@ Route::get('/knowledge-base', KnowledgeBaseController::class)->name('knowledge-b
 // Public token-scoped Browser Source overlay endpoint for OBS Studio
 Route::get('/screens/{token}', [ObsOverlayController::class, 'show'])->name('obs.screen.show');
 
+// Short-lived cached bootstrap setup endpoints for one-click Mac/Windows terminal/PowerShell install
+Route::middleware('throttle:60,1')->group(function (): void {
+    Route::get('/setup-agent/{token}/{script}', [AgentInstallerController::class, 'setupScript'])
+        ->where('script', 'mac\.sh|win\.ps1')
+        ->name('agent-installer.setup-script');
+    Route::get('/setup-agent/{token}/bundle/{platform}.zip', [AgentInstallerController::class, 'setupBundle'])
+        ->where('platform', 'mac|windows')
+        ->name('agent-installer.setup-bundle');
+});
+
 // Authenticated mobile-first wireless Stream Deck UI & full Studio Control Center
 Route::middleware('auth')->group(function (): void {
+    Route::get('/agent-installer/download/{platform}', [AgentInstallerController::class, 'download'])
+        ->where('platform', 'mac|windows')
+        ->name('agent-installer.download');
+    Route::post('/agent-installer/bootstrap-token', [AgentInstallerController::class, 'createBootstrapToken'])
+        ->name('agent-installer.bootstrap-token');
+
     Route::get('/studio', [StudioControlCenterController::class, 'index'])->name('studio.index');
     Route::get('/studio/{studio:slug}', [StudioControlCenterController::class, 'show'])->name('studio.show');
     Route::get('/studio/{studio:slug}/snapshot', [StudioControlCenterController::class, 'snapshot'])->name('studio.snapshot');

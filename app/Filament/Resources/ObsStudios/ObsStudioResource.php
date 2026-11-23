@@ -6,8 +6,10 @@ use App\Filament\Resources\ObsStudios\Pages\CreateObsStudio;
 use App\Filament\Resources\ObsStudios\Pages\EditObsStudio;
 use App\Filament\Resources\ObsStudios\Pages\ListObsStudios;
 use App\Models\ObsStudio;
+use App\Services\Obs\ObsAgentInstallerService;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -137,6 +139,26 @@ class ObsStudioResource extends Resource
                 //
             ])
             ->recordActions([
+                ActionGroup::make([
+                    Action::make('downloadMacAgent')
+                        ->label('Download Mac Installer (.zip)')
+                        ->icon(Heroicon::OutlinedArrowDownTray)
+                        ->url(fn (ObsStudio $record): string => route('agent-installer.download', [
+                            'platform' => ObsAgentInstallerService::PLATFORM_MAC,
+                            'studio' => $record->slug,
+                        ])),
+                    Action::make('downloadWindowsAgent')
+                        ->label('Download Windows Installer (.zip)')
+                        ->icon(Heroicon::OutlinedArrowDownTray)
+                        ->url(fn (ObsStudio $record): string => route('agent-installer.download', [
+                            'platform' => ObsAgentInstallerService::PLATFORM_WINDOWS,
+                            'studio' => $record->slug,
+                        ])),
+                ])
+                    ->label('Install Agent')
+                    ->icon(Heroicon::OutlinedArrowDownTray)
+                    ->color('primary')
+                    ->button(),
                 Action::make('mobileDeck')
                     ->label('Mobile Deck')
                     ->icon(Heroicon::OutlinedDevicePhoneMobile)

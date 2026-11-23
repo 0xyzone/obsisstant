@@ -857,6 +857,7 @@
 
             <div class="studio-bar-right">
                 <x-reverb-status-pill />
+                <button type="button" id="open-install-agent-btn" class="s-btn" commandfor="install-agent-dialog" command="show-modal">Install Agent</button>
                 <a href="{{ url('/admin/studio-settings') }}" class="s-btn">Storage Settings</a>
                 <a href="{{ route('obs.deck.show', ['studio' => $studio->slug]) }}" class="s-btn">Mobile Deck</a>
                 <a href="{{ route('knowledge-base') }}" class="s-btn">Knowledge Base</a>
@@ -930,6 +931,28 @@
 
             {{-- Center Stage: Live View & Interactive Source Layout Builder --}}
             <section class="stage-panel" aria-label="Live Scene Stage">
+                <div
+                    id="agent-offline-banner"
+                    @if ($studio->isOnline()) hidden @endif
+                    style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0.875rem; border-radius: 0.5rem; border: 1px solid rgba(205, 173, 105, 0.45); background: linear-gradient(135deg, rgba(205, 173, 105, 0.1), rgba(18, 18, 16, 0.92));"
+                >
+                    <div style="display: grid; gap: 0.125rem;">
+                        <strong id="agent-banner-title" style="font-size: 0.875rem; color: var(--gold-light);">
+                            {{ $agentReachable ? 'OBS Agent connected — open OBS Studio' : 'Connect OBS Studio on your Mac or Windows PC' }}
+                        </strong>
+                        <span id="agent-banner-copy" class="dock-subtitle" style="color: var(--ink-secondary);">
+                            {{ $agentReachable
+                                ? 'In OBS Studio, open Tools -> WebSocket Server Settings and enable WebSocket server (Port 4455).'
+                                : 'Install the pre-configured OBS Agent in one click — no terminal coding or token setup needed.' }}
+                        </span>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
+                        <button type="button" id="agent-banner-cta" class="s-btn s-btn-gold s-btn-xs" commandfor="install-agent-dialog" command="show-modal">
+                            {{ $agentReachable ? 'Install on Another PC' : 'Install OBS Agent' }}
+                        </button>
+                    </div>
+                </div>
+
                 <div class="stage-toolbar">
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
                         <span class="stat-chip" id="stage-editing-label">Scene: {{ $initialEditingScene ?: 'None' }}</span>
@@ -1234,6 +1257,101 @@
             </div>
         </dialog>
 
+        {{-- Native Declarative Modal: Zero-Code Mac & Windows OBS Agent Installer --}}
+        <dialog id="install-agent-dialog" class="obs-dialog" aria-labelledby="install-agent-title" style="max-inline-size: 38rem;">
+            <div class="dialog-inner">
+                <div class="dialog-head">
+                    <div>
+                        <h2 id="install-agent-title" class="dialog-title">Connect OBS Studio to Obsisstant</h2>
+                        <div class="dock-subtitle">Run our tiny background helper on your Mac or Windows streaming PC — no coding required.</div>
+                    </div>
+                    <button type="button" class="s-btn s-btn-xs" id="install-agent-close-x" commandfor="install-agent-dialog" command="close">Close</button>
+                </div>
+
+                <div
+                    id="install-modal-live-pill"
+                    style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--hairline-strong); background: var(--bg-raised); font-size: 0.75rem;"
+                >
+                    <span id="install-modal-live-text" style="color: var(--ink-secondary);">
+                        {{ $studio->isOnline()
+                            ? 'OBS Studio is Online and synced!'
+                            : ($agentReachable
+                                ? 'OBS Agent is running on your PC! Open OBS -> Tools -> WebSocket Server Settings to finish.'
+                                : 'Waiting for OBS Agent connection...') }}
+                    </span>
+                    <button type="button" class="s-btn s-btn-xs" id="install-check-status-btn">Check Now</button>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                    <div class="tab-row" style="inline-size: auto; min-inline-size: 13rem;" role="tablist" aria-label="Streaming PC Operating System">
+                        <button type="button" class="tab-btn" role="tab" aria-selected="true" data-agent-os="mac">macOS (Apple / Intel)</button>
+                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-agent-os="windows">Windows 10 / 11</button>
+                    </div>
+                    <label style="display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.75rem; color: var(--ink-muted); cursor: pointer;">
+                        <input type="checkbox" id="install-studio-only-toggle">
+                        <span>Bind to this Studio only</span>
+                    </label>
+                </div>
+
+                <div id="agent-panel-mac" style="display: grid; gap: 0.75rem;">
+                    <a
+                        id="download-mac-installer-btn"
+                        href="{{ $installerPayload['mac_download_url'] }}"
+                        class="s-btn s-btn-gold"
+                        style="justify-content: center; font-size: 0.875rem; padding: 0.65rem 1rem;"
+                    >
+                        Download Mac Installer (.zip)
+                    </a>
+
+                    <ol style="margin: 0; padding-inline-start: 1.25rem; display: grid; gap: 0.35rem; font-size: 0.8125rem; color: var(--ink-secondary);">
+                        <li>Unzip <code>Obsisstant-OBS-Agent-Mac.zip</code> inside Downloads.</li>
+                        <li><strong>Right-click</strong> (or Control-click) <code>Install &amp; Run Obsisstant Agent.command</code> → click <strong>Open</strong>.</li>
+                        <li>In OBS Studio: open <strong>Tools → WebSocket Server Settings</strong> and check <strong>Enable WebSocket server</strong>.</li>
+                    </ol>
+
+                    <div style="display: grid; gap: 0.375rem; padding: 0.625rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--hairline); background: var(--bg-raised);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                            <span style="font-size: 0.75rem; font-weight: 500; color: var(--gold-light);">Fastest Option (Skips Mac Gatekeeper Popup)</span>
+                            <button type="button" class="s-btn s-btn-xs" id="copy-mac-cmd-btn">Copy Terminal Command</button>
+                        </div>
+                        <input type="text" id="mac-oneclick-cmd" class="s-input" readonly value="{{ $installerPayload['mac_command'] }}" style="font-size: 0.75rem; color: var(--gold-light);">
+                        <span class="dock-subtitle" style="font-size: 0.7rem;">Open Terminal app, paste, and press Return — automatically installs &amp; runs in the background.</span>
+                    </div>
+                </div>
+
+                <div id="agent-panel-windows" hidden style="display: grid; gap: 0.75rem;">
+                    <a
+                        id="download-win-installer-btn"
+                        href="{{ $installerPayload['windows_download_url'] }}"
+                        class="s-btn s-btn-gold"
+                        style="justify-content: center; font-size: 0.875rem; padding: 0.65rem 1rem;"
+                    >
+                        Download Windows Installer (.zip)
+                    </a>
+
+                    <ol style="margin: 0; padding-inline-start: 1.25rem; display: grid; gap: 0.35rem; font-size: 0.8125rem; color: var(--ink-secondary);">
+                        <li>Right-click <code>Obsisstant-OBS-Agent-Windows.zip</code> → <strong>Extract All</strong>.</li>
+                        <li>Double-click <code>Install &amp; Run Obsisstant Agent.bat</code> *(auto-starts silently on Windows boot)*.</li>
+                        <li>In OBS Studio: open <strong>Tools → WebSocket Server Settings</strong> and check <strong>Enable WebSocket server</strong>.</li>
+                    </ol>
+
+                    <div style="display: grid; gap: 0.375rem; padding: 0.625rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--hairline); background: var(--bg-raised);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                            <span style="font-size: 0.75rem; font-weight: 500; color: var(--gold-light);">Or 1-Click PowerShell Setup</span>
+                            <button type="button" class="s-btn s-btn-xs" id="copy-win-cmd-btn">Copy PowerShell Command</button>
+                        </div>
+                        <input type="text" id="win-oneclick-cmd" class="s-input" readonly value="{{ $installerPayload['windows_command'] }}" style="font-size: 0.75rem; color: var(--gold-light);">
+                        <span class="dock-subtitle" style="font-size: 0.7rem;">Open PowerShell on Windows, paste, and press Enter — installs Node.js (if needed) &amp; starts silently.</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding-block-start: 0.25rem; border-block-start: 1px solid var(--hairline);">
+                    <span class="dock-subtitle">Everything stays pre-configured with your account URL &amp; token.</span>
+                    <button type="button" class="s-btn" id="install-agent-dismiss-btn" commandfor="install-agent-dialog" command="close">I'll do this later</button>
+                </div>
+            </div>
+        </dialog>
+
         <div id="studio-toast" class="toast-bar" role="status" hidden></div>
 
         <script src="{{ asset('js/filament/filament/echo.js') }}"></script>
@@ -1258,12 +1376,15 @@
                     previewFrame: @json(route('studio.preview-frame', ['studio' => $studio->slug])),
                     mediaUpload: @json(route('studio.media-upload', ['studio' => $studio->slug])),
                     mediaStoragePath: @json(route('studio.media-storage-path', ['studio' => $studio->slug])),
+                    bootstrapToken: @json(route('agent-installer.bootstrap-token')),
                     storageSettingsPage: @json(url('/admin/studio-settings')),
                 };
 
+                const initialInstallerPayload = @json($installerPayload);
                 let configuredMediaDir = @json($mediaStoragePath, JSON_UNESCAPED_SLASHES);
                 let liveState = @json($liveState ?: new stdClass());
                 let studioStatus = @json($studio->status);
+                let agentReachable = @json($agentReachable);
                 let editingScene = @json($initialEditingScene);
                 let selectedSceneItemId = null;
                 let previewLeaseTimer = null;
@@ -1586,6 +1707,7 @@
                             }
 
                             if (data.status) studioStatus = data.status;
+                            if (typeof data.agent_reachable === 'boolean') agentReachable = data.agent_reachable;
                             if (data.live_state) applyIncomingLiveState(data.live_state);
                             renderAll();
 
@@ -1852,6 +1974,10 @@
                     const canvasMeta = document.getElementById('stage-canvas-meta');
                     if (canvasMeta) {
                         canvasMeta.textContent = `Base Canvas: ${dims.width} × ${dims.height} · Drag boxes to reposition, corner to resize`;
+                    }
+
+                    if (typeof updateAgentOnboardingState === 'function') {
+                        updateAgentOnboardingState();
                     }
                 };
 
@@ -3502,6 +3628,151 @@
                     }
                 };
 
+                const installDialog = document.getElementById('install-agent-dialog');
+                const installBanner = document.getElementById('agent-offline-banner');
+                const installModalText = document.getElementById('install-modal-live-text');
+                const installBannerTitle = document.getElementById('agent-banner-title');
+                const installBannerCopy = document.getElementById('agent-banner-copy');
+                const installBannerCta = document.getElementById('agent-banner-cta');
+                const topbarInstallBtn = document.getElementById('open-install-agent-btn');
+                let installPollTimer = null;
+                let wasStudioOnline = studioStatus !== 'offline';
+
+                function updateAgentOnboardingState() {
+                    const isOnline = studioStatus !== 'offline';
+                    if (installBanner) {
+                        installBanner.hidden = isOnline;
+                    }
+                    if (topbarInstallBtn) {
+                        topbarInstallBtn.textContent = isOnline ? 'Add PC' : 'Install Agent';
+                    }
+
+                    if (!isOnline) {
+                        if (installBannerTitle) {
+                            installBannerTitle.textContent = agentReachable
+                                ? 'OBS Agent connected — open OBS Studio'
+                                : 'Connect OBS Studio on your Mac or Windows PC';
+                        }
+                        if (installBannerCopy) {
+                            installBannerCopy.textContent = agentReachable
+                                ? 'In OBS Studio, open Tools -> WebSocket Server Settings and enable WebSocket server (Port 4455).'
+                                : 'Install the pre-configured OBS Agent in one click — no terminal coding or token setup needed.';
+                        }
+                        if (installBannerCta) {
+                            installBannerCta.textContent = agentReachable ? 'Install on Another PC' : 'Install OBS Agent';
+                        }
+                        if (installModalText) {
+                            installModalText.textContent = agentReachable
+                                ? 'OBS Agent is running on your PC! Open OBS -> Tools -> WebSocket Server Settings to finish.'
+                                : 'Waiting for OBS Agent connection...';
+                        }
+                    } else if (installModalText) {
+                        installModalText.textContent = 'OBS Studio is Online and synced!';
+                    }
+
+                    if (!wasStudioOnline && isOnline) {
+                        clearInterval(installPollTimer);
+                        installPollTimer = null;
+                        if (installDialog?.open) {
+                            closeDialog(installDialog);
+                            showToast('OBS Studio connected! Syncing your scenes...', 'success');
+                        }
+                    }
+                    wasStudioOnline = isOnline;
+                }
+
+                const selectInstallerOs = (os) => {
+                    const normalized = os === 'windows' ? 'windows' : 'mac';
+                    document.querySelectorAll('[data-agent-os]').forEach((tab) => {
+                        tab.setAttribute('aria-selected', tab.getAttribute('data-agent-os') === normalized ? 'true' : 'false');
+                    });
+                    const macPanel = document.getElementById('agent-panel-mac');
+                    const winPanel = document.getElementById('agent-panel-windows');
+                    if (macPanel) macPanel.hidden = normalized !== 'mac';
+                    if (winPanel) winPanel.hidden = normalized !== 'windows';
+                };
+
+                const detectedOs = /Win/i.test(navigator.platform || navigator.userAgent || '') ? 'windows' : 'mac';
+                selectInstallerOs(detectedOs);
+
+                document.querySelectorAll('[data-agent-os]').forEach((tab) => {
+                    tab.addEventListener('click', () => {
+                        selectInstallerOs(tab.getAttribute('data-agent-os') || 'mac');
+                    });
+                });
+
+                const applyInstallerPayload = (payload) => {
+                    if (!payload) return;
+                    const macBtn = document.getElementById('download-mac-installer-btn');
+                    const winBtn = document.getElementById('download-win-installer-btn');
+                    const macCmd = document.getElementById('mac-oneclick-cmd');
+                    const winCmd = document.getElementById('win-oneclick-cmd');
+                    if (macBtn && payload.mac_download_url) macBtn.href = payload.mac_download_url;
+                    if (winBtn && payload.windows_download_url) winBtn.href = payload.windows_download_url;
+                    if (macCmd && payload.mac_command) macCmd.value = payload.mac_command;
+                    if (winCmd && payload.windows_command) winCmd.value = payload.windows_command;
+                };
+
+                document.getElementById('install-studio-only-toggle')?.addEventListener('change', async (ev) => {
+                    const scoped = Boolean(ev.target.checked);
+                    if (!scoped) {
+                        applyInstallerPayload(initialInstallerPayload);
+                        return;
+                    }
+                    try {
+                        const fresh = await postJson(endpoints.bootstrapToken, { studio: studioSlug });
+                        applyInstallerPayload(fresh);
+                    } catch {
+                        showToast('Could not generate studio-scoped installer link', 'error');
+                    }
+                });
+
+                const copyCommandInput = async (inputId, label) => {
+                    const input = document.getElementById(inputId);
+                    if (!input?.value) return;
+                    try {
+                        await navigator.clipboard.writeText(input.value);
+                        showToast(`${label} copied — paste it into your streaming PC!`, 'success');
+                    } catch {
+                        input.select();
+                        document.execCommand('copy');
+                        showToast(`${label} selected — press Copy`, 'success');
+                    }
+                };
+
+                document.getElementById('copy-mac-cmd-btn')?.addEventListener('click', () => copyCommandInput('mac-oneclick-cmd', 'Mac setup command'));
+                document.getElementById('copy-win-cmd-btn')?.addEventListener('click', () => copyCommandInput('win-oneclick-cmd', 'Windows setup command'));
+                document.getElementById('install-check-status-btn')?.addEventListener('click', () => refreshStudioSnapshot());
+
+                const markInstallDismissed = () => {
+                    try {
+                        sessionStorage.setItem(`obs_install_dismissed_${studioSlug}`, '1');
+                    } catch {
+                        // Ignore storage quota / privacy mode errors
+                    }
+                    clearInterval(installPollTimer);
+                    installPollTimer = null;
+                };
+
+                document.getElementById('install-agent-dismiss-btn')?.addEventListener('click', markInstallDismissed);
+                document.getElementById('install-agent-close-x')?.addEventListener('click', markInstallDismissed);
+                installDialog?.addEventListener('close', markInstallDismissed);
+
+                const startInstallDialogPolling = () => {
+                    clearInterval(installPollTimer);
+                    installPollTimer = setInterval(() => {
+                        if (installDialog?.open && studioStatus === 'offline') {
+                            refreshStudioSnapshot();
+                        } else if (!installDialog?.open) {
+                            clearInterval(installPollTimer);
+                            installPollTimer = null;
+                        }
+                    }, 4000);
+                };
+
+                topbarInstallBtn?.addEventListener('click', startInstallDialogPolling);
+                installBannerCta?.addEventListener('click', startInstallDialogPolling);
+
                 // Real-time Reverb Echo + Pure WebSocket Whisper Sync
                 const echoCfg = @json($echoConfig);
                 if (window.EchoFactory && echoCfg?.key) {
@@ -3514,7 +3785,10 @@
                         })
                         .listen('.obs.studio.state', (payload) => {
                             lastEchoStateAt = Date.now();
-                            if (payload.status) studioStatus = payload.status;
+                            if (payload.status) {
+                                studioStatus = payload.status;
+                                agentReachable = true;
+                            }
                             if (payload.live_state) applyIncomingLiveState(payload.live_state);
                             renderAll();
                         })
@@ -3538,6 +3812,18 @@
                 }
 
                 renderAll();
+
+                // Prompt user to install OBS Agent automatically once per session if never connected
+                let alreadyDismissed = false;
+                try {
+                    alreadyDismissed = sessionStorage.getItem(`obs_install_dismissed_${studioSlug}`) === '1';
+                } catch {
+                    alreadyDismissed = false;
+                }
+                if (studioStatus === 'offline' && !agentReachable && !alreadyDismissed && installDialog) {
+                    openDialog(installDialog);
+                    startInstallDialogPolling();
+                }
 
                 // Auto-start Balanced OBS WebSocket Preview when Studio is online
                 if (isSnapshotMode() && !document.hidden) {

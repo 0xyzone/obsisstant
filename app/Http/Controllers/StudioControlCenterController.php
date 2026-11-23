@@ -8,6 +8,7 @@ use App\Models\ObsScreen;
 use App\Models\ObsStudio;
 use App\Models\User;
 use App\Services\ChangelogService;
+use App\Services\Obs\ObsAgentInstallerService;
 use App\Services\Obs\ObsCommandService;
 use App\Services\Obs\ObsMediaStorageService;
 use App\Services\ReverbStatusService;
@@ -72,6 +73,8 @@ class StudioControlCenterController extends Controller
             'recentLogs' => $recentLogs,
             'echoConfig' => ReverbStatusService::clientEchoConfig(),
             'mediaStoragePath' => app(ObsMediaStorageService::class)->resolveConfiguredDirectory($studio, $user),
+            'agentReachable' => $studio->isAgentReachable(),
+            'installerPayload' => app(ObsAgentInstallerService::class)->issueBootstrapPayload($user),
         ]);
     }
 
@@ -98,6 +101,7 @@ class StudioControlCenterController extends Controller
         return response()->json([
             'status' => $studio->status,
             'is_online' => $studio->isOnline(),
+            'agent_reachable' => $studio->isAgentReachable(),
             'live_state' => $studio->live_state ?? [],
             'recent_logs' => $recentLogs,
             'preview_version' => is_array($frame) ? ($frame['version'] ?? null) : null,

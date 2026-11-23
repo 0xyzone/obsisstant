@@ -4,7 +4,9 @@ namespace App\Filament\Widgets;
 
 use App\Models\ObsCommandLog;
 use App\Models\ObsStudio;
+use App\Models\User;
 use App\Services\ChangelogService;
+use App\Services\Obs\ObsAgentInstallerService;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -50,5 +52,25 @@ class ObsStudioWorkspaceWidget extends Widget
     public function getCurrentVersion(): string
     {
         return ChangelogService::getCurrentVersion();
+    }
+
+    /**
+     * @return array{
+     *     token: string,
+     *     expires_in_minutes: int,
+     *     mac_command: string,
+     *     windows_command: string,
+     *     mac_download_url: string,
+     *     windows_download_url: string
+     * }|null
+     */
+    public function getInstallerPayload(): ?array
+    {
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        return app(ObsAgentInstallerService::class)->issueBootstrapPayload($user);
     }
 }

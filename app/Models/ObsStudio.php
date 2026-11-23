@@ -140,6 +140,15 @@ class ObsStudio extends Model
         return $this->last_seen_at->greaterThan(now()->subMinutes(2));
     }
 
+    public function isAgentReachable(): bool
+    {
+        if ($this->last_seen_at === null) {
+            return false;
+        }
+
+        return $this->last_seen_at->greaterThan(now()->subMinutes(2));
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */
