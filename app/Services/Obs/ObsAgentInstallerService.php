@@ -259,7 +259,7 @@ PS1;
             : 'Account Relay Mode (syncs all Studios on your Obsisstant account)';
 
         $steps = $platform === self::PLATFORM_MAC
-            ? "1. Right-click (or Control-click) 'Install & Run Obsisstant Agent.command' and click Open.\n2. Approve macOS prompt if asked (it installs Node.js if missing and runs OBS Agent in the background).\n3. In OBS Studio, open Tools -> WebSocket Server Settings and tick 'Enable WebSocket server' (port 4455)."
+            ? "Recommended (Zero Apple Warnings):\nCopy the 1-Click Mac setup command inside Obsisstant and paste it into Terminal.\n\nIf opening this .zip from Finder on macOS 15+:\n1. Try opening 'Install & Run Obsisstant Agent.command' and click Done if macOS blocks it.\n2. Open System Settings -> Privacy & Security, scroll down, and click 'Open Anyway'.\n3. In OBS Studio, open Tools -> WebSocket Server Settings and tick 'Enable WebSocket server' (port 4455)."
             : "1. Double-click 'Install & Run Obsisstant Agent.bat' (click 'More info -> Run anyway' if Windows SmartScreen asks).\n2. Wait a few seconds while it installs Node.js (if needed) and starts OBS Agent silently in the background.\n3. In OBS Studio, open Tools -> WebSocket Server Settings and tick 'Enable WebSocket server' (port 4455).";
 
         return $this->toCrlf("Obsisstant OBS Agent\n====================\nServer: {$this->resolveAppUrl()}\nMode: {$scope}\n\nQuick Steps:\n{$steps}\n");
@@ -312,7 +312,7 @@ find_node() {
     if [ -d "$HOME/.nvm/versions/node" ]; then
         while IFS= read -r ver_dir; do
             CANDIDATES+=("$ver_dir/bin/node")
-        done < <(ls -1d "$HOME/.nvm/versions/node"/v* 2>/dev/null | sort -V | tail -r 2>/dev/null || ls -1d "$HOME/.nvm/versions/node"/v* 2>/dev/null)
+        done < <(ls -1dt "$HOME/.nvm/versions/node"/v* 2>/dev/null || true)
     fi
 
     if command -v node >/dev/null 2>&1; then

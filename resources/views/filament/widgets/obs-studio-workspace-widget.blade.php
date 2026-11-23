@@ -36,11 +36,19 @@
                 </div>
 
                 <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
-                    <a href="{{ $installer['mac_download_url'] }}" class="obs-action-primary">
-                        Download for Mac (.zip)
-                    </a>
+                    <button
+                        type="button"
+                        class="obs-action-primary"
+                        data-copy-cmd="{{ $installer['mac_command'] }}"
+                        onclick="navigator.clipboard?.writeText(this.dataset.copyCmd); this.textContent='Copied! Paste in Mac Terminal (⌘V)';"
+                    >
+                        Copy Mac 1-Click Setup
+                    </button>
                     <a href="{{ $installer['windows_download_url'] }}" class="obs-action-primary" style="background: rgba(255,255,255,0.06); color: #F2E8D5; border-color: rgba(205,173,105,0.35);">
                         Download for Windows (.zip)
+                    </a>
+                    <a href="{{ $installer['mac_download_url'] }}" class="obs-link-quiet">
+                        Download for Mac (.zip)
                     </a>
                     @if ($studios->isEmpty())
                         <a href="{{ route('filament.admin.resources.obs-studios.create') }}" class="obs-link-quiet">

@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.11.1] - 2026-11-24 | type: macro
+
+> Prioritize zero-warning Mac 1-click Terminal installer over Gatekeeper-blocked Finder downloads
+
+### Fixed
+- Lead macOS onboarding with Copy 1-Click Mac Setup to bypass macOS Sequoia/Tahoe quarantine blocks and update macOS 15+ Open Anyway instructions for manual .zip downloads
+
 ## [v1.11.0] - 2026-11-24 | type: minor
 
 > Zero-code Mac & Windows OBS Agent one-click installers and automatic offline onboarding prompts

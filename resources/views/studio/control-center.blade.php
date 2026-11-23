@@ -1294,29 +1294,41 @@
                 </div>
 
                 <div id="agent-panel-mac" style="display: grid; gap: 0.75rem;">
-                    <a
-                        id="download-mac-installer-btn"
-                        href="{{ $installerPayload['mac_download_url'] }}"
+                    <button
+                        type="button"
                         class="s-btn s-btn-gold"
+                        id="copy-mac-cmd-btn"
                         style="justify-content: center; font-size: 0.875rem; padding: 0.65rem 1rem;"
                     >
-                        Download Mac Installer (.zip)
-                    </a>
+                        Copy 1-Click Mac Setup (No Apple Warnings)
+                    </button>
+
+                    <input type="text" id="mac-oneclick-cmd" class="s-input" readonly value="{{ $installerPayload['mac_command'] }}" onclick="this.select();" style="font-size: 0.75rem; color: var(--gold-light);">
 
                     <ol style="margin: 0; padding-inline-start: 1.25rem; display: grid; gap: 0.35rem; font-size: 0.8125rem; color: var(--ink-secondary);">
-                        <li>Unzip <code>Obsisstant-OBS-Agent-Mac.zip</code> inside Downloads.</li>
-                        <li><strong>Right-click</strong> (or Control-click) <code>Install &amp; Run Obsisstant Agent.command</code> → click <strong>Open</strong>.</li>
+                        <li>Click <strong>Copy 1-Click Mac Setup</strong> above.</li>
+                        <li>Press <strong>⌘ Space</strong>, type <strong>Terminal</strong>, press <strong>Return</strong>, then paste (<strong>⌘ V</strong>) &amp; press <strong>Return</strong>.</li>
                         <li>In OBS Studio: open <strong>Tools → WebSocket Server Settings</strong> and check <strong>Enable WebSocket server</strong>.</li>
                     </ol>
 
-                    <div style="display: grid; gap: 0.375rem; padding: 0.625rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--hairline); background: var(--bg-raised);">
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                            <span style="font-size: 0.75rem; font-weight: 500; color: var(--gold-light);">Fastest Option (Skips Mac Gatekeeper Popup)</span>
-                            <button type="button" class="s-btn s-btn-xs" id="copy-mac-cmd-btn">Copy Terminal Command</button>
+                    <details style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--hairline); background: var(--bg-raised);">
+                        <summary style="cursor: pointer; font-size: 0.75rem; color: var(--ink-muted);">
+                            Prefer manual .zip download? (Requires approving in macOS Privacy &amp; Security)
+                        </summary>
+                        <div style="display: grid; gap: 0.5rem; margin-block-start: 0.5rem;">
+                            <a
+                                id="download-mac-installer-btn"
+                                href="{{ $installerPayload['mac_download_url'] }}"
+                                class="s-btn s-btn-xs"
+                                style="justify-content: center;"
+                            >
+                                Download Mac Installer (.zip)
+                            </a>
+                            <span class="dock-subtitle" style="font-size: 0.7rem;">
+                                On macOS Sequoia/Tahoe 15+, browser-downloaded scripts trigger an Apple security block. If you see <em>&ldquo;Not Opened&rdquo;</em>, click <strong>Done</strong> → open <strong>System Settings → Privacy &amp; Security</strong> → click <strong>Open Anyway</strong> (or use the 1-Click button above to skip it completely).
+                            </span>
                         </div>
-                        <input type="text" id="mac-oneclick-cmd" class="s-input" readonly value="{{ $installerPayload['mac_command'] }}" style="font-size: 0.75rem; color: var(--gold-light);">
-                        <span class="dock-subtitle" style="font-size: 0.7rem;">Open Terminal app, paste, and press Return — automatically installs &amp; runs in the background.</span>
-                    </div>
+                    </details>
                 </div>
 
                 <div id="agent-panel-windows" hidden style="display: grid; gap: 0.75rem;">
@@ -1331,7 +1343,7 @@
 
                     <ol style="margin: 0; padding-inline-start: 1.25rem; display: grid; gap: 0.35rem; font-size: 0.8125rem; color: var(--ink-secondary);">
                         <li>Right-click <code>Obsisstant-OBS-Agent-Windows.zip</code> → <strong>Extract All</strong>.</li>
-                        <li>Double-click <code>Install &amp; Run Obsisstant Agent.bat</code> *(auto-starts silently on Windows boot)*.</li>
+                        <li>Double-click <code>Install &amp; Run Obsisstant Agent.bat</code> <em>(auto-starts silently on Windows boot)</em>.</li>
                         <li>In OBS Studio: open <strong>Tools → WebSocket Server Settings</strong> and check <strong>Enable WebSocket server</strong>.</li>
                     </ol>
 

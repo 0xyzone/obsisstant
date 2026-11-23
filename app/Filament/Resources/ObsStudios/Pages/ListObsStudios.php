@@ -115,14 +115,14 @@ class ListObsStudios extends ListRecords
                     ];
                 })
                 ->schema([
-                    Section::make('Option 1: 1-Click Terminal / PowerShell Setup (Fastest — Skips Mac Warnings)')
+                    Section::make('Recommended for Mac (Zero Gatekeeper Warnings) & 1-Click Windows')
                         ->schema([
                             TextInput::make('mac_command')
-                                ->label('Mac Terminal (Paste & Press Enter)')
+                                ->label('Mac Terminal (⌘ Space -> Terminal -> Paste & Enter)')
                                 ->disabled()
                                 ->copyable(),
                             TextInput::make('windows_command')
-                                ->label('Windows PowerShell (Paste & Press Enter)')
+                                ->label('Windows PowerShell (Paste & Enter)')
                                 ->disabled()
                                 ->copyable(),
                         ]),
