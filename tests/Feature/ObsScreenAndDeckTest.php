@@ -130,4 +130,54 @@ class ObsScreenAndDeckTest extends TestCase
         $this->assertSame($screen->getOverlayUrl(), $log->request_data['url']);
         Event::assertDispatched(ObsCommandDispatched::class);
     }
+
+    public function test_mobile_deck_switches_scenes_handles_offline_state_and_renders_studio_switcher(): void
+    {
+        Event::fake([ObsCommandDispatched::class]);
+
+        $user = User::factory()->create();
+        $primary = ObsStudio::factory()->for($user)->create([
+            'name' => 'Studio One',
+            'status' => 'offline',
+            'last_seen_at' => null,
+            'live_state' => [
+                'currentProgramScene' => 'Intro',
+                'scenes' => [
+                    ['sceneName' => 'Intro', 'sceneIndex' => 0],
+                    ['sceneName' => 'BRB', 'sceneIndex' => 1],
+                ],
+            ],
+        ]);
+        $secondary = ObsStudio::factory()->online()->for($user)->create(['name' => 'Studio Two']);
+
+        $this->actingAs($user)
+            ->get(route('obs.deck.show', ['studio' => $primary->slug]))
+            ->assertOk()
+            ->assertSee('deck-studio-switcher', false)
+            ->assertSee('Studio Two')
+            ->assertSee('deck-offline-banner', false)
+            ->assertSee('Connect / Install Agent')
+            ->assertSee('Intro')
+            ->assertSee('BRB')
+            ->assertSee('sendDeckCommand', false);
+
+        $this->actingAs($user)
+            ->get(route('obs.deck.show', ['studio' => $secondary->slug]))
+            ->assertOk()
+            ->assertSee('deck-offline-banner" class="deck-offline-banner"  hidden', false);
+
+        $this->actingAs($user)
+            ->postJson(route('obs.deck.command', ['studio' => $secondary->slug]), [
+                'request_type' => 'SetCurrentProgramScene',
+                'request_data' => ['sceneName' => 'BRB'],
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('request_type', 'SetCurrentProgramScene');
+
+        Event::assertDispatched(ObsCommandDispatched::class, static function (ObsCommandDispatched $event): bool {
+            return $event->commandLog->request_type === 'SetCurrentProgramScene'
+                && ($event->commandLog->request_data['sceneName'] ?? null) === 'BRB';
+        });
+    }
 }

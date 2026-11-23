@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.11.2] - 2026-11-24 | type: macro
+
+> Fix Mobile Deck scene switching, dynamic scene sync, error feedback, and offline agent banner
+
+### Fixed
+- Add optimistic active scene toggling, command acknowledgment verification, snapshot fallback sync, and visible error toasts in mobile-deck.blade.php
+- Dynamically rebuild Mobile Deck #scenes-grid on .obs.studio.state updates, add topbar studio switcher, and warn with a Connect / Install Agent banner when the studio is offline
+
 ## [v1.11.1] - 2026-11-24 | type: macro
 
 > Prioritize zero-warning Mac 1-click Terminal installer over Gatekeeper-blocked Finder downloads
