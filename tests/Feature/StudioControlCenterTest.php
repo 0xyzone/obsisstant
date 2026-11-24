@@ -80,7 +80,11 @@ class StudioControlCenterTest extends TestCase
             ->assertSee('favicon-local.svg', false)
             ->assertSee('scene-collection-select')
             ->assertSee('create-collection-dialog')
-            ->assertSee('stage-canvas')
+            ->assertSee('Scene Sources')
+            ->assertSee('Audio Mixer')
+            ->assertSee('Live Overlay Push')
+            ->assertSee('no-source-selected-card')
+            ->assertSee('selected-source-card')
             ->assertSee('add-source-dialog')
             ->assertSee('add-source-dynamic-fields')
             ->assertSee('rename-scene-dialog')
@@ -92,7 +96,9 @@ class StudioControlCenterTest extends TestCase
             ->assertSee('Delete Source')
             ->assertSee('INPUT_KIND_CATALOG')
             ->assertSee('listenForWhisper', false)
-            ->assertSee('obs.preview.subscribe', false)
+            ->assertDontSee('stage-canvas', false)
+            ->assertDontSee('live-view-mode', false)
+            ->assertDontSee('obs.preview.subscribe', false)
             ->assertSee('Host Camera')
             ->assertDontSee('@vite/client', false);
     }

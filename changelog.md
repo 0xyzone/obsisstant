@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.11.6] - 2026-11-24 | type: macro
+
+> Remove heavy Studio live preview and stage canvas, reorganizing sources, mixer, and overlays into a 3-column workstation
+
+### Changed
+- Remove continuous OBS screenshot preview streaming and interactive drag stage canvas from Studio Control Center
+- Reorganize Studio layout into Show Control (left), Scene Sources stack + Source Editor split (center), and Audio Mixer, Overlays & Logs (right)
+- Add explicit Edit, Remove, and Delete actions directly on every scene source row alongside full transform and property controls
+
 ## [v1.11.5] - 2026-11-24 | type: macro
 
 > Eliminate multi-second scene switching lag with direct WebSocket whisper commands, non-blocking acks, and slim delta state sync

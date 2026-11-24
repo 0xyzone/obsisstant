@@ -271,6 +271,18 @@
                 color: #9EE6C3;
             }
 
+            .visually-hidden:where(:not(:focus-within, :active)) {
+                position: absolute !important;
+                clip-path: inset(50%) !important;
+                overflow: hidden !important;
+                inline-size: 1px !important;
+                block-size: 1px !important;
+                margin: -1px !important;
+                padding: 0 !important;
+                border: 0 !important;
+                white-space: nowrap !important;
+            }
+
             /* Fullscreen Workstation 3-Column Layout */
             .workspace-grid {
                 padding: 0.875rem clamp(0.75rem, 2vw, 1.5rem) 2rem;
@@ -282,7 +294,7 @@
 
             @media (min-width: 72rem) {
                 .workspace-grid {
-                    grid-template-columns: 18rem minmax(0, 1fr) 22rem;
+                    grid-template-columns: 18.5rem minmax(0, 1fr) 21rem;
                 }
             }
 
@@ -383,132 +395,67 @@
                 gap: 0.25rem;
             }
 
-            /* 16:9 Interactive Live Stage */
-            .stage-panel {
+            /* Center Broadcast Sources Manager & Editor */
+            .sources-workspace-panel {
                 background-color: var(--bg-card);
                 border: 1px solid var(--hairline-strong);
                 border-radius: 1rem;
                 padding: 0.875rem;
                 display: grid;
+                gap: 0.875rem;
+                min-inline-size: 0;
+            }
+
+            .sources-toolbar {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.5rem;
+                padding-block-end: 0.625rem;
+                border-block-end: 1px solid var(--hairline);
+            }
+
+            .sources-split-grid {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 0.875rem;
+                align-items: start;
+            }
+
+            @media (min-width: 60rem) {
+                .sources-split-grid {
+                    grid-template-columns: minmax(16rem, 0.94fr) minmax(18rem, 1.06fr);
+                }
+            }
+
+            .source-inspector-card {
+                background-color: var(--bg-chrome);
+                border: 1px solid var(--hairline-strong);
+                border-radius: 0.75rem;
+                padding: 0.875rem;
+                display: grid;
                 gap: 0.75rem;
             }
 
-            .stage-toolbar {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                justify-content: space-between;
-                gap: 0.5rem;
-            }
-
-            .stage-canvas-outer {
-                position: relative;
-                inline-size: 100%;
-                aspect-ratio: 16 / 9;
-                border-radius: 0.625rem;
-                border: 1px solid var(--hairline-strong);
-                background-color: #080807;
-                background-image:
-                    linear-gradient(to right, rgba(205, 173, 105, 0.05) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(205, 173, 105, 0.05) 1px, transparent 1px);
-                background-size: 6.25% 11.111%;
-                overflow: hidden;
-                user-select: none;
-                touch-action: none;
-            }
-
-            .stage-underlay {
-                position: absolute;
-                inset: 0;
-                inline-size: 100%;
-                block-size: 100%;
-                object-fit: contain;
-                pointer-events: none;
-            }
-
-            .stage-underlay[hidden] {
-                display: none;
-            }
-
-            .stage-layers-surface {
-                position: absolute;
-                inset: 0;
-            }
-
-            .stage-item-box {
-                position: absolute;
-                border: 1.5px solid rgba(205, 173, 105, 0.65);
-                background-color: rgba(205, 173, 105, 0.08);
-                border-radius: 0.25rem;
-                cursor: grab;
-                transition: border-color 120ms ease, background-color 120ms ease;
-            }
-
-            .stage-item-box:hover {
-                border-color: var(--gold-light);
-                background-color: rgba(205, 173, 105, 0.14);
-            }
-
-            .stage-item-box.is-selected {
-                border: 2px solid var(--gold-light);
-                background-color: rgba(244, 225, 133, 0.14);
-                z-index: 20 !important;
-            }
-
-            .stage-item-box.is-hidden {
-                opacity: 0.34;
-                border-style: dashed;
-            }
-
-            .stage-item-box.is-locked {
-                cursor: default;
-                border-color: rgba(142, 135, 119, 0.55);
-            }
-
-            .stage-item-label {
-                position: absolute;
-                inset-inline-start: 0.25rem;
-                inset-block-start: 0.25rem;
-                max-inline-size: calc(100% - 0.5rem);
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                padding: 0.0625rem 0.375rem;
-                border-radius: 0.25rem;
-                background: rgba(7, 7, 6, 0.86);
-                color: var(--ink-primary);
-                font-size: 0.6875rem;
-                font-weight: 500;
-                pointer-events: none;
-            }
-
-            .stage-resize-handle {
-                position: absolute;
-                inset-inline-end: -4px;
-                inset-block-end: -4px;
-                inline-size: 0.75rem;
-                block-size: 0.75rem;
-                border-radius: 0.125rem;
-                background-color: var(--gold-light);
-                border: 1px solid #070706;
-                cursor: nwse-resize;
-            }
-
-            .stage-item-box.is-locked .stage-resize-handle {
-                display: none;
-            }
-
-            .stage-footer-bar {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                justify-content: space-between;
-                gap: 0.5rem;
-                font-size: 0.75rem;
+            .source-empty-state {
+                border: 1px dashed var(--hairline-strong);
+                border-radius: 0.75rem;
+                padding: 1.75rem 1.25rem;
+                text-align: center;
                 color: var(--ink-muted);
+                font-size: 0.8125rem;
+                background: rgba(205, 173, 105, 0.03);
+                display: grid;
+                gap: 0.375rem;
             }
 
-            /* Inspector Tabs & Layer Stack */
+            .source-inspector-card[hidden],
+            .source-empty-state[hidden] {
+                display: none;
+            }
+
+            /* Dialog OS Selector Tabs & Layer Stack */
             .tab-row {
                 display: grid;
                 grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -536,31 +483,58 @@
                 color: var(--gold-light);
             }
 
-            .tab-panel[hidden] {
-                display: none;
-            }
-
             .layer-list {
                 display: grid;
-                gap: 0.375rem;
-                max-block-size: 16rem;
-                overflow: auto;
+                gap: 0.5rem;
+                max-block-size: 34rem;
+                overflow-y: auto;
+                scrollbar-gutter: stable;
+                overscroll-behavior: contain;
             }
 
             .layer-row {
                 display: grid;
-                grid-template-columns: minmax(0, 1fr) auto;
-                align-items: center;
                 gap: 0.375rem;
-                padding: 0.375rem 0.5rem;
+                padding: 0.5rem;
                 border-radius: 0.5rem;
                 background-color: var(--bg-raised);
                 border: 1px solid transparent;
+                transition: border-color 140ms var(--ease-out), background-color 140ms var(--ease-out);
             }
 
             .layer-row.is-selected {
                 border-color: var(--gold-accent);
                 background-color: rgba(205, 173, 105, 0.12);
+            }
+
+            .layer-row-top {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.5rem;
+                min-inline-size: 0;
+            }
+
+            .layer-row-actions {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 0.25rem;
+            }
+
+            .layer-kind-tag {
+                flex-shrink: 0;
+                padding: 0.0625rem 0.375rem;
+                border-radius: 0.25rem;
+                background-color: var(--bg-chrome);
+                border: 1px solid var(--hairline);
+                color: var(--ink-muted);
+                font-size: 0.625rem;
+                font-weight: 500;
+                max-inline-size: 9rem;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
             .transform-grid {
@@ -812,7 +786,8 @@
 
             @media (forced-colors: active) {
                 .dock-panel,
-                .stage-panel,
+                .sources-workspace-panel,
+                .source-inspector-card,
                 .scene-row,
                 .layer-row,
                 .audio-item,
@@ -866,13 +841,15 @@
         </header>
 
         <main class="workspace-grid">
+            <h1 class="visually-hidden">Studio Control Center — {{ $studio->name }}</h1>
+
             {{-- Left Column: Scenes Manager, Broadcast Outputs & Macros --}}
-            <section class="studio-column" aria-label="Scenes, Outputs and Macros">
+            <section class="studio-column" aria-label="Show Control: Scenes, Outputs and Macros">
                 <div class="dock-panel">
                     <div class="dock-head">
                         <div>
                             <h2 class="dock-title">Scenes &amp; Collections</h2>
-                            <div class="dock-subtitle">Click to edit · Dbl-click or Go Live cuts OBS</div>
+                            <div class="dock-subtitle">Click to inspect · Dbl-click or Go Live cuts OBS</div>
                         </div>
                         <button type="button" class="s-btn s-btn-xs" id="sync-obs-btn">Sync</button>
                     </div>
@@ -887,7 +864,7 @@
                     </div>
 
                     <div style="display: flex; gap: 0.375rem;">
-                        <input id="new-scene-name" type="text" class="s-input" placeholder="New scene name..." style="flex: 1; min-inline-size: 0;">
+                        <input id="new-scene-name" type="text" class="s-input" placeholder="New scene name..." aria-label="New scene name" style="flex: 1; min-inline-size: 0;">
                         <button type="button" id="create-scene-btn" class="s-btn s-btn-gold">Add</button>
                     </div>
 
@@ -929,8 +906,8 @@
                 </div>
             </section>
 
-            {{-- Center Stage: Live View & Interactive Source Layout Builder --}}
-            <section class="stage-panel" aria-label="Live Scene Stage">
+            {{-- Center Main Workstation: Scene Sources Stack & Selected Source Editor --}}
+            <section class="sources-workspace-panel" aria-label="Scene Sources and Source Editor">
                 <div
                     id="agent-offline-banner"
                     @if ($studio->isOnline()) hidden @endif
@@ -953,20 +930,15 @@
                     </div>
                 </div>
 
-                <div class="stage-toolbar">
+                <div class="sources-toolbar">
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
                         <span class="stat-chip" id="stage-editing-label">Scene: {{ $initialEditingScene ?: 'None' }}</span>
-                        <button type="button" id="cut-editing-scene-btn" class="s-btn s-btn-gold s-btn-xs">Cut Scene Live</button>
+                        <span id="studio-canvas-meta" class="dock-subtitle">Canvas: {{ $dims['width'] }} × {{ $dims['height'] }}</span>
+                        <span id="layer-count-meta" class="dock-subtitle">0 sources</span>
                     </div>
 
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
-                        <label for="live-view-mode" class="field-label">Live View</label>
-                        <select id="live-view-mode" class="s-select" style="min-block-size: 1.875rem; font-size: 0.75rem;">
-                            <option value="snapshot" @selected($studio->isOnline())>OBS Preview · Balanced (2.5s)</option>
-                            <option value="snapshot-fast">OBS Preview · Active (1.2s)</option>
-                            <option value="layout" @selected(! $studio->isOnline())>Layout Grid Only (0 Load)</option>
-                            <option value="vcam">Local OBS Virtual Cam (WebRTC)</option>
-                        </select>
+                        <button type="button" id="cut-editing-scene-btn" class="s-btn s-btn-gold s-btn-xs">Go Live</button>
                         <button
                             type="button"
                             class="s-btn s-btn-gold s-btn-xs"
@@ -978,48 +950,29 @@
                     </div>
                 </div>
 
-                <div id="stage-canvas" class="stage-canvas-outer">
-                    <img id="live-preview-img" class="stage-underlay" alt="Live OBS scene output preview" hidden>
-                    <video id="webrtc-preview-video" class="stage-underlay" autoplay muted playsinline hidden></video>
-                    <div id="stage-layers" class="stage-layers-surface"></div>
-                </div>
-
-                <div class="stage-footer-bar">
-                    <span id="stage-canvas-meta">Base Canvas: {{ $dims['width'] }} × {{ $dims['height'] }} · Drag boxes to reposition, drag corner to scale</span>
-                    <span id="stage-preview-status">Layout mode</span>
-                </div>
-            </section>
-
-            {{-- Right Column: Source Stack + Inspector / Audio Mixer / Overlay Push --}}
-            <aside class="studio-column" aria-label="Inspector and Mixer">
-                <div class="dock-panel">
-                    <div class="tab-row" role="tablist" aria-label="Inspector tabs">
-                        <button type="button" class="tab-btn" role="tab" aria-selected="true" data-tab-btn="sources">Sources</button>
-                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab-btn="audio">Audio</button>
-                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab-btn="overlays">Overlays</button>
-                    </div>
-
-                    {{-- Tab 1: Scene Source Stack & Transform/Visual Properties Inspector --}}
-                    <div id="tab-sources" class="tab-panel" style="display: grid; gap: 0.75rem;">
+                <div class="sources-split-grid">
+                    {{-- Left Pane: Scene Sources List with Edit / Remove / Delete --}}
+                    <div class="dock-panel" style="background-color: var(--bg-chrome);">
                         <div class="dock-head">
                             <div>
-                                <h3 class="dock-title">Scene Layers</h3>
-                                <span id="layer-count-meta" class="dock-subtitle">0 sources</span>
+                                <h2 class="dock-title">Scene Sources</h2>
+                                <div class="dock-subtitle">Reorder, show/hide, lock, edit or delete</div>
                             </div>
-                            <button
-                                type="button"
-                                class="s-btn s-btn-gold s-btn-xs"
-                                commandfor="add-source-dialog"
-                                command="show-modal"
-                            >
-                                + Add Source
-                            </button>
                         </div>
                         <div id="layers-list" class="layer-list"></div>
+                    </div>
 
-                        <div id="selected-source-card" class="stack-grid" style="padding-block-start: 0.625rem; border-block-start: 1px solid var(--hairline);" hidden>
+                    {{-- Right Pane: Source Editor (Rename, Transform, Properties, Remove & Permanent Delete) --}}
+                    <div>
+                        <div id="no-source-selected-card" class="source-empty-state">
+                            <strong style="color: var(--ink-primary); font-weight: 600;">No source selected</strong>
+                            <span>Click any source or its <strong>Edit</strong> button in Scene Sources to rename, adjust position/size, configure OBS properties, or delete it.</span>
+                        </div>
+
+                        <div id="selected-source-card" class="source-inspector-card" hidden>
                             <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem;">
                                 <div style="min-inline-size: 0;">
+                                    <h2 class="dock-title" style="margin-block-end: 0.125rem;">Source Editor</h2>
                                     <div id="sel-source-name" style="font-weight: 600; font-size: 0.875rem; color: var(--gold-light); overflow: hidden; text-overflow: ellipsis;"></div>
                                     <div id="sel-source-kind" class="dock-subtitle"></div>
                                 </div>
@@ -1088,40 +1041,49 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </section>
 
-                    {{-- Tab 2: Audio Mixer --}}
-                    <div id="tab-audio" class="tab-panel" hidden>
-                        <div id="audio-mixer-list" style="display: grid; gap: 0.5rem;"></div>
+            {{-- Right Column: Audio Mixer, Live Overlay Push & Recent Command Log --}}
+            <aside class="studio-column" aria-label="Audio Mixer, Overlays and Command Log">
+                <div class="dock-panel">
+                    <div class="dock-head">
+                        <h2 class="dock-title">Audio Mixer</h2>
+                        <span class="dock-subtitle">Live OBS faders</span>
                     </div>
+                    <div id="audio-mixer-list" style="display: grid; gap: 0.5rem;"></div>
+                </div>
 
-                    {{-- Tab 3: Live Overlay Push & Recent Command Log --}}
-                    <div id="tab-overlays" class="tab-panel" hidden>
-                        <div style="display: grid; gap: 0.5rem;">
-                            <label class="field-stack">
-                                <span class="field-label">Target Overlay Screen</span>
-                                <select id="overlay-screen-select" class="s-select">
-                                    @foreach ($screens as $scr)
-                                        <option value="{{ $scr->id }}">{{ $scr->name }} ({{ $scr->template_type }})</option>
-                                    @endforeach
-                                </select>
-                            </label>
-                            <div style="display: flex; gap: 0.375rem;">
-                                <a id="overlay-open-link" href="{{ $screens->first()?->getOverlayUrl() ?? '#' }}" target="_blank" class="s-btn" style="flex: 1;">Open URL</a>
-                                <button type="button" id="btn-push-overlay-scene" class="s-btn s-btn-gold" style="flex: 1;">Push to Scene</button>
-                            </div>
-                            <input type="text" id="overlay-guest-name" class="s-input" placeholder="Lower-third name">
-                            <input type="text" id="overlay-guest-role" class="s-input" placeholder="Role / subtitle">
-                            <div style="display: flex; gap: 0.375rem;">
-                                <button type="button" id="btn-overlay-show" class="s-btn s-btn-gold" style="flex: 1;">Show Lower Third</button>
-                                <button type="button" id="btn-overlay-hide" class="s-btn" style="flex: 1;">Hide</button>
-                            </div>
+                <div class="dock-panel">
+                    <div class="dock-head">
+                        <h2 class="dock-title">Live Overlay Push</h2>
+                        <span class="dock-subtitle">Browser screens</span>
+                    </div>
+                    <div style="display: grid; gap: 0.5rem;">
+                        <label class="field-stack">
+                            <span class="field-label">Target Overlay Screen</span>
+                            <select id="overlay-screen-select" class="s-select">
+                                @foreach ($screens as $scr)
+                                    <option value="{{ $scr->id }}">{{ $scr->name }} ({{ $scr->template_type }})</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <div style="display: flex; gap: 0.375rem;">
+                            <a id="overlay-open-link" href="{{ $screens->first()?->getOverlayUrl() ?? '#' }}" target="_blank" class="s-btn" style="flex: 1;">Open URL</a>
+                            <button type="button" id="btn-push-overlay-scene" class="s-btn s-btn-gold" style="flex: 1;">Push to Scene</button>
+                        </div>
+                        <input type="text" id="overlay-guest-name" class="s-input" placeholder="Lower-third name" aria-label="Lower-third name">
+                        <input type="text" id="overlay-guest-role" class="s-input" placeholder="Role / subtitle" aria-label="Role or subtitle">
+                        <div style="display: flex; gap: 0.375rem;">
+                            <button type="button" id="btn-overlay-show" class="s-btn s-btn-gold" style="flex: 1;">Show Lower Third</button>
+                            <button type="button" id="btn-overlay-hide" class="s-btn" style="flex: 1;">Hide</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="dock-panel">
                     <div class="dock-head">
-                        <h3 class="dock-title">Recent Command Log</h3>
+                        <h2 class="dock-title">Recent Command Log</h2>
                     </div>
                     <div id="recent-logs-list" style="display: grid; gap: 0.25rem; font-size: 0.75rem;">
                         @forelse ($recentLogs as $log)
@@ -1378,8 +1340,6 @@
                 'command' => route('studio.command', ['studio' => $studio->slug], false),
                 'commandResult' => route('studio.command-result', ['studio' => $studio->slug, 'commandUuid' => '__UUID__'], false),
                 'snapshot' => route('studio.snapshot', ['studio' => $studio->slug], false),
-                'previewToggle' => route('studio.preview-toggle', ['studio' => $studio->slug], false),
-                'previewFrame' => route('studio.preview-frame', ['studio' => $studio->slug], false),
                 'mediaUpload' => route('studio.media-upload', ['studio' => $studio->slug], false),
                 'mediaStoragePath' => route('studio.media-storage-path', ['studio' => $studio->slug], false),
                 'bootstrapToken' => route('agent-installer.bootstrap-token', [], false),
@@ -1402,16 +1362,9 @@
                 let agentReachable = @json($agentReachable);
                 let editingScene = @json($initialEditingScene);
                 let selectedSceneItemId = null;
-                let previewLeaseTimer = null;
-                let previewFallbackTimer = null;
-                let previewControlFallbackTimer = null;
                 let studioChannel = null;
                 let snapshotInFlight = null;
-                let lastEchoPreviewAt = 0;
                 let lastEchoStateAt = 0;
-                let lastSeenPreviewVersion = null;
-                let isDraggingStage = false;
-                let vcamStream = null;
                 let pendingDeleteScene = null;
                 let pendingDeleteSourceName = null;
                 let loadedSettingsKey = null;
@@ -1655,11 +1608,6 @@
                     });
                 };
 
-                const isSnapshotMode = () => {
-                    const mode = document.getElementById('live-view-mode')?.value;
-                    return mode === 'snapshot' || mode === 'snapshot-fast';
-                };
-
                 let lastTransformSettledAt = 0;
                 let transformSeq = 0;
 
@@ -1736,18 +1684,6 @@
                             if (data.live_state) applyIncomingLiveState(data.live_state);
                             renderAll();
 
-                            const previewImgEl = document.getElementById('live-preview-img');
-                            if (
-                                data.preview_version
-                                && data.preview_version !== lastSeenPreviewVersion
-                                && isSnapshotMode()
-                                && previewImgEl
-                                && !window.Echo
-                            ) {
-                                lastSeenPreviewVersion = data.preview_version;
-                                previewImgEl.src = `${endpoints.previewFrame}?v=${encodeURIComponent(data.preview_version)}`;
-                                previewImgEl.hidden = false;
-                            }
                             return data;
                         } catch {
                             return null;
@@ -1929,7 +1865,6 @@
                             patch: { ...transformPatch },
                             expiresAt: Date.now() + 5000,
                         });
-                        renderStageLayers();
                         renderLayersInspector();
                     }
 
@@ -1952,7 +1887,6 @@
                                 );
                                 if (cur) {
                                     cur.sceneItemTransform = backupTransform;
-                                    renderStageLayers();
                                     renderLayersInspector();
                                 }
                             }
@@ -1969,7 +1903,6 @@
                                 );
                                 if (cur) {
                                     cur.sceneItemTransform = backupTransform;
-                                    renderStageLayers();
                                     renderLayersInspector();
                                 }
                             }
@@ -1996,7 +1929,6 @@
                 const renderAll = () => {
                     renderHeaderAndOutputs();
                     renderScenes();
-                    renderStageLayers();
                     renderLayersInspector();
                     renderAudioMixer();
                     populateAddSourceOptions();
@@ -2050,9 +1982,9 @@
                     if (modeLabel) modeLabel.textContent = studioModeOn ? 'Studio Mode ON' : 'Direct Cut';
 
                     const dims = getVideoDims();
-                    const canvasMeta = document.getElementById('stage-canvas-meta');
+                    const canvasMeta = document.getElementById('studio-canvas-meta');
                     if (canvasMeta) {
-                        canvasMeta.textContent = `Base Canvas: ${dims.width} × ${dims.height} · Drag boxes to reposition, corner to resize`;
+                        canvasMeta.textContent = `Canvas: ${dims.width} × ${dims.height}`;
                     }
 
                     if (typeof updateAgentOnboardingState === 'function') {
@@ -2096,6 +2028,17 @@
                         editLabel.textContent = `Scene: ${editingScene || 'None'}`;
                     }
 
+                    const cutEditingBtn = document.getElementById('cut-editing-scene-btn');
+                    if (cutEditingBtn) {
+                        const isEditingProgram = Boolean(editingScene && editingScene === liveState?.currentProgramScene);
+                        cutEditingBtn.disabled = !editingScene;
+                        cutEditingBtn.textContent = liveState?.studioModeEnabled
+                            ? 'Send to Preview'
+                            : (isEditingProgram ? 'On Air' : 'Go Live');
+                        cutEditingBtn.classList.toggle('is-active', isEditingProgram);
+                        cutEditingBtn.classList.toggle('s-btn-gold', !isEditingProgram);
+                    }
+
                     if (scenes.length === 0) {
                         container.innerHTML = '<div class="dock-subtitle">Connect obs-agent to populate live scenes.</div>';
                         return;
@@ -2127,9 +2070,6 @@
                             editingScene = sName;
                             selectedSceneItemId = null;
                             renderAll();
-                            if (isSnapshotMode()) {
-                                enableSnapshotPreview(true);
-                            }
                         });
                         selectBtn.addEventListener('dblclick', cutSceneLiveOrPreview);
 
@@ -2650,134 +2590,31 @@
                     }
                 };
 
-                const renderStageLayers = () => {
-                    if (isDraggingStage) return;
-
-                    const surface = document.getElementById('stage-layers');
-                    const canvas = document.getElementById('stage-canvas');
-                    if (!surface || !canvas) return;
-
-                    surface.innerHTML = '';
-                    const items = getItemsForEditingScene();
-
-                    items.forEach((item, idx) => {
-                        const rect = computeItemRect(item);
-                        const box = document.createElement('div');
-                        const itemId = Number(item.sceneItemId);
-
-                        box.className = 'stage-item-box'
-                            + (itemId === selectedSceneItemId ? ' is-selected' : '')
-                            + (!item.sceneItemEnabled ? ' is-hidden' : '')
-                            + (item.sceneItemLocked ? ' is-locked' : '');
-
-                        box.style.left = `${(rect.x / rect.baseW) * 100}%`;
-                        box.style.top = `${(rect.y / rect.baseH) * 100}%`;
-                        box.style.width = `${Math.min(100, (rect.w / rect.baseW) * 100)}%`;
-                        box.style.height = `${Math.min(100, (rect.h / rect.baseH) * 100)}%`;
-                        box.style.zIndex = String(idx + 1);
-
-                        const label = document.createElement('div');
-                        label.className = 'stage-item-label';
-                        label.textContent = item.sourceName || `Item #${itemId}`;
-
-                        const handle = document.createElement('div');
-                        handle.className = 'stage-resize-handle';
-
-                        box.append(label, handle);
-
-                        box.addEventListener('pointerdown', (ev) => {
-                            selectedSceneItemId = itemId;
-                            renderLayersInspector();
-                            document.querySelectorAll('.stage-item-box').forEach((b) => b.classList.remove('is-selected'));
-                            box.classList.add('is-selected');
-
-                            if (item.sceneItemLocked) return;
-
-                            const isResize = ev.target === handle;
-                            const canvasRect = canvas.getBoundingClientRect();
-                            const startClientX = ev.clientX;
-                            const startClientY = ev.clientY;
-                            const startTf = { ...rect };
-                            isDraggingStage = true;
-
-                            box.setPointerCapture(ev.pointerId);
-
-                            const onMove = (moveEv) => {
-                                const dxPx = moveEv.clientX - startClientX;
-                                const dyPx = moveEv.clientY - startClientY;
-                                const dxObs = (dxPx / canvasRect.width) * rect.baseW;
-                                const dyObs = (dyPx / canvasRect.height) * rect.baseH;
-
-                                if (isResize) {
-                                    const nextW = Math.max(40, Math.round(startTf.w + dxObs));
-                                    const nextH = Math.max(24, Math.round(startTf.h + dyObs));
-                                    box.style.width = `${Math.min(100, (nextW / rect.baseW) * 100)}%`;
-                                    box.style.height = `${Math.min(100, (nextH / rect.baseH) * 100)}%`;
-                                    document.getElementById('tf-w').value = String(nextW);
-                                    document.getElementById('tf-h').value = String(nextH);
-                                } else {
-                                    const nextLeft = Math.round(startTf.x + dxObs);
-                                    const nextTop = Math.round(startTf.y + dyObs);
-                                    const nextPosX = Math.round(startTf.posX + dxObs);
-                                    const nextPosY = Math.round(startTf.posY + dyObs);
-                                    box.style.left = `${(nextLeft / rect.baseW) * 100}%`;
-                                    box.style.top = `${(nextTop / rect.baseH) * 100}%`;
-                                    document.getElementById('tf-x').value = String(nextPosX);
-                                    document.getElementById('tf-y').value = String(nextPosY);
-                                }
-                            };
-
-                            const finishDrag = () => {
-                                isDraggingStage = false;
-                                box.removeEventListener('pointermove', onMove);
-                                box.removeEventListener('pointerup', onUp);
-                                box.removeEventListener('pointercancel', finishDrag);
-                            };
-
-                            const onUp = (upEv) => {
-                                finishDrag();
-
-                                const dxObs = ((upEv.clientX - startClientX) / canvasRect.width) * rect.baseW;
-                                const dyObs = ((upEv.clientY - startClientY) / canvasRect.height) * rect.baseH;
-                                if (Math.abs(dxObs) < 2 && Math.abs(dyObs) < 2) return;
-
-                                let patch = {};
-                                if (isResize) {
-                                    const nextW = Math.max(40, startTf.w + dxObs);
-                                    const nextH = Math.max(24, startTf.h + dyObs);
-                                    patch = buildDimensionTransformPatch(item, nextW, nextH);
-                                } else {
-                                    patch = {
-                                        positionX: Math.round(startTf.posX + dxObs),
-                                        positionY: Math.round(startTf.posY + dyObs),
-                                    };
-                                }
-
-                                commitSceneItemTransform(itemId, patch);
-                            };
-
-                            box.addEventListener('pointermove', onMove);
-                            box.addEventListener('pointerup', onUp);
-                            box.addEventListener('pointercancel', finishDrag);
-                        });
-
-                        surface.appendChild(box);
-                    });
+                const selectSourceForEditing = (itemId, focusEditor = false) => {
+                    selectedSceneItemId = Number(itemId);
+                    renderLayersInspector();
+                    if (focusEditor) {
+                        const selCard = document.getElementById('selected-source-card');
+                        selCard?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        document.getElementById('rename-source-input')?.focus();
+                    }
                 };
 
                 const renderLayersInspector = () => {
                     const listEl = document.getElementById('layers-list');
                     const countEl = document.getElementById('layer-count-meta');
                     const selCard = document.getElementById('selected-source-card');
+                    const emptyCard = document.getElementById('no-source-selected-card');
                     if (!listEl) return;
 
                     const items = [...getItemsForEditingScene()];
                     if (countEl) countEl.textContent = `${items.length} source${items.length === 1 ? '' : 's'}`;
 
                     if (items.length === 0) {
-                        listEl.innerHTML = '<div class="dock-subtitle">No sources in this scene yet.</div>';
+                        listEl.innerHTML = '<div class="dock-subtitle">No sources in this scene yet. Click + Add Source above.</div>';
                         loadedSettingsKey = null;
                         if (selCard) selCard.hidden = true;
+                        if (emptyCard) emptyCard.hidden = false;
                         return;
                     }
 
@@ -2787,27 +2624,34 @@
                     ordered.forEach((item) => {
                         const itemId = Number(item.sceneItemId);
                         const idx = Number(item.sceneItemIndex ?? 0);
+                        const sourceLabel = item.sourceName || `Source #${itemId}`;
                         const row = document.createElement('div');
                         row.className = `layer-row${itemId === selectedSceneItemId ? ' is-selected' : ''}`;
+
+                        const topRow = document.createElement('div');
+                        topRow.className = 'layer-row-top';
 
                         const selectBtn = document.createElement('button');
                         selectBtn.type = 'button';
                         selectBtn.className = 'scene-row-btn';
-                        selectBtn.textContent = item.sourceName || `Source #${itemId}`;
-                        selectBtn.addEventListener('click', () => {
-                            selectedSceneItemId = itemId;
-                            renderStageLayers();
-                            renderLayersInspector();
-                        });
+                        selectBtn.textContent = sourceLabel;
+                        selectBtn.addEventListener('click', () => selectSourceForEditing(itemId, false));
+
+                        const kindTag = document.createElement('span');
+                        kindTag.className = 'layer-kind-tag';
+                        kindTag.textContent = formatInputKindLabel(item.inputKind);
+
+                        topRow.append(selectBtn, kindTag);
 
                         const btns = document.createElement('div');
-                        btns.className = 'scene-actions';
+                        btns.className = 'layer-row-actions';
 
                         const upBtn = document.createElement('button');
                         upBtn.type = 'button';
                         upBtn.className = 's-btn s-btn-xs';
                         upBtn.textContent = '↑';
                         upBtn.title = 'Bring forward';
+                        upBtn.setAttribute('aria-label', `Bring ${sourceLabel} forward`);
                         upBtn.disabled = idx >= items.length - 1;
                         upBtn.addEventListener('click', () => {
                             sendObsCommand('SetSceneItemIndex', {
@@ -2822,6 +2666,7 @@
                         downBtn.className = 's-btn s-btn-xs';
                         downBtn.textContent = '↓';
                         downBtn.title = 'Send backward';
+                        downBtn.setAttribute('aria-label', `Send ${sourceLabel} backward`);
                         downBtn.disabled = idx <= 0;
                         downBtn.addEventListener('click', () => {
                             sendObsCommand('SetSceneItemIndex', {
@@ -2835,6 +2680,7 @@
                         visBtn.type = 'button';
                         visBtn.className = `s-btn s-btn-xs${item.sceneItemEnabled ? ' is-active' : ''}`;
                         visBtn.textContent = item.sceneItemEnabled ? 'On' : 'Off';
+                        visBtn.setAttribute('aria-label', `${item.sceneItemEnabled ? 'On' : 'Off'} visibility for ${sourceLabel}`);
                         visBtn.addEventListener('click', () => {
                             sendObsCommand('SetSceneItemEnabled', {
                                 sceneName: editingScene,
@@ -2847,6 +2693,7 @@
                         lockBtn.type = 'button';
                         lockBtn.className = `s-btn s-btn-xs${item.sceneItemLocked ? ' is-active' : ''}`;
                         lockBtn.textContent = item.sceneItemLocked ? 'Locked' : 'Free';
+                        lockBtn.setAttribute('aria-label', `${item.sceneItemLocked ? 'Locked' : 'Free'} lock for ${sourceLabel}`);
                         lockBtn.addEventListener('click', () => {
                             sendObsCommand('SetSceneItemLocked', {
                                 sceneName: editingScene,
@@ -2855,22 +2702,47 @@
                             });
                         });
 
+                        const editBtn = document.createElement('button');
+                        editBtn.type = 'button';
+                        editBtn.className = `s-btn s-btn-xs${itemId === selectedSceneItemId ? ' is-active' : ''}`;
+                        editBtn.textContent = 'Edit';
+                        editBtn.setAttribute('aria-label', `Edit ${sourceLabel}`);
+                        editBtn.addEventListener('click', () => selectSourceForEditing(itemId, true));
+
                         const rmBtn = document.createElement('button');
                         rmBtn.type = 'button';
-                        rmBtn.className = 's-btn s-btn-xs s-btn-danger';
-                        rmBtn.textContent = '×';
-                        rmBtn.title = 'Remove from scene';
+                        rmBtn.className = 's-btn s-btn-xs';
+                        rmBtn.textContent = 'Remove';
+                        rmBtn.title = 'Remove from this scene';
+                        rmBtn.setAttribute('aria-label', `Remove ${sourceLabel} from scene`);
                         rmBtn.addEventListener('click', async () => {
                             rmBtn.disabled = true;
-                            if (selectedSceneItemId === itemId) selectedSceneItemId = null;
+                            if (selectedSceneItemId === itemId) {
+                                selectedSceneItemId = null;
+                                loadedSettingsKey = null;
+                            }
                             await sendObsCommand('RemoveSceneItem', {
                                 sceneName: editingScene,
                                 sceneItemId: itemId,
                             });
                         });
 
-                        btns.append(upBtn, downBtn, visBtn, lockBtn, rmBtn);
-                        row.append(selectBtn, btns);
+                        const delBtn = document.createElement('button');
+                        delBtn.type = 'button';
+                        delBtn.className = 's-btn s-btn-xs s-btn-danger';
+                        delBtn.textContent = 'Delete';
+                        delBtn.title = 'Delete source permanently across OBS';
+                        delBtn.setAttribute('aria-label', `Delete ${sourceLabel}`);
+                        delBtn.addEventListener('click', () => {
+                            if (!item.sourceName) return;
+                            selectedSceneItemId = itemId;
+                            pendingDeleteSourceName = item.sourceName;
+                            document.getElementById('delete-source-copy').textContent = `Permanently delete OBS source "${item.sourceName}" across all scenes inside OBS Studio? This cannot be undone.`;
+                            openDialog(document.getElementById('delete-source-dialog'));
+                        });
+
+                        btns.append(upBtn, downBtn, visBtn, lockBtn, editBtn, rmBtn, delBtn);
+                        row.append(topRow, btns);
                         listEl.appendChild(row);
                     });
 
@@ -2878,9 +2750,11 @@
                     if (!selectedItem || !selCard) {
                         loadedSettingsKey = null;
                         if (selCard) selCard.hidden = true;
+                        if (emptyCard) emptyCard.hidden = false;
                         return;
                     }
 
+                    if (emptyCard) emptyCard.hidden = true;
                     selCard.hidden = false;
                     document.getElementById('sel-source-name').textContent = selectedItem.sourceName || '';
                     document.getElementById('sel-source-kind').textContent = formatInputKindLabel(selectedItem.inputKind);
@@ -2894,7 +2768,7 @@
                     const rect = computeItemRect(selectedItem);
                     const setTransformFieldIfIdle = (id, val) => {
                         const field = document.getElementById(id);
-                        if (field && !isDraggingStage && document.activeElement !== field) {
+                        if (field && document.activeElement !== field) {
                             field.value = String(val);
                         }
                     };
@@ -3223,18 +3097,6 @@
                     });
                 });
 
-                // Inspector Tabs
-                document.querySelectorAll('[data-tab-btn]').forEach((btn) => {
-                    btn.addEventListener('click', () => {
-                        const target = btn.getAttribute('data-tab-btn');
-                        document.querySelectorAll('[data-tab-btn]').forEach((b) => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
-                        ['sources', 'audio', 'overlays'].forEach((id) => {
-                            const el = document.getElementById(`tab-${id}`);
-                            if (el) el.hidden = id !== target;
-                        });
-                    });
-                });
-
                 // Selected Source Rename, Transform, Visual Settings & Delete Controls
                 document.getElementById('btn-rename-source')?.addEventListener('click', async () => {
                     const item = getItemsForEditingScene().find((i) => Number(i.sceneItemId) === selectedSceneItemId);
@@ -3543,176 +3405,6 @@
                     setTimeout(refreshStudioSnapshot, 650);
                 });
 
-                // Live Preview Underlay Modes (Layout / Snapshot Feed / WebRTC Virtual Cam)
-                const previewImg = document.getElementById('live-preview-img');
-                const previewVideo = document.getElementById('webrtc-preview-video');
-                const previewStatusLabel = document.getElementById('stage-preview-status');
-
-                const stopVirtualCam = () => {
-                    if (vcamStream) {
-                        vcamStream.getTracks().forEach((t) => t.stop());
-                        vcamStream = null;
-                    }
-                    if (previewVideo) {
-                        previewVideo.srcObject = null;
-                        previewVideo.hidden = true;
-                    }
-                };
-
-                const getSnapshotConfig = () => {
-                    const mode = document.getElementById('live-view-mode')?.value;
-                    if (mode === 'snapshot-fast') {
-                        return { active: true, intervalMs: 1200, width: 768, label: 'OBS preview via WebSocket (1.2s · change-synced)' };
-                    }
-                    if (mode === 'snapshot') {
-                        return { active: true, intervalMs: 2500, width: 640, label: 'OBS preview via WebSocket (2.5s · change-synced)' };
-                    }
-                    return { active: false, intervalMs: 2500, width: 640, label: 'Layout mode' };
-                };
-
-                const sendPreviewControl = (controlPayload, allowHttpFallback = false) => {
-                    if (studioChannel?.subscription?.subscribed) {
-                        try {
-                            studioChannel.whisper('obs.preview.subscribe', controlPayload);
-                            return Promise.resolve({ via: 'websocket' });
-                        } catch {
-                            // Fall through to HTTP toggle fallback when whisper fails
-                        }
-                    }
-
-                    if (!allowHttpFallback) {
-                        return Promise.resolve({ via: 'pending' });
-                    }
-
-                    return postJson(endpoints.previewToggle, {
-                        active: Boolean(controlPayload.active),
-                        scene_name: controlPayload.sceneName ?? null,
-                        interval_ms: controlPayload.intervalMs ?? 2500,
-                        width: controlPayload.width ?? 640,
-                    }).catch(() => {});
-                };
-
-                const enableSnapshotPreview = async (active) => {
-                    clearInterval(previewLeaseTimer);
-                    clearInterval(previewFallbackTimer);
-                    clearTimeout(previewControlFallbackTimer);
-
-                    if (!active || document.hidden) {
-                        if (!active && previewImg) previewImg.hidden = true;
-                        await sendPreviewControl({ active: false }, !studioChannel?.subscription?.subscribed);
-                        return;
-                    }
-
-                    const cfg = getSnapshotConfig();
-                    if (!cfg.active) return;
-                    if (previewStatusLabel) previewStatusLabel.textContent = cfg.label;
-
-                    const controlPayload = {
-                        active: true,
-                        sceneName: editingScene || null,
-                        intervalMs: cfg.intervalMs,
-                        width: cfg.width,
-                    };
-
-                    if (studioChannel?.subscription?.subscribed) {
-                        await sendPreviewControl(controlPayload, false);
-                    } else if (!window.Echo) {
-                        await sendPreviewControl(controlPayload, true);
-                    } else {
-                        // Wait briefly for Echo channel auth to complete, only using HTTP if WebSocket never joined
-                        previewControlFallbackTimer = setTimeout(() => {
-                            if (!studioChannel?.subscription?.subscribed && !document.hidden && isSnapshotMode()) {
-                                sendPreviewControl(controlPayload, true);
-                            }
-                        }, 1600);
-                    }
-
-                    if (previewImg) {
-                        previewImg.onerror = () => { previewImg.hidden = true; };
-                        previewImg.onload = () => { previewImg.hidden = false; };
-                        if (!window.Echo) {
-                            previewImg.src = `${endpoints.previewFrame}?t=${Date.now()}`;
-                        }
-                    }
-
-                    previewLeaseTimer = setInterval(() => {
-                        if (!document.hidden && isSnapshotMode()) {
-                            sendPreviewControl({
-                                active: true,
-                                sceneName: editingScene || null,
-                                intervalMs: cfg.intervalMs,
-                                width: cfg.width,
-                            }, !studioChannel?.subscription?.subscribed);
-                        }
-                    }, 25000);
-
-                    if (!window.Echo) {
-                        previewFallbackTimer = setInterval(() => {
-                            if (!document.hidden && isSnapshotMode()) refreshStudioSnapshot();
-                        }, Math.max(3000, cfg.intervalMs));
-                    }
-                };
-
-                document.getElementById('live-view-mode')?.addEventListener('change', async (ev) => {
-                    const mode = ev.target.value;
-                    stopVirtualCam();
-                    await enableSnapshotPreview(false);
-
-                    if (mode === 'snapshot' || mode === 'snapshot-fast') {
-                        await enableSnapshotPreview(true);
-                    } else if (mode === 'vcam') {
-                        if (!navigator.mediaDevices?.getUserMedia) {
-                            showToast('WebRTC getUserMedia not supported in this browser', 'error');
-                            ev.target.value = 'layout';
-                            return;
-                        }
-                        try {
-                            vcamStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                            if (previewVideo) {
-                                previewVideo.srcObject = vcamStream;
-                                previewVideo.hidden = false;
-                            }
-                            if (previewStatusLabel) previewStatusLabel.textContent = 'Local camera / Virtual Cam active';
-                        } catch {
-                            showToast('Camera / Virtual Cam permission denied', 'error');
-                            ev.target.value = 'layout';
-                            if (previewStatusLabel) previewStatusLabel.textContent = 'Layout mode';
-                        }
-                    } else if (previewStatusLabel) {
-                        previewStatusLabel.textContent = 'Layout mode';
-                    }
-                });
-
-                document.addEventListener('visibilitychange', () => {
-                    if (!isSnapshotMode()) return;
-                    if (document.hidden) {
-                        clearInterval(previewLeaseTimer);
-                        clearInterval(previewFallbackTimer);
-                        clearTimeout(previewControlFallbackTimer);
-                        sendPreviewControl({ active: false }, !studioChannel?.subscription?.subscribed);
-                    } else {
-                        enableSnapshotPreview(true);
-                    }
-                });
-
-                window.addEventListener('beforeunload', () => {
-                    stopVirtualCam();
-                    clearInterval(previewLeaseTimer);
-                    clearInterval(previewFallbackTimer);
-                    clearTimeout(previewControlFallbackTimer);
-                });
-
-                const applyIncomingPreviewFrame = (payload) => {
-                    lastEchoPreviewAt = Date.now();
-                    if (payload?.version) lastSeenPreviewVersion = payload.version;
-                    if (isSnapshotMode() && previewImg) {
-                        previewImg.src = payload?.image_data
-                            ? payload.image_data
-                            : `${endpoints.previewFrame}?v=${encodeURIComponent(payload?.version || Date.now())}`;
-                        previewImg.hidden = false;
-                    }
-                };
-
                 const installDialog = document.getElementById('install-agent-dialog');
                 const installBanner = document.getElementById('agent-offline-banner');
                 const installModalText = document.getElementById('install-modal-live-text');
@@ -3896,15 +3588,8 @@
                         }
                     };
                     studioChannel = window.Echo.private(`obs.studio.${studioId}`)
-                        .subscribed(() => {
-                            if (isSnapshotMode() && !document.hidden) {
-                                enableSnapshotPreview(true);
-                            }
-                        })
                         .listen('.obs.studio.state', handleStudioStateEvent)
                         .listenForWhisper('obs.studio.state', handleStudioStateEvent)
-                        .listenForWhisper('obs.preview.frame', applyIncomingPreviewFrame)
-                        .listen('.obs.preview.frame', applyIncomingPreviewFrame)
                         .listen('.obs.command.acknowledged', handleCommandAckEvent)
                         .listenForWhisper('obs.command.acknowledged', handleCommandAckEvent);
                 }
@@ -3921,11 +3606,6 @@
                 if (studioStatus === 'offline' && !agentReachable && !alreadyDismissed && installDialog) {
                     openDialog(installDialog);
                     startInstallDialogPolling();
-                }
-
-                // Auto-start Balanced OBS WebSocket Preview when Studio is online
-                if (isSnapshotMode() && !document.hidden) {
-                    enableSnapshotPreview(true);
                 }
             })();
         </script>
