@@ -72,11 +72,16 @@ class ObsCommandService
         string $requestType,
         array $requestData = [],
         ?User $user = null,
+        ?string $commandUuid = null,
     ): ObsCommandLog {
+        $resolvedUuid = ($commandUuid !== null && Str::isUuid($commandUuid))
+            ? strtolower($commandUuid)
+            : (string) Str::uuid();
+
         $log = ObsCommandLog::query()->create([
             'obs_studio_id' => $studio->id,
             'user_id' => $user?->id,
-            'command_uuid' => (string) Str::uuid(),
+            'command_uuid' => $resolvedUuid,
             'request_type' => $requestType,
             'request_data' => $requestData,
             'status' => 'dispatched',

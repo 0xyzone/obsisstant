@@ -65,6 +65,7 @@ class ObsMobileDeckController extends Controller
         $user = $this->authorizeStudio($request, $studio);
 
         $validated = $request->validate([
+            'command_uuid' => ['nullable', 'uuid'],
             'request_type' => ['required', 'string', 'max:120'],
             'request_data' => ['nullable', 'array'],
         ]);
@@ -74,6 +75,7 @@ class ObsMobileDeckController extends Controller
             requestType: $validated['request_type'],
             requestData: $validated['request_data'] ?? [],
             user: $user,
+            commandUuid: $validated['command_uuid'] ?? null,
         );
 
         return response()->json([

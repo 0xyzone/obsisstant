@@ -120,6 +120,7 @@ class StudioWorker {
         this.commandChannel = null;
         this.studioChannel = null;
         this.handledCommandUuids = new Set();
+        this.lastCommandSceneSync = { sceneName: null, at: 0 };
         this.liveState = emptyLiveState();
         this.signature = this.buildSignature(this.studio);
         this.bindObsEvents();
@@ -371,7 +372,6 @@ class StudioWorker {
             await this.pushState({
                 currentProgramScene: requestData.sceneName,
                 sceneItems: items,
-                sceneItemsByScene: this.liveState.sceneItemsByScene,
             });
             if (this.previewConfig.active) {
                 this.captureAndUploadPreviewFrame(true);
@@ -908,14 +908,63 @@ class StudioWorker {
         return data;
     }
 
+    deriveStatus() {
+        if (!this.obsConnected) {
+            return 'offline';
+        }
+        if (this.liveState?.outputs?.streaming) {
+            return 'streaming';
+        }
+        if (this.liveState?.outputs?.recording) {
+            return 'recording';
+        }
+        return 'online';
+    }
+
+    emitWhisper(eventName, payload) {
+        if (!this.studioChannel?.subscribed) {
+            return false;
+        }
+        try {
+            return Boolean(this.studioChannel.trigger(eventName, payload));
+        } catch {
+            return false;
+        }
+    }
+
+    async ackCommandWithRetry(uuid, body) {
+        if (!uuid) {
+            return;
+        }
+        const retryDelays = [0, 350, 750, 1400];
+        for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+            if (retryDelays[attempt] > 0) {
+                await new Promise((resolve) => setTimeout(resolve, retryDelays[attempt]));
+            }
+            try {
+                await apiRequest(`/api/obs-agent/commands/${uuid}/ack`, 'POST', body);
+                return;
+            } catch (error) {
+                const isNotFound = String(error?.message || '').includes('(404)');
+                if (!isNotFound || attempt === retryDelays.length - 1) {
+                    console.error(`${this.logPrefix()} Ack failed:`, error.message);
+                    return;
+                }
+            }
+        }
+    }
+
     async executeCommand(payload) {
-        const { command_uuid: uuid, request_type: requestType, request_data: requestData = {} } = payload;
+        const { command_uuid: uuid, request_type: requestType, request_data: requestData = {} } = payload || {};
+        if (!requestType) {
+            return;
+        }
         if (requestType !== 'obsisstant.SetPreviewStream' && this.rememberCommand(uuid)) {
             return;
         }
         const normalizedData = this.normalizeObsPayload(requestType, requestData);
         if (requestType !== 'obsisstant.SetPreviewStream') {
-            console.log(`${this.logPrefix()} Executing ${requestType} (${uuid})`);
+            console.log(`${this.logPrefix()} Executing ${requestType} (${uuid || 'whisper'})`);
         }
 
         try {
@@ -924,6 +973,7 @@ class StudioWorker {
             }
 
             let responseData = {};
+            let deferBackgroundSync = null;
 
             if (requestType === 'obsisstant.PushBrowserScreen') {
                 responseData = await this.handlePushBrowserScreen(normalizedData);
@@ -947,12 +997,33 @@ class StudioWorker {
                       }))
                     : [];
                 responseData = await this.obs.callBatch(batch);
-                await this.refreshAllState();
+                deferBackgroundSync = () => this.refreshAllState();
             } else if (requestType === 'obsisstant.RefreshAllState') {
                 await this.refreshAllState();
                 responseData = { refreshed: true };
             } else {
                 responseData = (await this.obs.call(requestType, normalizedData)) ?? {};
+
+                if (requestType === 'SetCurrentProgramScene' && normalizedData.sceneName) {
+                    const nextScene = normalizedData.sceneName;
+                    const cachedItems = this.liveState.sceneItemsByScene?.[nextScene];
+                    this.liveState.currentProgramScene = nextScene;
+                    if (Array.isArray(cachedItems)) {
+                        this.liveState.sceneItems = cachedItems;
+                    }
+                    this.lastCommandSceneSync = { sceneName: nextScene, at: Date.now() };
+                    this.emitWhisper('client-obs.studio.state', {
+                        studio_id: this.studio.id,
+                        slug: this.studio.slug,
+                        status: this.deriveStatus(),
+                        is_online: true,
+                        live_state: {
+                            currentProgramScene: nextScene,
+                            ...(Array.isArray(cachedItems) ? { sceneItems: cachedItems } : {}),
+                        },
+                    });
+                }
+
                 const incrementalEventCommands = new Set([
                     'SetSceneItemTransform',
                     'SetSceneItemEnabled',
@@ -964,41 +1035,77 @@ class StudioWorker {
                     'SetStudioModeEnabled',
                 ]);
                 if (incrementalEventCommands.has(requestType)) {
-                    await this.syncIncrementalCommandState(requestType, normalizedData);
+                    deferBackgroundSync = () => this.syncIncrementalCommandState(requestType, normalizedData);
                 } else {
-                    this.scheduleRefreshAllState(180);
+                    deferBackgroundSync = () => this.scheduleRefreshAllState(180);
                 }
             }
 
-            await apiRequest(`/api/obs-agent/commands/${uuid}/ack`, 'POST', {
+            const executedAt = new Date().toISOString();
+            this.emitWhisper('client-obs.command.acknowledged', {
+                command_uuid: uuid,
                 studio_id: this.studio.id,
+                request_type: requestType,
                 status: 'succeeded',
-                response_data: responseData,
+                has_response_data: Boolean(responseData && Object.keys(responseData).length > 0),
+                error_message: null,
+                executed_at: executedAt,
             });
+
+            if (deferBackgroundSync) {
+                void Promise.resolve(deferBackgroundSync()).catch(() => {});
+                void this.ackCommandWithRetry(uuid, {
+                    studio_id: this.studio.id,
+                    status: 'succeeded',
+                    response_data: responseData,
+                });
+            } else {
+                await this.ackCommandWithRetry(uuid, {
+                    studio_id: this.studio.id,
+                    status: 'succeeded',
+                    response_data: responseData,
+                });
+            }
         } catch (error) {
             console.error(`${this.logPrefix()} Command failed (${requestType}):`, error.message);
-            try {
-                await apiRequest(`/api/obs-agent/commands/${uuid}/ack`, 'POST', {
-                    studio_id: this.studio.id,
-                    status: 'failed',
-                    error_message: error.message,
-                });
-            } catch (ackError) {
-                console.error(`${this.logPrefix()} Ack failed:`, ackError.message);
-            }
+            this.emitWhisper('client-obs.command.acknowledged', {
+                command_uuid: uuid,
+                studio_id: this.studio.id,
+                request_type: requestType,
+                status: 'failed',
+                error_message: error.message,
+                executed_at: new Date().toISOString(),
+            });
+            await this.ackCommandWithRetry(uuid, {
+                studio_id: this.studio.id,
+                status: 'failed',
+                error_message: error.message,
+            });
         }
     }
 
     bindObsEvents() {
         this.obs.on('CurrentProgramSceneChanged', async ({ sceneName }) => {
+            if (this.lastCommandSceneSync?.sceneName === sceneName && Date.now() - this.lastCommandSceneSync.at < 1500) {
+                return;
+            }
             this.liveState.currentProgramScene = sceneName;
             const items = await this.hydrateSceneItems(sceneName);
             this.liveState.sceneItems = items;
             this.liveState.sceneItemsByScene[sceneName] = items;
+            this.emitWhisper('client-obs.studio.state', {
+                studio_id: this.studio.id,
+                slug: this.studio.slug,
+                status: this.deriveStatus(),
+                is_online: true,
+                live_state: {
+                    currentProgramScene: sceneName,
+                    sceneItems: items,
+                },
+            });
             await this.pushState({
                 currentProgramScene: sceneName,
                 sceneItems: items,
-                sceneItemsByScene: this.liveState.sceneItemsByScene,
             });
             if (this.previewConfig.active) {
                 this.lastPreviewHash = null;
@@ -1167,6 +1274,9 @@ class StudioWorker {
         });
         this.studioChannel.bind('client-obs.preview.subscribe', (payload) => {
             this.handleSetPreviewStream(payload);
+        });
+        this.studioChannel.bind('client-obs.command', (payload) => {
+            this.executeCommand(payload);
         });
     }
 

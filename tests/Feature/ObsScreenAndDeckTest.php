@@ -265,5 +265,28 @@ class ObsScreenAndDeckTest extends TestCase
         $agentJs = file_get_contents(base_path('obs-agent/src/index.js')) ?: '';
         $this->assertStringContainsString('Pusher.Runtime.createWebSocket', $agentJs);
         $this->assertStringContainsString('pollPendingCommands', $agentJs);
+        $this->assertStringContainsString('client-obs.command', $agentJs);
+        $this->assertStringContainsString('ackCommandWithRetry', $agentJs);
+
+        // Client-generated UUIDs are preserved across Mobile Deck & Control Center dispatches
+        $clientDeckUuid = '11111111-2222-4333-8444-555555555555';
+        $this->actingAs($user)
+            ->postJson(route('obs.deck.command', ['studio' => $studio->slug]), [
+                'command_uuid' => $clientDeckUuid,
+                'request_type' => 'SetCurrentProgramScene',
+                'request_data' => ['sceneName' => 'Intro'],
+            ])
+            ->assertOk()
+            ->assertJsonPath('command_uuid', $clientDeckUuid);
+
+        $clientStudioUuid = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+        $this->actingAs($user)
+            ->postJson(route('studio.command', ['studio' => $studio->slug]), [
+                'command_uuid' => $clientStudioUuid,
+                'request_type' => 'SetCurrentProgramScene',
+                'request_data' => ['sceneName' => 'Main'],
+            ])
+            ->assertOk()
+            ->assertJsonPath('command_uuid', $clientStudioUuid);
     }
 }

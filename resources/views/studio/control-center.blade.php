@@ -1702,6 +1702,16 @@
                             }
                         }
                     }
+                    if (!Array.isArray(nextState.scenes) && liveState && typeof liveState === 'object') {
+                        liveState = { ...liveState, ...nextState };
+                        if (nextState.currentProgramScene && Array.isArray(nextState.sceneItems)) {
+                            liveState.sceneItemsByScene = {
+                                ...(liveState.sceneItemsByScene || {}),
+                                [nextState.currentProgramScene]: nextState.sceneItems,
+                            };
+                        }
+                        return;
+                    }
                     liveState = nextState;
                 };
 
@@ -1758,6 +1768,21 @@
                     }, delayMs);
                 };
 
+                const createCommandUuid = () => {
+                    if (window.crypto?.randomUUID) {
+                        return window.crypto.randomUUID();
+                    }
+                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                        const r = (Math.random() * 16) | 0;
+                        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+                    });
+                };
+
+                const isEchoReady = () => Boolean(
+                    studioChannel?.subscription?.subscribed
+                    && window.Echo?.connector?.pusher?.connection?.state === 'connected'
+                );
+
                 const waitForCommandResult = (commandUuid, timeoutMs = 4500) => new Promise((resolve) => {
                     let done = false;
                     const finish = (data) => {
@@ -1793,8 +1818,8 @@
                         setTimeout(poll, 350);
                     };
 
-                    // Let Echo push resolve instantaneously; only fall back to HTTP if delayed
-                    setTimeout(poll, window.Echo ? 750 : 220);
+                    // Let Echo whisper or server broadcast resolve instantaneously; only poll HTTP if delayed
+                    setTimeout(poll, isEchoReady() ? 1150 : 250);
                 });
 
                 const postJson = async (url, body = {}) => {
@@ -1817,18 +1842,46 @@
                 const sendObsCommand = async (requestType, requestData = {}, options = {}) => {
                     const { wait = true, silent = false } = options;
                     const label = formatCommandLabel(requestType);
+                    const needsFullResponse = requestType === 'obsisstant.FetchInputSettings'
+                        || requestType === 'obsisstant.PickLocalDirectory';
+                    const commandUuid = createCommandUuid();
                     if (!silent) showToast(`${label}...`);
 
                     try {
-                        const res = await postJson(endpoints.command, {
+                        const waitPromise = wait ? waitForCommandResult(commandUuid, 4500) : null;
+                        let usedWhisper = false;
+                        if (!needsFullResponse && isEchoReady()) {
+                            try {
+                                usedWhisper = Boolean(studioChannel.whisper('obs.command', {
+                                    command_uuid: commandUuid,
+                                    studio_id: studioId,
+                                    request_type: requestType,
+                                    request_data: requestData,
+                                }));
+                            } catch {
+                                usedWhisper = false;
+                            }
+                        }
+
+                        const httpPromise = postJson(endpoints.command, {
+                            command_uuid: commandUuid,
                             request_type: requestType,
                             request_data: requestData,
                         });
 
-                        if (!wait) return res;
+                        if (!wait) {
+                            return await httpPromise;
+                        }
 
-                        const settled = await waitForCommandResult(res.command_uuid, 4500);
-                        if (requestType !== 'obsisstant.FetchInputSettings' && (Date.now() - lastEchoStateAt) > 650) {
+                        const httpGuard = httpPromise.catch((err) => {
+                            if (pendingCommandResolvers.has(commandUuid)) {
+                                pendingCommandResolvers.get(commandUuid)({ status: 'failed', error_message: err.message });
+                            }
+                            throw err;
+                        });
+
+                        const settled = await waitPromise;
+                        if (!usedWhisper && (Date.now() - lastEchoStateAt) > 650 && !needsFullResponse) {
                             scheduleSnapshotRefresh(220);
                         }
 
@@ -1837,7 +1890,7 @@
                         } else if (settled?.status === 'succeeded') {
                             if (!silent) showToast(`${label} complete`, 'success');
                         } else {
-                            if (requestType !== 'obsisstant.FetchInputSettings') {
+                            if (!needsFullResponse) {
                                 scheduleSnapshotRefresh(400);
                             }
                             if (!silent) {
@@ -1850,6 +1903,7 @@
                             }
                         }
 
+                        const res = await httpGuard.catch(() => ({ ok: usedWhisper, command_uuid: commandUuid, request_type: requestType }));
                         return { ...res, settled };
                     } catch (err) {
                         showToast(`Failed ${label}: ${err.message}`, 'error');
@@ -3813,38 +3867,46 @@
                         runtimeCfg.forceTLS = window.location.protocol === 'https:';
                     }
                     window.Echo = new window.EchoFactory(runtimeCfg);
+                    const handleStudioStateEvent = (payload) => {
+                        lastEchoStateAt = Date.now();
+                        if (payload?.status) {
+                            studioStatus = payload.status;
+                            agentReachable = true;
+                        }
+                        if (payload?.live_state) applyIncomingLiveState(payload.live_state);
+                        renderAll();
+                    };
+                    const handleCommandAckEvent = (payload) => {
+                        const isWhisperPayload = payload && !('response_data' in payload);
+                        const needsFullResponse = payload?.request_type === 'obsisstant.FetchInputSettings'
+                            || payload?.request_type === 'obsisstant.PickLocalDirectory';
+                        const resolver = pendingCommandResolvers.get(payload?.command_uuid);
+                        if (resolver && !(isWhisperPayload && needsFullResponse)) {
+                            resolver(payload);
+                        }
+                        if (payload?.status === 'failed' && payload?.error_message) {
+                            showToast(`OBS Error: ${payload.error_message}`, 'error');
+                        }
+                        if (
+                            !isWhisperPayload
+                            && payload?.request_type !== 'obsisstant.FetchInputSettings'
+                            && (Date.now() - lastEchoStateAt) > 650
+                        ) {
+                            scheduleSnapshotRefresh(400);
+                        }
+                    };
                     studioChannel = window.Echo.private(`obs.studio.${studioId}`)
                         .subscribed(() => {
                             if (isSnapshotMode() && !document.hidden) {
                                 enableSnapshotPreview(true);
                             }
                         })
-                        .listen('.obs.studio.state', (payload) => {
-                            lastEchoStateAt = Date.now();
-                            if (payload.status) {
-                                studioStatus = payload.status;
-                                agentReachable = true;
-                            }
-                            if (payload.live_state) applyIncomingLiveState(payload.live_state);
-                            renderAll();
-                        })
+                        .listen('.obs.studio.state', handleStudioStateEvent)
+                        .listenForWhisper('obs.studio.state', handleStudioStateEvent)
                         .listenForWhisper('obs.preview.frame', applyIncomingPreviewFrame)
                         .listen('.obs.preview.frame', applyIncomingPreviewFrame)
-                        .listen('.obs.command.acknowledged', (payload) => {
-                            const resolver = pendingCommandResolvers.get(payload.command_uuid);
-                            if (resolver) {
-                                resolver(payload);
-                            }
-                            if (payload.status === 'failed' && payload.error_message) {
-                                showToast(`OBS Error: ${payload.error_message}`, 'error');
-                            }
-                            if (
-                                payload.request_type !== 'obsisstant.FetchInputSettings'
-                                && (Date.now() - lastEchoStateAt) > 650
-                            ) {
-                                scheduleSnapshotRefresh(400);
-                            }
-                        });
+                        .listen('.obs.command.acknowledged', handleCommandAckEvent)
+                        .listenForWhisper('obs.command.acknowledged', handleCommandAckEvent);
                 }
 
                 renderAll();

@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.11.5] - 2026-11-24 | type: macro
+
+> Eliminate multi-second scene switching lag with direct WebSocket whisper commands, non-blocking acks, and slim delta state sync
+
+### Fixed
+- Add client-obs.command whisper fast-path across Mobile Deck, Studio Control Center, and obs-agent backed by shared command_uuid audit logging
+- Acknowledge fast OBS scene/control commands immediately before background state sync and omit full sceneItemsByScene bloat on scene switches
+- Deduplicate redundant CurrentProgramSceneChanged pushes and retry 404 acks during fast whisper/HTTP races
+
 ## [v1.11.4] - 2026-11-24 | type: macro
 
 > Fix obs-agent Pusher WebSocket transport, add pending command fallback polling, and improve Studio/Deck feedback

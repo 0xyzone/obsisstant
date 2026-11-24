@@ -393,6 +393,7 @@
         <script>
             (() => {
                 const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+                const studioId = @json($studio->id);
                 const cmdUrl = {!! json_encode(route('obs.deck.command', ['studio' => $studio->slug], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
                 const macroUrlTpl = {!! json_encode(route('obs.deck.macro', ['studio' => $studio->slug, 'macro' => '__MACRO__'], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
                 const screenLiveUrlTpl = {!! json_encode(route('obs.deck.screen-live', ['screen' => '__SCREEN__'], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
@@ -404,7 +405,24 @@
                 let studioOnline = @json($studio->isOnline());
                 let currentProgramScene = @json($studio->getCurrentProgramScene());
                 let lastEchoAt = 0;
+                let studioChannel = null;
+                let latestSceneTapSeq = 0;
                 const pendingResolvers = new Map();
+
+                const createCommandUuid = () => {
+                    if (window.crypto?.randomUUID) {
+                        return window.crypto.randomUUID();
+                    }
+                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                        const r = (Math.random() * 16) | 0;
+                        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+                    });
+                };
+
+                const isEchoReady = () => Boolean(
+                    studioChannel?.subscription?.subscribed
+                    && window.Echo?.connector?.pusher?.connection?.state === 'connected'
+                );
 
                 const showToast = (msg, isError = false) => {
                     if (feedbackEl) {
@@ -474,7 +492,8 @@
                         setTimeout(poll, 350);
                     };
 
-                    setTimeout(poll, window.Echo ? 800 : 250);
+                    // Wait briefly for Echo/whisper confirmation before polling HTTP fallback
+                    setTimeout(poll, isEchoReady() ? 1150 : 250);
                 });
 
                 const applyLiveState = (status, isOnlineFlag, liveState) => {
@@ -565,23 +584,49 @@
 
                 const sendDeckCommand = async (requestType, requestData = {}, successLabel = null) => {
                     const prevScene = currentProgramScene;
-                    try {
-                        const res = await postJson(cmdUrl, {
-                            request_type: requestType,
-                            request_data: requestData,
-                        });
-                        showToast(successLabel ? `${successLabel} (sending...)` : `Sending ${requestType}...`);
+                    const tapSeq = requestType === 'SetCurrentProgramScene' ? ++latestSceneTapSeq : latestSceneTapSeq;
+                    const commandUuid = createCommandUuid();
+                    const resultPromise = waitForCommandResult(commandUuid, 4500);
+                    let usedWhisper = false;
 
-                        const settled = await waitForCommandResult(res.command_uuid, 4500);
+                    if (isEchoReady()) {
+                        try {
+                            usedWhisper = Boolean(studioChannel.whisper('obs.command', {
+                                command_uuid: commandUuid,
+                                studio_id: studioId,
+                                request_type: requestType,
+                                request_data: requestData,
+                            }));
+                        } catch {
+                            usedWhisper = false;
+                        }
+                    }
+
+                    showToast(successLabel || `Sending ${requestType}...`);
+
+                    const httpPromise = postJson(cmdUrl, {
+                        command_uuid: commandUuid,
+                        request_type: requestType,
+                        request_data: requestData,
+                    }).catch((err) => {
+                        if (pendingResolvers.has(commandUuid)) {
+                            pendingResolvers.get(commandUuid)({ status: 'failed', error_message: err.message });
+                        }
+                        throw err;
+                    });
+
+                    try {
+                        const settled = await resultPromise;
                         if (settled?.status === 'failed') {
-                            rollbackSceneSelection(requestType, prevScene);
+                            if (requestType !== 'SetCurrentProgramScene' || tapSeq === latestSceneTapSeq) {
+                                rollbackSceneSelection(requestType, prevScene);
+                            }
                             showToast(`OBS Error: ${settled.error_message || 'Command failed'}`, true);
                         } else if (settled?.status === 'succeeded') {
-                            showToast(successLabel || `Done: ${requestType}`);
-                            if (Date.now() - lastEchoAt > 600) {
+                            if (!usedWhisper && Date.now() - lastEchoAt > 600) {
                                 refreshSnapshot();
                             }
-                        } else {
+                        } else if (requestType !== 'SetCurrentProgramScene' || tapSeq === latestSceneTapSeq) {
                             rollbackSceneSelection(requestType, prevScene);
                             await refreshSnapshot();
                             showToast(
@@ -591,8 +636,11 @@
                                 true,
                             );
                         }
+                        await httpPromise.catch(() => {});
                     } catch (err) {
-                        rollbackSceneSelection(requestType, prevScene);
+                        if (requestType !== 'SetCurrentProgramScene' || tapSeq === latestSceneTapSeq) {
+                            rollbackSceneSelection(requestType, prevScene);
+                        }
                         showToast(`Failed: ${err.message}`, true);
                     }
                 };
@@ -661,21 +709,25 @@
                         runtimeCfg.wsHost = window.location.hostname;
                         runtimeCfg.forceTLS = window.location.protocol === 'https:';
                     }
+                    const handleStudioState = (payload) => {
+                        lastEchoAt = Date.now();
+                        applyLiveState(payload?.status, payload?.is_online, payload?.live_state);
+                    };
+                    const handleCommandAck = (payload) => {
+                        const resolver = pendingResolvers.get(payload?.command_uuid);
+                        if (resolver) {
+                            resolver(payload);
+                        }
+                        if (payload?.status === 'failed' && payload?.error_message) {
+                            showToast(`OBS Error: ${payload.error_message}`, true);
+                        }
+                    };
                     window.Echo = new window.EchoFactory(runtimeCfg);
-                    window.Echo.private(@json("obs.studio.{$studio->id}"))
-                        .listen('.obs.studio.state', (payload) => {
-                            lastEchoAt = Date.now();
-                            applyLiveState(payload.status, payload.is_online, payload.live_state);
-                        })
-                        .listen('.obs.command.acknowledged', (payload) => {
-                            const resolver = pendingResolvers.get(payload.command_uuid);
-                            if (resolver) {
-                                resolver(payload);
-                            }
-                            if (payload.status === 'failed' && payload.error_message) {
-                                showToast(`OBS Error: ${payload.error_message}`, true);
-                            }
-                        });
+                    studioChannel = window.Echo.private(@json("obs.studio.{$studio->id}"))
+                        .listen('.obs.studio.state', handleStudioState)
+                        .listenForWhisper('obs.studio.state', handleStudioState)
+                        .listen('.obs.command.acknowledged', handleCommandAck)
+                        .listenForWhisper('obs.command.acknowledged', handleCommandAck);
                 }
 
                 document.addEventListener('visibilitychange', () => {
