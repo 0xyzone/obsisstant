@@ -24,6 +24,8 @@ use Throwable;
     'obs_port',
     'obs_password',
     'media_storage_path',
+    'control_mode',
+    'active_screen_collection_id',
     'status',
     'is_active',
     'last_seen_at',
@@ -119,6 +121,16 @@ class ObsStudio extends Model
     public function screens(): HasMany
     {
         return $this->hasMany(ObsScreen::class);
+    }
+
+    public function screenCollections(): HasMany
+    {
+        return $this->hasMany(ScreenCollection::class, 'obs_studio_id');
+    }
+
+    public function activeScreenCollection(): BelongsTo
+    {
+        return $this->belongsTo(ScreenCollection::class, 'active_screen_collection_id');
     }
 
     public function macros(): HasMany

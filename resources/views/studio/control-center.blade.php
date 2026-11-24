@@ -793,11 +793,62 @@
                 .audio-item,
                 dialog.obs-dialog,
                 .obs-reverb-pill,
-                .obs-brand-version-pill {
+                .obs-brand-version-pill,
+                .view-pad-btn {
                     background: Canvas;
                     color: CanvasText;
                     border: 1px solid CanvasText;
                 }
+            }
+
+            .mode-pill-group {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.25rem;
+                padding: 0.2rem;
+                border-radius: 0.55rem;
+                border: 1px solid var(--hairline);
+                background: var(--bg-chrome);
+            }
+
+            .view-pads-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+                gap: 0.625rem;
+            }
+
+            .view-pad-btn {
+                display: grid;
+                gap: 0.25rem;
+                text-align: start;
+                padding: 0.75rem 0.85rem;
+                border-radius: 0.75rem;
+                border: 1px solid var(--hairline);
+                background: var(--bg-raised);
+                color: var(--ink-primary);
+                font: inherit;
+                cursor: pointer;
+                transition: border-color 140ms var(--ease-out), background-color 140ms var(--ease-out);
+            }
+
+            .view-pad-btn:hover {
+                border-color: var(--gold-accent);
+                background: #23221D;
+            }
+
+            .view-pad-btn.is-active {
+                border-color: var(--gold-light);
+                background: linear-gradient(155deg, rgba(205, 173, 105, 0.24), rgba(45, 31, 17, 0.35));
+                box-shadow: inset 3px 0 0 var(--positive);
+            }
+
+            #classic-scenes-panel[hidden],
+            #unified-collections-panel[hidden],
+            #classic-sources-workspace[hidden],
+            #unified-screen-workspace[hidden],
+            #unified-no-collection-card[hidden],
+            #unified-active-stage-body[hidden] {
+                display: none !important;
             }
         </style>
     </head>
@@ -822,6 +873,22 @@
                         </option>
                     @endforeach
                 </select>
+                <div class="mode-pill-group" role="group" aria-label="Studio Control Mode">
+                    <button
+                        type="button"
+                        class="s-btn s-btn-xs{{ ($controlMode ?? 'obs') !== 'screens' ? ' is-active' : '' }}"
+                        data-studio-mode="obs"
+                    >
+                        OBS Scenes
+                    </button>
+                    <button
+                        type="button"
+                        class="s-btn s-btn-xs{{ ($controlMode ?? 'obs') === 'screens' ? ' is-active' : '' }}"
+                        data-studio-mode="screens"
+                    >
+                        Unified Screen
+                    </button>
+                </div>
                 <span id="studio-live-badge" class="stat-chip {{ $studio->isOnline() ? 'is-live' : '' }}">
                     {{ ucfirst($studio->status) }}
                 </span>
@@ -843,9 +910,9 @@
         <main class="workspace-grid">
             <h1 class="visually-hidden">Studio Control Center — {{ $studio->name }}</h1>
 
-            {{-- Left Column: Scenes Manager, Broadcast Outputs & Macros --}}
+            {{-- Left Column: Scenes/Screen Collections, Broadcast Outputs & Macros --}}
             <section class="studio-column" aria-label="Show Control: Scenes, Outputs and Macros">
-                <div class="dock-panel">
+                <div id="classic-scenes-panel" class="dock-panel" @if (($controlMode ?? 'obs') === 'screens') hidden @endif>
                     <div class="dock-head">
                         <div>
                             <h2 class="dock-title">Scenes &amp; Collections</h2>
@@ -869,6 +936,32 @@
                     </div>
 
                     <div id="scenes-list" class="scene-list"></div>
+                </div>
+
+                <div id="unified-collections-panel" class="dock-panel" @if (($controlMode ?? 'obs') !== 'screens') hidden @endif>
+                    <div class="dock-head">
+                        <div>
+                            <h2 class="dock-title">Screen Collections</h2>
+                            <div class="dock-subtitle">Event &amp; Tournament browser setups</div>
+                        </div>
+                        <button type="button" class="s-btn s-btn-xs s-btn-gold" id="btn-new-unified-col" commandfor="create-unified-collection-dialog" command="show-modal">+ New</button>
+                    </div>
+
+                    <label class="field-stack">
+                        <span class="field-label">Active Event / Tournament Collection</span>
+                        <select id="unified-collection-select" class="s-select" style="inline-size: 100%; min-block-size: 2rem; font-size: 0.75rem;"></select>
+                    </label>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.375rem;">
+                        <a id="unified-builder-link" href="#" class="s-btn s-btn-gold">Canvas Builder</a>
+                        <a id="unified-open-stage-link" href="#" target="_blank" class="s-btn">Open Stage</a>
+                        <button type="button" id="btn-copy-unified-url" class="s-btn">Copy URL</button>
+                        <button type="button" id="btn-push-unified-obs" class="s-btn s-btn-gold">Push to OBS</button>
+                    </div>
+
+                    <p class="dock-subtitle" style="margin: 0; font-size: 0.6875rem;">
+                        Use <strong>Push to OBS</strong> to set up the single OBS Scene &amp; Browser Source automatically, or paste the Collection URL into your OBS Browser Source.
+                    </p>
                 </div>
 
                 <div class="dock-panel">
@@ -906,7 +999,7 @@
                 </div>
             </section>
 
-            {{-- Center Main Workstation: Scene Sources Stack & Selected Source Editor --}}
+            {{-- Center Main Workstation: Either Classic Scene Sources OR Unified Screen Stage Remote --}}
             <section class="sources-workspace-panel" aria-label="Scene Sources and Source Editor">
                 <div
                     id="agent-offline-banner"
@@ -930,114 +1023,231 @@
                     </div>
                 </div>
 
-                <div class="sources-toolbar">
-                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
-                        <span class="stat-chip" id="stage-editing-label">Scene: {{ $initialEditingScene ?: 'None' }}</span>
-                        <span id="studio-canvas-meta" class="dock-subtitle">Canvas: {{ $dims['width'] }} × {{ $dims['height'] }}</span>
-                        <span id="layer-count-meta" class="dock-subtitle">0 sources</span>
+                {{-- Classic OBS Scene Sources & Source Editor --}}
+                <div id="classic-sources-workspace" class="stack-grid" style="gap: 0.875rem;" @if (($controlMode ?? 'obs') === 'screens') hidden @endif>
+                    <div class="sources-toolbar">
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
+                            <span class="stat-chip" id="stage-editing-label">Scene: {{ $initialEditingScene ?: 'None' }}</span>
+                            <span id="studio-canvas-meta" class="dock-subtitle">Canvas: {{ $dims['width'] }} × {{ $dims['height'] }}</span>
+                            <span id="layer-count-meta" class="dock-subtitle">0 sources</span>
+                        </div>
+
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
+                            <button type="button" id="cut-editing-scene-btn" class="s-btn s-btn-gold s-btn-xs">Go Live</button>
+                            <button
+                                type="button"
+                                class="s-btn s-btn-gold s-btn-xs"
+                                commandfor="add-source-dialog"
+                                command="show-modal"
+                            >
+                                + Add Source
+                            </button>
+                        </div>
                     </div>
 
-                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
-                        <button type="button" id="cut-editing-scene-btn" class="s-btn s-btn-gold s-btn-xs">Go Live</button>
-                        <button
-                            type="button"
-                            class="s-btn s-btn-gold s-btn-xs"
-                            commandfor="add-source-dialog"
-                            command="show-modal"
-                        >
-                            + Add Source
-                        </button>
+                    <div class="sources-split-grid">
+                        {{-- Left Pane: Scene Sources List with Edit / Remove / Delete --}}
+                        <div class="dock-panel" style="background-color: var(--bg-chrome);">
+                            <div class="dock-head">
+                                <div>
+                                    <h2 class="dock-title">Scene Sources</h2>
+                                    <div class="dock-subtitle">Reorder, show/hide, lock, edit or delete</div>
+                                </div>
+                            </div>
+                            <div id="layers-list" class="layer-list"></div>
+                        </div>
+
+                        {{-- Right Pane: Source Editor (Rename, Transform, Properties, Remove & Permanent Delete) --}}
+                        <div>
+                            <div id="no-source-selected-card" class="source-empty-state">
+                                <strong style="color: var(--ink-primary); font-weight: 600;">No source selected</strong>
+                                <span>Click any source or its <strong>Edit</strong> button in Scene Sources to rename, adjust position/size, configure OBS properties, or delete it.</span>
+                            </div>
+
+                            <div id="selected-source-card" class="source-inspector-card" hidden>
+                                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem;">
+                                    <div style="min-inline-size: 0;">
+                                        <h2 class="dock-title" style="margin-block-end: 0.125rem;">Source Editor</h2>
+                                        <div id="sel-source-name" style="font-weight: 600; font-size: 0.875rem; color: var(--gold-light); overflow: hidden; text-overflow: ellipsis;"></div>
+                                        <div id="sel-source-kind" class="dock-subtitle"></div>
+                                    </div>
+                                    <div style="display: flex; gap: 0.25rem; flex-shrink: 0;">
+                                        <button type="button" id="btn-fit-source" class="s-btn s-btn-xs">Fit 16:9</button>
+                                        <button type="button" id="btn-center-source" class="s-btn s-btn-xs">Center</button>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 0.375rem; align-items: center;">
+                                    <input type="text" id="rename-source-input" class="s-input" placeholder="Source name..." aria-label="Rename selected source" style="flex: 1; min-inline-size: 0; min-block-size: 2rem;">
+                                    <button type="button" id="btn-rename-source" class="s-btn s-btn-xs">Rename</button>
+                                </div>
+
+                                <div class="transform-grid">
+                                    <label class="field-stack">
+                                        <span class="field-label">X Position (px)</span>
+                                        <input type="number" id="tf-x" class="s-input" step="1">
+                                    </label>
+                                    <label class="field-stack">
+                                        <span class="field-label">Y Position (px)</span>
+                                        <input type="number" id="tf-y" class="s-input" step="1">
+                                    </label>
+                                    <label class="field-stack">
+                                        <span class="field-label">Width (px)</span>
+                                        <input type="number" id="tf-w" class="s-input" step="1" min="16">
+                                    </label>
+                                    <label class="field-stack">
+                                        <span class="field-label">Height (px)</span>
+                                        <input type="number" id="tf-h" class="s-input" step="1" min="16">
+                                    </label>
+                                    <label class="field-stack">
+                                        <span class="field-label">Rotation (°)</span>
+                                        <input type="number" id="tf-rot" class="s-input" step="1">
+                                    </label>
+                                    <div style="display: flex; align-items: flex-end;">
+                                        <button type="button" id="btn-apply-transform" class="s-btn s-btn-gold" style="inline-size: 100%;">Apply Size &amp; Pos</button>
+                                    </div>
+                                </div>
+
+                                <div class="stack-grid" style="padding-block-start: 0.5rem; border-block-start: 1px solid var(--hairline);">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                        <div>
+                                            <span class="field-label" style="color: var(--ink-primary);">Source Properties</span>
+                                            <div id="settings-load-status" class="dock-subtitle">Select a source to inspect</div>
+                                        </div>
+                                        <div style="display: flex; gap: 0.25rem;">
+                                            <button type="button" id="btn-refresh-browser" class="s-btn s-btn-xs" hidden>Refresh Page</button>
+                                            <button type="button" id="btn-inspect-settings" class="s-btn s-btn-xs">Reload</button>
+                                        </div>
+                                    </div>
+
+                                    <div id="visual-settings-fields" class="prop-editor"></div>
+
+                                    <button type="button" id="btn-save-settings" class="s-btn s-btn-gold">Save Properties to OBS</button>
+
+                                    <details id="raw-json-details" class="details-raw">
+                                        <summary>Advanced: Raw JSON Settings</summary>
+                                        <textarea id="source-settings-json" class="s-textarea" rows="4" placeholder="{}" style="inline-size: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem;"></textarea>
+                                    </details>
+                                </div>
+
+                                <div style="display: flex; gap: 0.375rem; padding-block-start: 0.5rem; border-block-start: 1px solid var(--hairline);">
+                                    <button type="button" id="btn-remove-scene-item" class="s-btn s-btn-xs" style="flex: 1;">Remove from Scene</button>
+                                    <button type="button" id="btn-delete-source-forever" class="s-btn s-btn-xs s-btn-danger" style="flex: 1;">Delete Source</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="sources-split-grid">
-                    {{-- Left Pane: Scene Sources List with Edit / Remove / Delete --}}
-                    <div class="dock-panel" style="background-color: var(--bg-chrome);">
-                        <div class="dock-head">
-                            <div>
-                                <h2 class="dock-title">Scene Sources</h2>
-                                <div class="dock-subtitle">Reorder, show/hide, lock, edit or delete</div>
-                            </div>
+                {{-- Unified Single-Browser Screen Remote Control Deck --}}
+                <div id="unified-screen-workspace" class="stack-grid" style="gap: 0.875rem;" @if (($controlMode ?? 'obs') !== 'screens') hidden @endif>
+                    <div id="unified-no-collection-card" class="source-empty-state" hidden>
+                        <strong style="color: var(--ink-primary); font-weight: 600;">No Event Screen Collection Yet</strong>
+                        <span>Create your first Screen Collection with built-in tournament views (Starting Soon, Cam + Scoreboard, Gameplay PiP, BRB) and control them from one OBS Browser Source.</span>
+                        <div style="margin-block-start: 0.5rem;">
+                            <button type="button" class="s-btn s-btn-gold" commandfor="create-unified-collection-dialog" command="show-modal">+ Create Screen Collection</button>
                         </div>
-                        <div id="layers-list" class="layer-list"></div>
                     </div>
 
-                    {{-- Right Pane: Source Editor (Rename, Transform, Properties, Remove & Permanent Delete) --}}
-                    <div>
-                        <div id="no-source-selected-card" class="source-empty-state">
-                            <strong style="color: var(--ink-primary); font-weight: 600;">No source selected</strong>
-                            <span>Click any source or its <strong>Edit</strong> button in Scene Sources to rename, adjust position/size, configure OBS properties, or delete it.</span>
+                    <div id="unified-active-stage-body" class="stack-grid" style="gap: 0.875rem;">
+                        <div class="sources-toolbar">
+                            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
+                                <span class="stat-chip" id="unified-active-col-label">Collection</span>
+                                <span class="stat-chip is-live" id="unified-active-view-label">Live View: —</span>
+                            </div>
+
+                            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
+                                <select id="unified-tx-type" class="s-select" style="inline-size: auto; min-block-size: 1.85rem; font-size: 0.75rem;" aria-label="Transition effect">
+                                    <option value="default">Default Transition</option>
+                                    @foreach ($transitionTypes as $txKey => $txLabel)
+                                        <option value="{{ $txKey }}">{{ $txLabel }}</option>
+                                    @endforeach
+                                </select>
+                                <input type="number" id="unified-tx-dur" class="s-input" min="0" max="5000" step="50" value="450" style="inline-size: 4.5rem; min-block-size: 1.85rem; font-size: 0.75rem;" aria-label="Transition duration ms" title="Transition duration (ms)">
+                                <a id="unified-center-builder-link" href="#" class="s-btn s-btn-gold s-btn-xs">Edit Views &amp; Canvas</a>
+                            </div>
                         </div>
 
-                        <div id="selected-source-card" class="source-inspector-card" hidden>
-                            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem;">
-                                <div style="min-inline-size: 0;">
-                                    <h2 class="dock-title" style="margin-block-end: 0.125rem;">Source Editor</h2>
-                                    <div id="sel-source-name" style="font-weight: 600; font-size: 0.875rem; color: var(--gold-light); overflow: hidden; text-overflow: ellipsis;"></div>
-                                    <div id="sel-source-kind" class="dock-subtitle"></div>
-                                </div>
-                                <div style="display: flex; gap: 0.25rem; flex-shrink: 0;">
-                                    <button type="button" id="btn-fit-source" class="s-btn s-btn-xs">Fit 16:9</button>
-                                    <button type="button" id="btn-center-source" class="s-btn s-btn-xs">Center</button>
-                                </div>
+                        <div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-block-end: 0.5rem;">
+                                <h2 class="dock-title">Screen Views (Tap to Transition Live Browser Source)</h2>
+                                <span class="dock-subtitle" id="unified-views-count">0 views</span>
                             </div>
+                            <div id="unified-views-grid" class="view-pads-grid"></div>
+                        </div>
 
-                            <div style="display: flex; gap: 0.375rem; align-items: center;">
-                                <input type="text" id="rename-source-input" class="s-input" placeholder="Source name..." aria-label="Rename selected source" style="flex: 1; min-inline-size: 0; min-block-size: 2rem;">
-                                <button type="button" id="btn-rename-source" class="s-btn s-btn-xs">Rename</button>
-                            </div>
+                        <div class="sources-split-grid">
+                            {{-- Live Timer & Runtime Layer Controls --}}
+                            <div class="dock-panel" style="background: var(--bg-chrome);">
+                                <div class="dock-head">
+                                    <h2 class="dock-title">Live Timer Controls</h2>
+                                    <span id="uni-timer-readout" class="stat-chip" style="font-family: ui-monospace, monospace; font-weight: 700; color: var(--gold-light);">05:00</span>
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
+                                    <button type="button" id="uni-timer-start" class="s-btn s-btn-gold s-btn-xs">Start</button>
+                                    <button type="button" id="uni-timer-pause" class="s-btn s-btn-xs">Pause</button>
+                                    <button type="button" id="uni-timer-reset" class="s-btn s-btn-xs">Reset</button>
+                                    <button type="button" id="uni-timer-plus" class="s-btn s-btn-xs">+1m</button>
+                                    <button type="button" id="uni-timer-minus" class="s-btn s-btn-xs">-1m</button>
+                                </div>
+                                <div style="display: flex; gap: 0.375rem; align-items: center;">
+                                    <input type="number" id="uni-timer-seconds" class="s-input" min="0" step="30" value="300" aria-label="Timer seconds" style="flex: 1;">
+                                    <button type="button" id="uni-timer-set" class="s-btn s-btn-xs">Set Secs</button>
+                                </div>
 
-                            <div class="transform-grid">
-                                <label class="field-stack">
-                                    <span class="field-label">X Position (px)</span>
-                                    <input type="number" id="tf-x" class="s-input" step="1">
-                                </label>
-                                <label class="field-stack">
-                                    <span class="field-label">Y Position (px)</span>
-                                    <input type="number" id="tf-y" class="s-input" step="1">
-                                </label>
-                                <label class="field-stack">
-                                    <span class="field-label">Width (px)</span>
-                                    <input type="number" id="tf-w" class="s-input" step="1" min="16">
-                                </label>
-                                <label class="field-stack">
-                                    <span class="field-label">Height (px)</span>
-                                    <input type="number" id="tf-h" class="s-input" step="1" min="16">
-                                </label>
-                                <label class="field-stack">
-                                    <span class="field-label">Rotation (°)</span>
-                                    <input type="number" id="tf-rot" class="s-input" step="1">
-                                </label>
-                                <div style="display: flex; align-items: flex-end;">
-                                    <button type="button" id="btn-apply-transform" class="s-btn s-btn-gold" style="inline-size: 100%;">Apply Size &amp; Pos</button>
+                                <div style="padding-block-start: 0.5rem; border-block-start: 1px solid var(--hairline);">
+                                    <div class="field-label" style="margin-block-end: 0.35rem;">Quick Layer Visibility Toggles</div>
+                                    <div id="uni-layer-toggles" style="display: flex; flex-wrap: wrap; gap: 0.35rem;"></div>
                                 </div>
                             </div>
 
-                            <div class="stack-grid" style="padding-block-start: 0.5rem; border-block-start: 1px solid var(--hairline);">
-                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                                    <div>
-                                        <span class="field-label" style="color: var(--ink-primary);">Source Properties</span>
-                                        <div id="settings-load-status" class="dock-subtitle">Select a source to inspect</div>
+                            {{-- Tournament Scoreboard & Live Lower Third / Alert --}}
+                            <div class="dock-panel" style="background: var(--bg-chrome);">
+                                <div class="dock-head">
+                                    <h2 class="dock-title">Tournament Scoreboard &amp; Graphics</h2>
+                                </div>
+                                <div class="transform-grid">
+                                    <div class="field-stack">
+                                        <span class="field-label">Team A Name</span>
+                                        <input type="text" id="uni-sb-a-name" class="s-input" value="Team Alpha">
+                                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                            <button type="button" id="uni-sb-a-minus" class="s-btn s-btn-xs">-</button>
+                                            <span id="uni-sb-a-score" class="stat-chip" style="flex: 1; justify-content: center;">0</span>
+                                            <button type="button" id="uni-sb-a-plus" class="s-btn s-btn-gold s-btn-xs">+</button>
+                                        </div>
                                     </div>
-                                    <div style="display: flex; gap: 0.25rem;">
-                                        <button type="button" id="btn-refresh-browser" class="s-btn s-btn-xs" hidden>Refresh Page</button>
-                                        <button type="button" id="btn-inspect-settings" class="s-btn s-btn-xs">Reload</button>
+                                    <div class="field-stack">
+                                        <span class="field-label">Team B Name</span>
+                                        <input type="text" id="uni-sb-b-name" class="s-input" value="Team Omega">
+                                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                            <button type="button" id="uni-sb-b-minus" class="s-btn s-btn-xs">-</button>
+                                            <span id="uni-sb-b-score" class="stat-chip" style="flex: 1; justify-content: center;">0</span>
+                                            <button type="button" id="uni-sb-b-plus" class="s-btn s-btn-gold s-btn-xs">+</button>
+                                        </div>
                                     </div>
                                 </div>
+                                <div style="display: flex; gap: 0.35rem;">
+                                    <input type="text" id="uni-sb-match" class="s-input" placeholder="Match label" aria-label="Match label">
+                                    <input type="text" id="uni-sb-round" class="s-input" placeholder="Round (BO3)" aria-label="Round label">
+                                    <button type="button" id="uni-sb-save" class="s-btn s-btn-xs">Apply</button>
+                                    <button type="button" id="uni-sb-swap" class="s-btn s-btn-xs">Swap</button>
+                                </div>
 
-                                <div id="visual-settings-fields" class="prop-editor"></div>
-
-                                <button type="button" id="btn-save-settings" class="s-btn s-btn-gold">Save Properties to OBS</button>
-
-                                <details id="raw-json-details" class="details-raw">
-                                    <summary>Advanced: Raw JSON Settings</summary>
-                                    <textarea id="source-settings-json" class="s-textarea" rows="4" placeholder="{}" style="inline-size: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem;"></textarea>
-                                </details>
-                            </div>
-
-                            <div style="display: flex; gap: 0.375rem; padding-block-start: 0.5rem; border-block-start: 1px solid var(--hairline);">
-                                <button type="button" id="btn-remove-scene-item" class="s-btn s-btn-xs" style="flex: 1;">Remove from Scene</button>
-                                <button type="button" id="btn-delete-source-forever" class="s-btn s-btn-xs s-btn-danger" style="flex: 1;">Delete Source</button>
+                                <div style="display: grid; gap: 0.35rem; padding-block-start: 0.5rem; border-block-start: 1px solid var(--hairline);">
+                                    <div style="display: flex; gap: 0.35rem;">
+                                        <input type="text" id="uni-l3-title" class="s-input" placeholder="Lower-third name">
+                                        <input type="text" id="uni-l3-sub" class="s-input" placeholder="Subtitle / role">
+                                    </div>
+                                    <div style="display: flex; gap: 0.35rem;">
+                                        <button type="button" id="uni-l3-show" class="s-btn s-btn-gold s-btn-xs" style="flex: 1;">Show Lower Third</button>
+                                        <button type="button" id="uni-l3-hide" class="s-btn s-btn-xs" style="flex: 1;">Hide Lower Third</button>
+                                    </div>
+                                    <div style="display: flex; gap: 0.35rem;">
+                                        <input type="text" id="uni-alert-msg" class="s-input" placeholder="Alert message...">
+                                        <button type="button" id="uni-alert-show" class="s-btn s-btn-gold s-btn-xs">Alert</button>
+                                        <button type="button" id="uni-alert-hide" class="s-btn s-btn-xs">Clear</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1326,6 +1536,44 @@
             </div>
         </dialog>
 
+        {{-- Native Declarative Modal: Create Event / Tournament Screen Collection --}}
+        <dialog id="create-unified-collection-dialog" class="obs-dialog" aria-labelledby="create-unified-col-title">
+            <div class="dialog-inner">
+                <div class="dialog-head">
+                    <h2 id="create-unified-col-title" class="dialog-title">Create Screen Collection</h2>
+                    <button type="button" class="s-btn s-btn-xs" commandfor="create-unified-collection-dialog" command="close">Close</button>
+                </div>
+                <form id="create-unified-collection-form" class="stack-grid" style="gap: 0.75rem;">
+                    <label class="field-stack">
+                        <span class="field-label">Event / Tournament Name</span>
+                        <input type="text" id="new-unified-col-name" class="s-input" placeholder="e.g. Winter Championship 2026" required>
+                    </label>
+                    <div class="transform-grid">
+                        <label class="field-stack">
+                            <span class="field-label">OBS Single Scene Name</span>
+                            <input type="text" id="new-unified-col-scene" class="s-input" value="Obsisstant Stage">
+                        </label>
+                        <label class="field-stack">
+                            <span class="field-label">OBS Browser Source Name</span>
+                            <input type="text" id="new-unified-col-source" class="s-input" value="Obsisstant - Unified Screen">
+                        </label>
+                    </div>
+                    <label class="prop-check">
+                        <span>Include starter views (Starting Soon, Main Cam, Gameplay PiP, Dual Cam, BRB)</span>
+                        <input type="checkbox" id="new-unified-col-starter" checked>
+                    </label>
+                    <label class="prop-check">
+                        <span>Open Visual Canvas Builder right after creating</span>
+                        <input type="checkbox" id="new-unified-col-open-builder">
+                    </label>
+                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                        <button type="button" class="s-btn" commandfor="create-unified-collection-dialog" command="close">Cancel</button>
+                        <button type="submit" class="s-btn s-btn-gold">Create Collection</button>
+                    </div>
+                </form>
+            </div>
+        </dialog>
+
         <div id="studio-toast" class="toast-bar" role="status" hidden></div>
 
         <script src="{{ asset('js/filament/filament/echo.js') }}"></script>
@@ -1344,6 +1592,12 @@
                 'mediaStoragePath' => route('studio.media-storage-path', ['studio' => $studio->slug], false),
                 'bootstrapToken' => route('agent-installer.bootstrap-token', [], false),
                 'storageSettingsPage' => '/admin/studio-settings',
+                'controlMode' => route('studio.control-mode', ['studio' => $studio->slug], false),
+                'collectionsStore' => route('studio.collections.store', ['studio' => $studio->slug], false),
+                'collectionBuilderTpl' => route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
+                'collectionSwitchTpl' => route('studio.collections.switch', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
+                'collectionRuntimeTpl' => route('studio.collections.runtime', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
+                'collectionPushTpl' => route('studio.collections.push', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
             ];
         @endphp
         <script>
@@ -1352,6 +1606,9 @@
                 const studioSlug = @json($studio->slug);
                 const studioId = @json($studio->id);
                 const screensData = @json($screensPayload);
+                let controlMode = @json($controlMode ?? 'obs');
+                let collectionsData = @json($collectionsPayload ?? []);
+                let activeCollectionId = @json($activeCollectionId);
 
                 const endpoints = @json($controlCenterEndpoints);
 
@@ -3594,6 +3851,298 @@
                         .listenForWhisper('obs.command.acknowledged', handleCommandAckEvent);
                 }
 
+                // Unified Single-Browser Screen Collection Remote Controls
+                let subscribedColToken = null;
+                let subscribedColChannel = null;
+
+                const getActiveCollection = () => collectionsData.find((c) => Number(c.collection_id) === Number(activeCollectionId)) || collectionsData[0] || null;
+
+                const upsertCollectionData = (updated) => {
+                    if (!updated?.collection_id) return;
+                    const idx = collectionsData.findIndex((c) => Number(c.collection_id) === Number(updated.collection_id));
+                    if (idx >= 0) collectionsData[idx] = updated;
+                    else collectionsData.push(updated);
+                    if (!activeCollectionId) activeCollectionId = updated.collection_id;
+                };
+
+                const subscribeUnifiedEcho = (col) => {
+                    if (!window.Echo || !col?.public_token || col.public_token === subscribedColToken) return;
+                    if (subscribedColChannel && subscribedColToken) {
+                        try { window.Echo.leave(`obs.collection.${subscribedColToken}`); } catch {}
+                    }
+                    subscribedColToken = col.public_token;
+                    subscribedColChannel = window.Echo.channel(`obs.collection.${col.public_token}`)
+                        .listen('.obs.collection.updated', (payload) => {
+                            upsertCollectionData(payload);
+                            if (Number(payload.collection_id) === Number(activeCollectionId)) {
+                                renderUnifiedWorkspace();
+                            }
+                        });
+                };
+
+                const fmtStageClock = (secs) => {
+                    const safe = Math.max(0, Math.floor(secs));
+                    return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`;
+                };
+
+                const updateUnifiedTimerReadout = () => {
+                    const col = getActiveCollection();
+                    const el = document.getElementById('uni-timer-readout');
+                    if (!col || !el) return;
+                    const t = col.runtime_state?.timer || {};
+                    let secs = Number(t.remaining_seconds ?? t.duration_seconds ?? 0);
+                    if (t.mode === 'countup') {
+                        secs = Number(t.elapsed_base_seconds || 0);
+                        if (t.status === 'running' && t.started_at) {
+                            secs += Math.max(0, Math.floor((Date.now() - Date.parse(t.started_at)) / 1000));
+                        }
+                    } else if (t.status === 'running' && t.target_at) {
+                        secs = Math.max(0, Math.ceil((Date.parse(t.target_at) - Date.now()) / 1000));
+                    }
+                    el.textContent = fmtStageClock(secs);
+                };
+
+                const renderUnifiedWorkspace = () => {
+                    const isScreens = controlMode === 'screens';
+                    document.querySelectorAll('[data-studio-mode]').forEach((btn) => {
+                        btn.classList.toggle('is-active', btn.dataset.studioMode === controlMode);
+                    });
+
+                    const classicLeft = document.getElementById('classic-scenes-panel');
+                    const uniLeft = document.getElementById('unified-collections-panel');
+                    const classicCenter = document.getElementById('classic-sources-workspace');
+                    const uniCenter = document.getElementById('unified-screen-workspace');
+                    if (classicLeft) classicLeft.hidden = isScreens;
+                    if (uniLeft) uniLeft.hidden = !isScreens;
+                    if (classicCenter) classicCenter.hidden = isScreens;
+                    if (uniCenter) uniCenter.hidden = !isScreens;
+
+                    const colSel = document.getElementById('unified-collection-select');
+                    const col = getActiveCollection();
+                    if (col) activeCollectionId = col.collection_id;
+
+                    if (colSel) {
+                        colSel.innerHTML = collectionsData.length === 0 ? '<option value="">No collections created yet</option>' : '';
+                        collectionsData.forEach((c) => {
+                            const o = document.createElement('option');
+                            o.value = String(c.collection_id);
+                            o.textContent = c.name;
+                            o.selected = Number(c.collection_id) === Number(activeCollectionId);
+                            colSel.appendChild(o);
+                        });
+                    }
+
+                    const noColCard = document.getElementById('unified-no-collection-card');
+                    const activeBody = document.getElementById('unified-active-stage-body');
+                    if (!col) {
+                        if (noColCard) noColCard.hidden = false;
+                        if (activeBody) activeBody.hidden = true;
+                        return;
+                    }
+                    if (noColCard) noColCard.hidden = true;
+                    if (activeBody) activeBody.hidden = false;
+
+                    subscribeUnifiedEcho(col);
+
+                    const builderHref = endpoints.collectionBuilderTpl.replace('__COL__', col.collection_id);
+                    const bLink = document.getElementById('unified-builder-link');
+                    const cbLink = document.getElementById('unified-center-builder-link');
+                    const sLink = document.getElementById('unified-open-stage-link');
+                    if (bLink) bLink.href = builderHref;
+                    if (cbLink) cbLink.href = builderHref;
+                    if (sLink) sLink.href = col.stage_url || '#';
+
+                    const activeView = (col.views || []).find((v) => Number(v.id) === Number(col.active_view_id)) || null;
+                    document.getElementById('unified-active-col-label').textContent = col.name || 'Collection';
+                    document.getElementById('unified-active-view-label').textContent = `Live View: ${activeView?.name || 'None'}`;
+                    document.getElementById('unified-views-count').textContent = `${(col.views || []).length} views`;
+
+                    const grid = document.getElementById('unified-views-grid');
+                    if (grid) {
+                        grid.innerHTML = '';
+                        (col.views || []).forEach((view) => {
+                            const isActive = Number(view.id) === Number(col.active_view_id);
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = `view-pad-btn${isActive ? ' is-active' : ''}`;
+                            btn.dataset.screenViewId = String(view.id);
+
+                            const title = document.createElement('strong');
+                            title.style.fontSize = '0.85rem';
+                            title.textContent = view.name;
+
+                            const meta = document.createElement('span');
+                            meta.className = 'dock-subtitle';
+                            meta.style.fontSize = '0.6875rem';
+                            const txName = view.transition_override?.type || col.default_transition?.type || 'fade';
+                            meta.textContent = isActive ? 'ON AIR · Active View' : `${(view.layers || []).length} layers · ${txName}`;
+
+                            btn.append(title, meta);
+                            btn.addEventListener('click', async () => {
+                                const txType = document.getElementById('unified-tx-type')?.value || 'default';
+                                const txDur = Number(document.getElementById('unified-tx-dur')?.value || 450);
+                                const res = await postJson(endpoints.collectionSwitchTpl.replace('__COL__', col.collection_id), {
+                                    view_id: view.id,
+                                    transition: txType === 'default' ? null : { type: txType, duration_ms: txDur },
+                                });
+                                upsertCollectionData(res.collection);
+                                renderUnifiedWorkspace();
+                                showToast(`Live View: ${view.name}`, 'success');
+                            });
+                            grid.appendChild(btn);
+                        });
+                    }
+
+                    const sb = col.runtime_state?.scoreboard || {};
+                    const setIfIdle = (id, val) => {
+                        const inp = document.getElementById(id);
+                        if (inp && document.activeElement !== inp) inp.value = val ?? '';
+                    };
+                    setIfIdle('uni-sb-a-name', sb.team_a_name || 'Team Alpha');
+                    setIfIdle('uni-sb-b-name', sb.team_b_name || 'Team Omega');
+                    setIfIdle('uni-sb-match', sb.match_label || '');
+                    setIfIdle('uni-sb-round', sb.round_label || '');
+                    document.getElementById('uni-sb-a-score').textContent = String(sb.team_a_score ?? 0);
+                    document.getElementById('uni-sb-b-score').textContent = String(sb.team_b_score ?? 0);
+
+                    const l3 = col.runtime_state?.lower_third || {};
+                    setIfIdle('uni-l3-title', l3.title || '');
+                    setIfIdle('uni-l3-sub', l3.subtitle || '');
+
+                    const layerHost = document.getElementById('uni-layer-toggles');
+                    if (layerHost) {
+                        const hiddenSet = new Set(Array.isArray(col.runtime_state?.hidden_layers) ? col.runtime_state.hidden_layers : []);
+                        layerHost.innerHTML = '';
+                        (activeView?.layers || []).forEach((layer) => {
+                            const visible = layer.visible !== false && !hiddenSet.has(layer.id);
+                            const pill = document.createElement('button');
+                            pill.type = 'button';
+                            pill.className = `s-btn s-btn-xs${visible ? ' is-active' : ''}`;
+                            pill.textContent = `${visible ? 'On' : 'Off'}: ${layer.name || layer.type}`;
+                            pill.addEventListener('click', () => sendUnifiedRuntime({
+                                toggle_layer: { layer_id: layer.id, visible: !visible },
+                            }));
+                            layerHost.appendChild(pill);
+                        });
+                    }
+
+                    updateUnifiedTimerReadout();
+                };
+
+                const sendUnifiedRuntime = async (patch) => {
+                    const col = getActiveCollection();
+                    if (!col) return;
+                    const res = await postJson(endpoints.collectionRuntimeTpl.replace('__COL__', col.collection_id), patch);
+                    upsertCollectionData(res.collection);
+                    renderUnifiedWorkspace();
+                };
+
+                document.querySelectorAll('[data-studio-mode]').forEach((btn) => {
+                    btn.addEventListener('click', async () => {
+                        const nextMode = btn.dataset.studioMode;
+                        const res = await postJson(endpoints.controlMode, { control_mode: nextMode });
+                        controlMode = res.control_mode || nextMode;
+                        if (res.collection) {
+                            upsertCollectionData(res.collection);
+                            activeCollectionId = res.collection.collection_id;
+                        }
+                        renderUnifiedWorkspace();
+                        showToast(controlMode === 'screens' ? 'Switched to Unified Screen Stage Mode' : 'Switched to Classic OBS Scenes Mode', 'success');
+                    });
+                });
+
+                document.getElementById('unified-collection-select')?.addEventListener('change', async (ev) => {
+                    if (!ev.target.value) return;
+                    activeCollectionId = Number(ev.target.value);
+                    await postJson(endpoints.controlMode, { active_screen_collection_id: activeCollectionId });
+                    renderUnifiedWorkspace();
+                });
+
+                document.getElementById('create-unified-collection-form')?.addEventListener('submit', async (ev) => {
+                    ev.preventDefault();
+                    const name = document.getElementById('new-unified-col-name')?.value?.trim();
+                    if (!name) return;
+                    const openBuilder = Boolean(document.getElementById('new-unified-col-open-builder')?.checked);
+                    const res = await postJson(endpoints.collectionsStore, {
+                        name,
+                        obs_scene_name: document.getElementById('new-unified-col-scene')?.value?.trim() || 'Obsisstant Stage',
+                        obs_source_name: document.getElementById('new-unified-col-source')?.value?.trim() || 'Obsisstant - Unified Screen',
+                        with_starter_views: Boolean(document.getElementById('new-unified-col-starter')?.checked),
+                        activate: true,
+                    });
+                    if (res.collection) {
+                        upsertCollectionData(res.collection);
+                        activeCollectionId = res.collection.collection_id;
+                        if (openBuilder) {
+                            window.location.href = endpoints.collectionBuilderTpl.replace('__COL__', activeCollectionId);
+                            return;
+                        }
+                        renderUnifiedWorkspace();
+                        closeDialog(document.getElementById('create-unified-collection-dialog'));
+                        showToast(`Created collection: ${res.collection.name}`, 'success');
+                    }
+                });
+
+                document.getElementById('btn-copy-unified-url')?.addEventListener('click', async () => {
+                    const col = getActiveCollection();
+                    if (!col?.stage_url) return;
+                    try {
+                        await navigator.clipboard.writeText(col.stage_url);
+                        showToast('Stage Browser URL copied', 'success');
+                    } catch {
+                        prompt('Copy OBS Browser Source URL:', col.stage_url);
+                    }
+                });
+
+                document.getElementById('btn-push-unified-obs')?.addEventListener('click', async () => {
+                    const col = getActiveCollection();
+                    if (!col) return;
+                    await postJson(endpoints.collectionPushTpl.replace('__COL__', col.collection_id), {});
+                    showToast('Pushing Single Scene + Browser Source to OBS', 'success');
+                });
+
+                document.getElementById('uni-timer-start')?.addEventListener('click', () => sendUnifiedRuntime({ timer: { action: 'start' } }));
+                document.getElementById('uni-timer-pause')?.addEventListener('click', () => sendUnifiedRuntime({ timer: { action: 'pause' } }));
+                document.getElementById('uni-timer-reset')?.addEventListener('click', () => sendUnifiedRuntime({ timer: { action: 'reset' } }));
+                document.getElementById('uni-timer-plus')?.addEventListener('click', () => sendUnifiedRuntime({ timer: { action: 'add_seconds', seconds: 60 } }));
+                document.getElementById('uni-timer-minus')?.addEventListener('click', () => sendUnifiedRuntime({ timer: { action: 'add_seconds', seconds: -60 } }));
+                document.getElementById('uni-timer-set')?.addEventListener('click', () => {
+                    const secs = Math.max(0, Number(document.getElementById('uni-timer-seconds')?.value || 300));
+                    sendUnifiedRuntime({ timer: { action: 'set', duration_seconds: secs } });
+                });
+
+                document.getElementById('uni-sb-a-minus')?.addEventListener('click', () => sendUnifiedRuntime({ scoreboard: { delta_a: -1 } }));
+                document.getElementById('uni-sb-a-plus')?.addEventListener('click', () => sendUnifiedRuntime({ scoreboard: { delta_a: 1 } }));
+                document.getElementById('uni-sb-b-minus')?.addEventListener('click', () => sendUnifiedRuntime({ scoreboard: { delta_b: -1 } }));
+                document.getElementById('uni-sb-b-plus')?.addEventListener('click', () => sendUnifiedRuntime({ scoreboard: { delta_b: 1 } }));
+                document.getElementById('uni-sb-swap')?.addEventListener('click', () => sendUnifiedRuntime({ scoreboard: { swap: true } }));
+                document.getElementById('uni-sb-save')?.addEventListener('click', () => sendUnifiedRuntime({
+                    scoreboard: {
+                        team_a_name: document.getElementById('uni-sb-a-name')?.value || 'Team Alpha',
+                        team_b_name: document.getElementById('uni-sb-b-name')?.value || 'Team Omega',
+                        match_label: document.getElementById('uni-sb-match')?.value || '',
+                        round_label: document.getElementById('uni-sb-round')?.value || '',
+                    },
+                }));
+
+                document.getElementById('uni-l3-show')?.addEventListener('click', () => sendUnifiedRuntime({
+                    lower_third: {
+                        visible: true,
+                        title: document.getElementById('uni-l3-title')?.value || '',
+                        subtitle: document.getElementById('uni-l3-sub')?.value || '',
+                    },
+                }));
+                document.getElementById('uni-l3-hide')?.addEventListener('click', () => sendUnifiedRuntime({ lower_third: { visible: false } }));
+                document.getElementById('uni-alert-show')?.addEventListener('click', () => sendUnifiedRuntime({
+                    alert: {
+                        visible: true,
+                        message: document.getElementById('uni-alert-msg')?.value || '',
+                    },
+                }));
+                document.getElementById('uni-alert-hide')?.addEventListener('click', () => sendUnifiedRuntime({ alert: { visible: false } }));
+
+                setInterval(updateUnifiedTimerReadout, 250);
+                renderUnifiedWorkspace();
                 renderAll();
 
                 // Prompt user to install OBS Agent automatically once per session if never connected

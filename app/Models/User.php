@@ -55,6 +55,16 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(ObsCommandLog::class);
     }
 
+    public function screenCollections(): HasMany
+    {
+        return $this->hasMany(ScreenCollection::class);
+    }
+
+    public function screenAssets(): HasMany
+    {
+        return $this->hasMany(ScreenAsset::class);
+    }
+
     public function getOrCreateRelayToken(): string
     {
         if (blank($this->relay_token)) {

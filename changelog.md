@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.12.0] - 2026-11-24 | type: minor
+
+> Unified Single-Browser Screen Collections, Visual Canvas Composer, Transitions, and Live Remote Controls
+
+### Added
+- Screen Collections, Screen Views, and Server-Hosted Asset Library for running entire events and tournaments from one OBS Browser Source
+- Interactive 16:9 Canvas Composer with layer drag/resize, animations, per-collection/per-view themes, transparent Camera Cutout SVG masking, and timer-end automation logic
+- Double-buffered Stage Player (/stage/{token}) supporting Cut, Fade, Directional Slide, Wipe, Zoom, Branded Color Sweep, and Stinger WebM/MP4 transitions
+- Unified Screen Mode toggle across Studio Control Center and Mobile Deck with live View Pads, Countdown/Stopwatch Timer, Tournament Scoreboard, Lower Thirds, Alerts, and 1-click Push Single Scene to OBS
+- Filament ScreenCollections Resource and obs-agent Browser Source audio rerouting option
+
 ## [v1.11.6] - 2026-11-24 | type: macro
 
 > Remove heavy Studio live preview and stage canvas, reorganizing sources, mixer, and overlays into a 3-column workstation

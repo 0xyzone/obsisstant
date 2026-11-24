@@ -1,0 +1,570 @@
+<?php
+
+namespace App\Services\Obs;
+
+use App\Events\ScreenCollectionUpdated;
+use App\Models\ObsCommandLog;
+use App\Models\ObsStudio;
+use App\Models\ScreenAsset;
+use App\Models\ScreenCollection;
+use App\Models\ScreenView;
+use App\Models\User;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Throwable;
+
+class ScreenCollectionService
+{
+    public function __construct(
+        private readonly ObsCommandService $commandService,
+    ) {}
+
+    /**
+     * Build the single serialized payload used by Stage Player, Control Center, Mobile Deck, and Reverb.
+     *
+     * @return array<string, mixed>
+     */
+    public static function buildStagePayload(ScreenCollection $collection): array
+    {
+        $collection->loadMissing(['views', 'assets']);
+
+        $userAssets = ScreenAsset::query()
+            ->where('user_id', $collection->user_id)
+            ->where(function ($query) use ($collection): void {
+                $query->where('screen_collection_id', $collection->id)
+                    ->orWhereNull('screen_collection_id');
+            })
+            ->latest('id')
+            ->get();
+
+        $assetsMap = [];
+        $serializedAssets = [];
+        foreach ($userAssets as $asset) {
+            $item = [
+                'id' => $asset->id,
+                'screen_collection_id' => $asset->screen_collection_id,
+                'name' => $asset->name,
+                'type' => $asset->type,
+                'mime_type' => $asset->mime_type,
+                'size_bytes' => $asset->size_bytes,
+                'url' => $asset->getUrl(false),
+                'absolute_url' => $asset->getUrl(true),
+            ];
+            $assetsMap[$asset->id] = $item;
+            $serializedAssets[] = $item;
+        }
+
+        $views = $collection->views->map(static function (ScreenView $view) use ($assetsMap): array {
+            $layers = array_map(static function (mixed $layer) use ($assetsMap): mixed {
+                if (! is_array($layer)) {
+                    return $layer;
+                }
+                $props = is_array($layer['props'] ?? null) ? $layer['props'] : [];
+                if (! empty($props['asset_id']) && isset($assetsMap[(int) $props['asset_id']])) {
+                    $asset = $assetsMap[(int) $props['asset_id']];
+                    $props['url'] = $asset['url'];
+                    if (empty($props['media_kind'])) {
+                        $props['media_kind'] = in_array($asset['type'], ['video', 'stinger'], true) ? 'video' : 'image';
+                    }
+                }
+                $layer['props'] = $props;
+
+                return $layer;
+            }, $view->layers ?? []);
+
+            $bgAssetUrl = ! empty($view->background_asset_id) && isset($assetsMap[(int) $view->background_asset_id])
+                ? $assetsMap[(int) $view->background_asset_id]['url']
+                : null;
+
+            return [
+                'id' => $view->id,
+                'screen_collection_id' => $view->screen_collection_id,
+                'name' => $view->name,
+                'slug' => $view->slug,
+                'sort_order' => $view->sort_order,
+                'background_mode' => $view->background_mode,
+                'background_color' => $view->background_color,
+                'background_asset_id' => $view->background_asset_id,
+                'background_asset_url' => $bgAssetUrl,
+                'background_asset_type' => ! empty($view->background_asset_id) && isset($assetsMap[(int) $view->background_asset_id])
+                    ? $assetsMap[(int) $view->background_asset_id]['type']
+                    : null,
+                'theme_override' => $view->theme_override,
+                'transition_override' => $view->transition_override,
+                'layers' => array_values($layers),
+                'logic_rules' => $view->logic_rules ?? ['on_timer_end_action' => 'none'],
+            ];
+        })->values()->all();
+
+        $defaultTransition = $collection->getMergedTransition();
+        if (! empty($defaultTransition['stinger_asset_id']) && isset($assetsMap[(int) $defaultTransition['stinger_asset_id']])) {
+            $defaultTransition['stinger_url'] = $assetsMap[(int) $defaultTransition['stinger_asset_id']]['url'];
+        } else {
+            $defaultTransition['stinger_url'] = null;
+        }
+
+        return [
+            'collection_id' => $collection->id,
+            'obs_studio_id' => $collection->obs_studio_id,
+            'name' => $collection->name,
+            'slug' => $collection->slug,
+            'public_token' => $collection->public_token,
+            'stage_url' => $collection->getStageUrl(true),
+            'stage_path' => $collection->getStageUrl(false),
+            'width' => $collection->width,
+            'height' => $collection->height,
+            'active_view_id' => $collection->active_view_id ?? ($views[0]['id'] ?? null),
+            'obs_scene_name' => $collection->obs_scene_name,
+            'obs_source_name' => $collection->obs_source_name,
+            'theme' => $collection->getMergedTheme(),
+            'default_transition' => $defaultTransition,
+            'runtime_state' => $collection->getMergedRuntimeState(),
+            'views' => $views,
+            'assets' => $serializedAssets,
+            'updated_at' => $collection->updated_at?->toIso8601String() ?? now()->toIso8601String(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function createCollection(User $user, array $data, ?ObsStudio $studio = null): ScreenCollection
+    {
+        return DB::transaction(function () use ($user, $data, $studio): ScreenCollection {
+            $name = trim((string) ($data['name'] ?? 'New Event Collection'));
+            $baseSlug = Str::slug($name) ?: 'event';
+            $slug = ScreenCollection::query()->where('slug', $baseSlug)->exists()
+                ? $baseSlug.'-'.Str::lower(Str::random(5))
+                : $baseSlug;
+
+            $collection = ScreenCollection::query()->create([
+                'user_id' => $user->id,
+                'obs_studio_id' => $studio?->id ?? ($data['obs_studio_id'] ?? null),
+                'name' => $name,
+                'slug' => $slug,
+                'public_token' => Str::random(32),
+                'width' => max(320, (int) ($data['width'] ?? 1920)),
+                'height' => max(180, (int) ($data['height'] ?? 1080)),
+                'theme' => array_merge(ScreenCollectionPresetService::defaultTheme(), is_array($data['theme'] ?? null) ? $data['theme'] : []),
+                'default_transition' => array_merge(ScreenCollectionPresetService::defaultTransition(), is_array($data['default_transition'] ?? null) ? $data['default_transition'] : []),
+                'runtime_state' => ScreenCollectionPresetService::defaultRuntimeState(),
+                'obs_scene_name' => trim((string) ($data['obs_scene_name'] ?? 'Obsisstant Stage')) ?: 'Obsisstant Stage',
+                'obs_source_name' => trim((string) ($data['obs_source_name'] ?? 'Obsisstant - Unified Screen')) ?: 'Obsisstant - Unified Screen',
+            ]);
+
+            $withStarter = (bool) ($data['with_starter_views'] ?? true);
+            $firstView = null;
+
+            if ($withStarter) {
+                foreach (ScreenCollectionPresetService::starterViews() as $preset) {
+                    $view = ScreenView::query()->create([
+                        'screen_collection_id' => $collection->id,
+                        'user_id' => $user->id,
+                        'name' => $preset['name'],
+                        'slug' => $preset['slug'],
+                        'sort_order' => $preset['sort_order'],
+                        'background_mode' => $preset['background_mode'],
+                        'transition_override' => $preset['transition_override'] ?? null,
+                        'layers' => $preset['layers'] ?? [],
+                        'logic_rules' => $preset['logic_rules'] ?? ['on_timer_end_action' => 'none'],
+                    ]);
+                    $firstView ??= $view;
+                }
+            } else {
+                $firstView = ScreenView::query()->create([
+                    'screen_collection_id' => $collection->id,
+                    'user_id' => $user->id,
+                    'name' => 'Main View',
+                    'slug' => 'main-view',
+                    'sort_order' => 1,
+                    'background_mode' => 'theme',
+                    'layers' => [
+                        ScreenCollectionPresetService::makeDefaultLayer('camera_cutout', 'Camera Cutout'),
+                    ],
+                    'logic_rules' => ['on_timer_end_action' => 'none'],
+                ]);
+            }
+
+            if ($firstView instanceof ScreenView) {
+                $collection->forceFill(['active_view_id' => $firstView->id])->save();
+            }
+
+            if ($studio instanceof ObsStudio && $studio->active_screen_collection_id === null) {
+                $studio->forceFill(['active_screen_collection_id' => $collection->id])->save();
+            }
+
+            return $collection->fresh(['views', 'assets']) ?? $collection;
+        });
+    }
+
+    /**
+     * Switch the currently displayed Screen View on a Collection with an explicit or inherited transition.
+     *
+     * @param  array<string, mixed>|null  $transitionOverride
+     */
+    public function switchView(ScreenCollection $collection, ScreenView $view, ?array $transitionOverride = null): ScreenCollection
+    {
+        $fromViewId = $collection->active_view_id;
+        $runtime = $collection->getMergedRuntimeState();
+        $baseTransition = $collection->getMergedTransition();
+
+        if (is_array($view->transition_override) && ! empty($view->transition_override['type'])) {
+            $baseTransition = array_merge($baseTransition, $view->transition_override);
+        }
+
+        if (is_array($transitionOverride) && ! empty($transitionOverride['type']) && $transitionOverride['type'] !== 'default') {
+            $baseTransition = array_merge($baseTransition, array_filter(
+                $transitionOverride,
+                static fn (mixed $v): bool => $v !== null && $v !== '',
+            ));
+        }
+
+        $type = (string) ($baseTransition['type'] ?? 'fade');
+        $durationMs = $type === 'cut' ? 0 : max(80, min(5000, (int) ($baseTransition['duration_ms'] ?? 450)));
+        $swapPointMs = max(0, min($durationMs, (int) ($baseTransition['swap_point_ms'] ?? (int) round($durationMs * 0.5))));
+
+        $stingerUrl = null;
+        $stingerId = $baseTransition['stinger_asset_id'] ?? null;
+        if (! empty($stingerId)) {
+            $stinger = ScreenAsset::query()
+                ->where('user_id', $collection->user_id)
+                ->find((int) $stingerId);
+            if ($stinger instanceof ScreenAsset) {
+                $stingerUrl = $stinger->getUrl(false);
+            }
+        }
+
+        $prevSeq = (int) ($runtime['last_transition']['seq'] ?? 0);
+        $runtime['last_transition'] = [
+            'seq' => $prevSeq + 1,
+            'from_view_id' => $fromViewId,
+            'to_view_id' => $view->id,
+            'type' => $type,
+            'duration_ms' => $durationMs,
+            'swap_point_ms' => $swapPointMs,
+            'stinger_url' => $stingerUrl,
+            'sweep_color' => (string) ($baseTransition['sweep_color'] ?? ($collection->getMergedTheme()['accent_color'] ?? '#CDAD69')),
+            'triggered_at' => now()->toIso8601String(),
+        ];
+
+        $collection->forceFill([
+            'active_view_id' => $view->id,
+            'runtime_state' => $runtime,
+        ])->save();
+
+        $fresh = $collection->fresh(['views', 'assets']) ?? $collection;
+        $this->broadcastSafely($fresh);
+
+        return $fresh;
+    }
+
+    /**
+     * Mutate live timer, scoreboard, lower third, ticker, alerts, or layer visibility on a Collection.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function updateRuntime(ScreenCollection $collection, array $input): ScreenCollection
+    {
+        $runtime = $collection->getMergedRuntimeState();
+
+        if (is_array($input['timer'] ?? null)) {
+            $runtime['timer'] = $this->applyTimerAction($runtime['timer'], $input['timer']);
+        }
+
+        if (is_array($input['scoreboard'] ?? null)) {
+            $runtime['scoreboard'] = $this->applyScoreboardPatch($runtime['scoreboard'], $input['scoreboard']);
+        }
+
+        if (is_array($input['lower_third'] ?? null)) {
+            $runtime['lower_third'] = array_merge($runtime['lower_third'], $input['lower_third']);
+        }
+
+        if (is_array($input['ticker'] ?? null)) {
+            $tickerInput = $input['ticker'];
+            if (isset($tickerInput['items']) && is_string($tickerInput['items'])) {
+                $tickerInput['items'] = array_values(array_filter(array_map('trim', explode("\n", $tickerInput['items']))));
+            }
+            $runtime['ticker'] = array_merge($runtime['ticker'], $tickerInput);
+        }
+
+        if (is_array($input['alert'] ?? null)) {
+            $runtime['alert'] = array_merge($runtime['alert'], $input['alert']);
+        }
+
+        if (is_array($input['toggle_layer'] ?? null) && ! empty($input['toggle_layer']['layer_id'])) {
+            $layerId = (string) $input['toggle_layer']['layer_id'];
+            $hidden = array_values(array_filter($runtime['hidden_layers'], static fn (mixed $id): bool => is_string($id) && $id !== ''));
+            $currentlyHidden = in_array($layerId, $hidden, true);
+            $nextVisible = array_key_exists('visible', $input['toggle_layer'])
+                ? (bool) $input['toggle_layer']['visible']
+                : $currentlyHidden;
+
+            if ($nextVisible) {
+                $hidden = array_values(array_diff($hidden, [$layerId]));
+            } elseif (! $currentlyHidden) {
+                $hidden[] = $layerId;
+            }
+            $runtime['hidden_layers'] = $hidden;
+        }
+
+        $collection->forceFill(['runtime_state' => $runtime])->save();
+
+        $fresh = $collection->fresh(['views', 'assets']) ?? $collection;
+        $this->broadcastSafely($fresh);
+
+        return $fresh;
+    }
+
+    /**
+     * Evaluate and fire automatic timer-end view logic idempotently so multiple open Browser Sources never double-trigger.
+     *
+     * @return array<string, mixed>
+     */
+    public function fireTimerEndLogic(ScreenCollection $collection, int $expectedViewId, ?string $marker = null): array
+    {
+        $lockKey = "obs.stage.timer_end.{$collection->id}.{$expectedViewId}.".($marker ?: 'latest');
+        if (! Cache::add($lockKey, 1, now()->addSeconds(8))) {
+            return ['handled' => false, 'reason' => 'debounced'];
+        }
+
+        $collection->refresh();
+        if ((int) $collection->active_view_id !== $expectedViewId) {
+            return ['handled' => false, 'reason' => 'view_changed'];
+        }
+
+        $view = ScreenView::query()
+            ->where('screen_collection_id', $collection->id)
+            ->find($expectedViewId);
+
+        if (! $view instanceof ScreenView) {
+            return ['handled' => false, 'reason' => 'missing_view'];
+        }
+
+        $rules = $view->logic_rules ?? [];
+        $action = (string) ($rules['on_timer_end_action'] ?? 'none');
+        if ($action === 'none') {
+            return ['handled' => false, 'reason' => 'no_action'];
+        }
+
+        $runtime = $collection->getMergedRuntimeState();
+        $runtime['timer']['status'] = 'stopped';
+        $runtime['timer']['remaining_seconds'] = 0;
+        $runtime['timer']['target_at'] = null;
+        $collection->forceFill(['runtime_state' => $runtime])->save();
+
+        if ($action === 'switch_view' && ! empty($rules['on_timer_end_target_view_id'])) {
+            $targetView = ScreenView::query()
+                ->where('screen_collection_id', $collection->id)
+                ->find((int) $rules['on_timer_end_target_view_id']);
+
+            if ($targetView instanceof ScreenView && $targetView->id !== $view->id) {
+                $this->switchView($collection, $targetView);
+
+                return ['handled' => true, 'action' => 'switch_view', 'target_view_id' => $targetView->id];
+            }
+        }
+
+        if ($action === 'show_alert') {
+            $this->updateRuntime($collection, [
+                'alert' => [
+                    'visible' => true,
+                    'title' => (string) ($rules['on_timer_end_alert_title'] ?? 'Time Up'),
+                    'message' => (string) ($rules['on_timer_end_alert_message'] ?? 'Countdown finished.'),
+                ],
+            ]);
+
+            return ['handled' => true, 'action' => 'show_alert'];
+        }
+
+        $this->broadcast($collection);
+
+        return ['handled' => false, 'reason' => 'unsupported_action'];
+    }
+
+    public function pushStageToObs(ObsStudio $studio, ScreenCollection $collection, ?User $user = null): ObsCommandLog
+    {
+        $sceneName = trim((string) ($collection->obs_scene_name ?: 'Obsisstant Stage'));
+        $sourceName = trim((string) ($collection->obs_source_name ?: 'Obsisstant - Unified Screen'));
+
+        return $this->commandService->dispatch(
+            studio: $studio,
+            requestType: 'obsisstant.PushBrowserScreen',
+            requestData: [
+                'collectionId' => $collection->id,
+                'sceneName' => $sceneName,
+                'inputName' => $sourceName,
+                'url' => $collection->getStageUrl(true),
+                'width' => $collection->width,
+                'height' => $collection->height,
+                'rerouteAudio' => true,
+            ],
+            user: $user,
+        );
+    }
+
+    public function broadcast(ScreenCollection $collection): void
+    {
+        $fresh = $collection->fresh(['views', 'assets']) ?? $collection;
+        $this->broadcastSafely($fresh);
+    }
+
+    /**
+     * @param  array<string, mixed>  $current
+     * @param  array<string, mixed>  $patch
+     * @return array<string, mixed>
+     */
+    private function applyTimerAction(array $current, array $patch): array
+    {
+        $action = (string) ($patch['action'] ?? 'update');
+        $mode = (string) ($patch['mode'] ?? ($current['mode'] ?? 'countdown'));
+        $now = now();
+
+        if (array_key_exists('label', $patch)) {
+            $current['label'] = (string) $patch['label'];
+        }
+        $current['mode'] = $mode;
+
+        if ($action === 'set') {
+            $seconds = max(0, (int) ($patch['duration_seconds'] ?? $patch['seconds'] ?? $current['duration_seconds'] ?? 300));
+            $current['duration_seconds'] = $seconds;
+            $current['remaining_seconds'] = $seconds;
+            $current['elapsed_base_seconds'] = 0;
+            $current['status'] = ! empty($patch['auto_start']) ? 'running' : 'stopped';
+            $current['target_at'] = $current['status'] === 'running' && $mode === 'countdown'
+                ? $now->copy()->addSeconds($seconds)->toIso8601String()
+                : null;
+            $current['started_at'] = $current['status'] === 'running' && $mode === 'countup'
+                ? $now->toIso8601String()
+                : null;
+
+            return $current;
+        }
+
+        if ($action === 'start') {
+            if ($mode === 'countup') {
+                $current['status'] = 'running';
+                $current['started_at'] = $now->toIso8601String();
+                $current['target_at'] = null;
+            } else {
+                $remaining = max(0, (int) ($current['remaining_seconds'] ?? $current['duration_seconds'] ?? 300));
+                if ($remaining === 0) {
+                    $remaining = max(10, (int) ($current['duration_seconds'] ?? 300));
+                }
+                $current['remaining_seconds'] = $remaining;
+                $current['status'] = 'running';
+                $current['target_at'] = $now->copy()->addSeconds($remaining)->toIso8601String();
+            }
+
+            return $current;
+        }
+
+        if ($action === 'pause') {
+            if (($current['status'] ?? '') === 'running') {
+                if ($mode === 'countup' && ! empty($current['started_at'])) {
+                    $elapsed = max(0, (int) Carbon::parse((string) $current['started_at'])->diffInSeconds($now));
+                    $current['elapsed_base_seconds'] = (int) ($current['elapsed_base_seconds'] ?? 0) + $elapsed;
+                } elseif (! empty($current['target_at'])) {
+                    $remaining = max(0, (int) $now->diffInSeconds(Carbon::parse((string) $current['target_at']), false));
+                    $current['remaining_seconds'] = $remaining;
+                }
+            }
+            $current['status'] = 'paused';
+            $current['target_at'] = null;
+            $current['started_at'] = null;
+
+            return $current;
+        }
+
+        if ($action === 'reset') {
+            $dur = max(0, (int) ($patch['duration_seconds'] ?? $current['duration_seconds'] ?? 300));
+            $current['duration_seconds'] = $dur;
+            $current['remaining_seconds'] = $dur;
+            $current['elapsed_base_seconds'] = 0;
+            $current['status'] = 'stopped';
+            $current['target_at'] = null;
+            $current['started_at'] = null;
+
+            return $current;
+        }
+
+        if ($action === 'add_seconds') {
+            $delta = (int) ($patch['seconds'] ?? 60);
+            if (($current['status'] ?? '') === 'running' && $mode === 'countdown' && ! empty($current['target_at'])) {
+                $target = Carbon::parse((string) $current['target_at'])->addSeconds($delta);
+                if ($target->lessThanOrEqualTo($now)) {
+                    $current['remaining_seconds'] = 0;
+                    $current['target_at'] = $now->toIso8601String();
+                } else {
+                    $current['remaining_seconds'] = max(0, (int) $now->diffInSeconds($target, false));
+                    $current['target_at'] = $target->toIso8601String();
+                }
+            } elseif ($mode === 'countup') {
+                $current['elapsed_base_seconds'] = max(0, (int) ($current['elapsed_base_seconds'] ?? 0) + $delta);
+            } else {
+                $next = max(0, (int) ($current['remaining_seconds'] ?? 0) + $delta);
+                $current['remaining_seconds'] = $next;
+                $current['duration_seconds'] = max($next, (int) ($current['duration_seconds'] ?? 0));
+            }
+
+            return $current;
+        }
+
+        return $current;
+    }
+
+    /**
+     * @param  array<string, mixed>  $current
+     * @param  array<string, mixed>  $patch
+     * @return array<string, mixed>
+     */
+    private function applyScoreboardPatch(array $current, array $patch): array
+    {
+        if (! empty($patch['swap'])) {
+            [$current['team_a_name'], $current['team_b_name']] = [$current['team_b_name'] ?? 'Team B', $current['team_a_name'] ?? 'Team A'];
+            [$current['team_a_tag'], $current['team_b_tag']] = [$current['team_b_tag'] ?? 'B', $current['team_a_tag'] ?? 'A'];
+            [$current['team_a_score'], $current['team_b_score']] = [(int) ($current['team_b_score'] ?? 0), (int) ($current['team_a_score'] ?? 0)];
+            [$current['team_a_color'], $current['team_b_color']] = [$current['team_b_color'] ?? '#4CC38A', $current['team_a_color'] ?? '#CDAD69'];
+            [$current['team_a_logo'], $current['team_b_logo']] = [$current['team_b_logo'] ?? '', $current['team_a_logo'] ?? ''];
+
+            return $current;
+        }
+
+        if (! empty($patch['reset_scores'])) {
+            $current['team_a_score'] = 0;
+            $current['team_b_score'] = 0;
+
+            return $current;
+        }
+
+        if (isset($patch['delta_a'])) {
+            $current['team_a_score'] = max(0, (int) ($current['team_a_score'] ?? 0) + (int) $patch['delta_a']);
+        }
+        if (isset($patch['delta_b'])) {
+            $current['team_b_score'] = max(0, (int) ($current['team_b_score'] ?? 0) + (int) $patch['delta_b']);
+        }
+
+        foreach (['match_label', 'round_label', 'team_a_name', 'team_a_tag', 'team_a_color', 'team_a_logo', 'team_b_name', 'team_b_tag', 'team_b_color', 'team_b_logo'] as $field) {
+            if (array_key_exists($field, $patch)) {
+                $current[$field] = (string) $patch[$field];
+            }
+        }
+        foreach (['team_a_score', 'team_b_score'] as $scoreField) {
+            if (array_key_exists($scoreField, $patch)) {
+                $current[$scoreField] = max(0, (int) $patch[$scoreField]);
+            }
+        }
+
+        return $current;
+    }
+
+    private function broadcastSafely(ScreenCollection $collection): void
+    {
+        try {
+            event(new ScreenCollectionUpdated($collection));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+    }
+}

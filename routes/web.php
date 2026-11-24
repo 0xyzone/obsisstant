@@ -6,6 +6,8 @@ use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ObsMobileDeckController;
 use App\Http\Controllers\ObsOverlayController;
+use App\Http\Controllers\ScreenCollectionController;
+use App\Http\Controllers\StagePlayerController;
 use App\Http\Controllers\StudioControlCenterController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,8 +17,16 @@ Route::get('/changelog', ChangelogController::class)->name('changelog');
 
 Route::get('/knowledge-base', KnowledgeBaseController::class)->name('knowledge-base');
 
-// Public token-scoped Browser Source overlay endpoint for OBS Studio
+// Public token-scoped Browser Source endpoints for OBS Studio
 Route::get('/screens/{token}', [ObsOverlayController::class, 'show'])->name('obs.screen.show');
+Route::get('/stage/{token}', [StagePlayerController::class, 'show'])->name('obs.collection.show');
+Route::get('/stage/{token}/state', [StagePlayerController::class, 'state'])->name('obs.collection.state');
+Route::post('/stage/{token}/logic-trigger', [StagePlayerController::class, 'logicTrigger'])
+    ->middleware('throttle:30,1')
+    ->name('obs.collection.logic-trigger');
+Route::get('/stage-assets/{asset}/{filename?}', [StagePlayerController::class, 'serveAsset'])
+    ->where('filename', '.*')
+    ->name('obs.screen-asset.show');
 
 // Short-lived cached bootstrap setup endpoints for one-click Mac/Windows terminal/PowerShell install
 Route::middleware('throttle:60,1')->group(function (): void {
@@ -48,6 +58,25 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/studio/{studio:slug}/preview-frame', [StudioControlCenterController::class, 'previewFrame'])->name('studio.preview-frame');
     Route::post('/studio/{studio:slug}/media/upload', [StudioControlCenterController::class, 'uploadMedia'])->name('studio.media-upload');
     Route::post('/studio/{studio:slug}/media/storage-path', [StudioControlCenterController::class, 'updateMediaStoragePath'])->name('studio.media-storage-path');
+
+    // Unified Single-Browser Screen Collections, Views Builder & Remote Controls
+    Route::post('/studio/{studio:slug}/control-mode', [ScreenCollectionController::class, 'updateControlMode'])->name('studio.control-mode');
+    Route::get('/studio/{studio:slug}/collections', [ScreenCollectionController::class, 'index'])->name('studio.collections.index');
+    Route::post('/studio/{studio:slug}/collections', [ScreenCollectionController::class, 'store'])->name('studio.collections.store');
+    Route::get('/studio/{studio:slug}/collections/{collection}/builder', [ScreenCollectionController::class, 'builder'])->name('studio.collections.builder');
+    Route::get('/studio/{studio:slug}/collections/{collection}/state', [ScreenCollectionController::class, 'state'])->name('studio.collections.state');
+    Route::put('/studio/{studio:slug}/collections/{collection}', [ScreenCollectionController::class, 'update'])->name('studio.collections.update');
+    Route::delete('/studio/{studio:slug}/collections/{collection}', [ScreenCollectionController::class, 'destroy'])->name('studio.collections.destroy');
+    Route::post('/studio/{studio:slug}/collections/{collection}/switch', [ScreenCollectionController::class, 'switchView'])->name('studio.collections.switch');
+    Route::post('/studio/{studio:slug}/collections/{collection}/runtime', [ScreenCollectionController::class, 'updateRuntime'])->name('studio.collections.runtime');
+    Route::post('/studio/{studio:slug}/collections/{collection}/push', [ScreenCollectionController::class, 'pushToObs'])->name('studio.collections.push');
+    Route::post('/studio/{studio:slug}/collections/{collection}/views', [ScreenCollectionController::class, 'storeView'])->name('studio.collections.views.store');
+    Route::post('/studio/{studio:slug}/collections/{collection}/views/reorder', [ScreenCollectionController::class, 'reorderViews'])->name('studio.collections.views.reorder');
+    Route::put('/studio/{studio:slug}/collections/{collection}/views/{view}', [ScreenCollectionController::class, 'updateView'])->name('studio.collections.views.update');
+    Route::post('/studio/{studio:slug}/collections/{collection}/views/{view}/duplicate', [ScreenCollectionController::class, 'duplicateView'])->name('studio.collections.views.duplicate');
+    Route::delete('/studio/{studio:slug}/collections/{collection}/views/{view}', [ScreenCollectionController::class, 'destroyView'])->name('studio.collections.views.destroy');
+    Route::post('/studio/{studio:slug}/collections/{collection}/assets', [ScreenCollectionController::class, 'storeAsset'])->name('studio.collections.assets.store');
+    Route::delete('/studio/{studio:slug}/collections/assets/{asset}', [ScreenCollectionController::class, 'destroyAsset'])->name('studio.collections.assets.destroy');
 
     Route::get('/deck', [ObsMobileDeckController::class, 'index'])->name('obs.deck.index');
     Route::get('/deck/{studio:slug}', [ObsMobileDeckController::class, 'show'])->name('obs.deck.show');

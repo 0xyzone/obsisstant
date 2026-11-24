@@ -730,7 +730,7 @@ class StudioWorker {
     }
 
     async handlePushBrowserScreen(data) {
-        const { sceneName, inputName, url, width = 1920, height = 1080 } = data;
+        const { sceneName, inputName, url, width = 1920, height = 1080, rerouteAudio = false } = data;
         const { scenes } = await this.obs.call('GetSceneList');
         const sceneExists = scenes.some((s) => s.sceneName === sceneName);
 
@@ -746,7 +746,7 @@ class StudioWorker {
             width: Number(width),
             height: Number(height),
             fps: 60,
-            reroute_audio: false,
+            reroute_audio: Boolean(rerouteAudio),
             restart_when_active: false,
         };
 

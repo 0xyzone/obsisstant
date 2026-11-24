@@ -291,6 +291,10 @@
                     <span id="studio-status" class="status-pill {{ $studio->status === 'streaming' ? 'status-pill--streaming' : ($studio->isOnline() ? 'status-pill--online' : '') }}">
                         {{ strtoupper($studio->status) }}
                     </span>
+                    <div style="display: inline-flex; gap: 0.25rem;">
+                        <button type="button" class="deck-btn{{ ($controlMode ?? 'obs') !== 'screens' ? ' deck-btn--active' : '' }}" data-deck-mode="obs" style="min-block-size: 2rem; padding: 0.25rem 0.65rem; font-size: 0.75rem;">OBS Mode</button>
+                        <button type="button" class="deck-btn{{ ($controlMode ?? 'obs') === 'screens' ? ' deck-btn--active' : '' }}" data-deck-mode="screens" style="min-block-size: 2rem; padding: 0.25rem 0.65rem; font-size: 0.75rem;">Screen Mode</button>
+                    </div>
                     <a href="{{ route('studio.show', ['studio' => $studio->slug], false) }}" style="color: var(--gold); text-decoration: none; font-size: 0.85rem; font-weight: 500;">Studio</a>
                     <a href="{{ route('knowledge-base', [], false) }}" style="color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500;">Docs</a>
                     <a href="{{ url('/admin/obs-control-deck') }}" style="color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 500;">Admin</a>
@@ -338,7 +342,7 @@
                 </div>
             </section>
 
-            <section class="glass">
+            <section id="deck-classic-scenes-section" class="glass" @if (($controlMode ?? 'obs') === 'screens') hidden @endif>
                 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-block-end: 0.75rem;">
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
                         <h2 class="section-title" style="margin: 0;">Scenes</h2>
@@ -368,6 +372,63 @@
                             Connect obs-agent to populate live scenes.
                         </p>
                     @endforelse
+                </div>
+            </section>
+
+            <section id="deck-unified-screen-section" class="glass" style="display: grid; gap: 0.85rem;" @if (($controlMode ?? 'obs') !== 'screens') hidden @endif>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                    <h2 class="section-title" style="margin: 0;">Unified Screen Stage</h2>
+                    <div style="display: inline-flex; flex-wrap: wrap; gap: 0.4rem;">
+                        <a id="deck-uni-builder-link" href="#" class="deck-btn" style="min-block-size: 2rem; padding: 0.25rem 0.7rem; font-size: 0.75rem; text-decoration: none;">Builder</a>
+                        <button type="button" id="deck-uni-push-btn" class="deck-btn deck-btn--active" style="min-block-size: 2rem; padding: 0.25rem 0.7rem; font-size: 0.75rem;">Push to OBS</button>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.5rem;">
+                    <select id="deck-uni-collection-select" class="deck-select" aria-label="Select Event Screen Collection"></select>
+                    <select id="deck-uni-tx-select" class="deck-select" aria-label="Transition effect">
+                        <option value="default">Default Transition</option>
+                        @foreach (($transitionTypes ?? []) as $txKey => $txLabel)
+                            <option value="{{ $txKey }}">{{ $txLabel }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div id="deck-unified-views-grid" class="deck-grid"></div>
+
+                <div style="display: grid; gap: 0.5rem; padding-block-start: 0.65rem; border-block-start: 1px solid rgba(255,255,255,0.1);">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span class="section-title" style="margin: 0;">Live Timer</span>
+                        <strong id="deck-uni-timer-display" style="font-family: ui-monospace, monospace; font-size: 1.15rem; color: var(--gold);">05:00</strong>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem;">
+                        <button type="button" id="deck-uni-t-start" class="deck-btn deck-btn--active" style="min-block-size: 2.5rem; font-size: 0.8rem;">Start</button>
+                        <button type="button" id="deck-uni-t-pause" class="deck-btn" style="min-block-size: 2.5rem; font-size: 0.8rem;">Pause</button>
+                        <button type="button" id="deck-uni-t-reset" class="deck-btn" style="min-block-size: 2.5rem; font-size: 0.8rem;">Reset</button>
+                        <button type="button" id="deck-uni-t-plus" class="deck-btn" style="min-block-size: 2.5rem; font-size: 0.8rem;">+1m</button>
+                    </div>
+                </div>
+
+                <div style="display: grid; gap: 0.5rem; padding-block-start: 0.65rem; border-block-start: 1px solid rgba(255,255,255,0.1);">
+                    <span class="section-title" style="margin: 0;">Scoreboard</span>
+                    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem;">
+                        <div style="display: grid; gap: 0.3rem; text-align: center;">
+                            <span id="deck-uni-sb-a-name" style="font-size: 0.78rem; color: var(--muted);">Team Alpha</span>
+                            <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                <button type="button" id="deck-uni-sb-a-minus" class="deck-btn" style="min-block-size: 2.4rem; flex: 1;">-</button>
+                                <strong id="deck-uni-sb-a-score" style="min-inline-size: 2rem;">0</strong>
+                                <button type="button" id="deck-uni-sb-a-plus" class="deck-btn deck-btn--active" style="min-block-size: 2.4rem; flex: 1;">+</button>
+                            </div>
+                        </div>
+                        <div style="display: grid; gap: 0.3rem; text-align: center;">
+                            <span id="deck-uni-sb-b-name" style="font-size: 0.78rem; color: var(--muted);">Team Omega</span>
+                            <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                <button type="button" id="deck-uni-sb-b-minus" class="deck-btn" style="min-block-size: 2.4rem; flex: 1;">-</button>
+                                <strong id="deck-uni-sb-b-score" style="min-inline-size: 2rem;">0</strong>
+                                <button type="button" id="deck-uni-sb-b-plus" class="deck-btn deck-btn--active" style="min-block-size: 2.4rem; flex: 1;">+</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -729,6 +790,171 @@
                         .listen('.obs.command.acknowledged', handleCommandAck)
                         .listenForWhisper('obs.command.acknowledged', handleCommandAck);
                 }
+
+                // Unified Screen Collection Stage Remote Sync
+                let controlMode = @json($controlMode ?? 'obs');
+                let collectionsData = @json($collectionsPayload ?? []);
+                let activeCollectionId = @json($activeCollectionId);
+                let subscribedCollectionToken = null;
+                let subscribedCollectionChannel = null;
+
+                const uniUrls = {
+                    controlMode: {!! json_encode(route('studio.control-mode', ['studio' => $studio->slug], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!},
+                    builderTpl: {!! json_encode(route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => '__COL__'], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!},
+                    switchTpl: {!! json_encode(route('studio.collections.switch', ['studio' => $studio->slug, 'collection' => '__COL__'], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!},
+                    runtimeTpl: {!! json_encode(route('studio.collections.runtime', ['studio' => $studio->slug, 'collection' => '__COL__'], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!},
+                    pushTpl: {!! json_encode(route('studio.collections.push', ['studio' => $studio->slug, 'collection' => '__COL__'], false), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!},
+                };
+
+                const getActiveCollection = () => collectionsData.find((c) => Number(c.collection_id) === Number(activeCollectionId)) || collectionsData[0] || null;
+
+                const fmtDeckClock = (secs) => {
+                    const s = Math.max(0, Math.floor(secs));
+                    return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+                };
+
+                const subscribeDeckCollectionEcho = (col) => {
+                    if (!window.Echo || !col?.public_token || col.public_token === subscribedCollectionToken) return;
+                    if (subscribedCollectionChannel && subscribedCollectionToken) {
+                        try { window.Echo.leave(`obs.collection.${subscribedCollectionToken}`); } catch {}
+                    }
+                    subscribedCollectionToken = col.public_token;
+                    subscribedCollectionChannel = window.Echo.channel(`obs.collection.${col.public_token}`)
+                        .listen('.obs.collection.updated', (payload) => {
+                            const idx = collectionsData.findIndex((c) => Number(c.collection_id) === Number(payload.collection_id));
+                            if (idx >= 0) collectionsData[idx] = payload;
+                            else collectionsData.push(payload);
+                            if (Number(payload.collection_id) === Number(activeCollectionId)) renderUnifiedDeck();
+                        });
+                };
+
+                const renderUnifiedDeck = () => {
+                    document.querySelectorAll('[data-deck-mode]').forEach((b) => {
+                        b.classList.toggle('deck-btn--active', b.dataset.deckMode === controlMode);
+                    });
+                    const classicSec = document.getElementById('deck-classic-scenes-section');
+                    const uniSec = document.getElementById('deck-unified-screen-section');
+                    if (classicSec) classicSec.hidden = controlMode === 'screens';
+                    if (uniSec) uniSec.hidden = controlMode !== 'screens';
+
+                    const sel = document.getElementById('deck-uni-collection-select');
+                    const grid = document.getElementById('deck-unified-views-grid');
+                    const col = getActiveCollection();
+                    if (col) activeCollectionId = col.collection_id;
+
+                    if (sel) {
+                        sel.innerHTML = collectionsData.length === 0 ? '<option value="">No collections</option>' : '';
+                        collectionsData.forEach((c) => {
+                            const o = document.createElement('option');
+                            o.value = String(c.collection_id);
+                            o.textContent = c.name;
+                            o.selected = Number(c.collection_id) === Number(activeCollectionId);
+                            sel.appendChild(o);
+                        });
+                    }
+
+                    const builderLink = document.getElementById('deck-uni-builder-link');
+                    if (builderLink) builderLink.href = col ? uniUrls.builderTpl.replace('__COL__', col.collection_id) : '#';
+
+                    if (!grid) return;
+                    grid.innerHTML = '';
+                    if (!col) {
+                        grid.innerHTML = '<p style="grid-column:1/-1;margin:0;color:var(--muted);font-size:0.85rem;">Create a Screen Collection from Studio to control it here.</p>';
+                        return;
+                    }
+
+                    subscribeDeckCollectionEcho(col);
+
+                    (col.views || []).forEach((v) => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = `deck-btn${Number(v.id) === Number(col.active_view_id) ? ' deck-btn--active' : ''}`;
+                        btn.textContent = v.name;
+                        btn.addEventListener('click', async () => {
+                            const txType = document.getElementById('deck-uni-tx-select')?.value || 'default';
+                            const res = await postJson(uniUrls.switchTpl.replace('__COL__', col.collection_id), {
+                                view_id: v.id,
+                                transition: txType === 'default' ? null : { type: txType },
+                            });
+                            if (res.collection) {
+                                const idx = collectionsData.findIndex((c) => Number(c.collection_id) === Number(res.collection.collection_id));
+                                if (idx >= 0) collectionsData[idx] = res.collection;
+                                renderUnifiedDeck();
+                                showToast(`View: ${v.name}`);
+                            }
+                        });
+                        grid.appendChild(btn);
+                    });
+
+                    const sb = col.runtime_state?.scoreboard || {};
+                    document.getElementById('deck-uni-sb-a-name').textContent = sb.team_a_name || 'Team Alpha';
+                    document.getElementById('deck-uni-sb-b-name').textContent = sb.team_b_name || 'Team Omega';
+                    document.getElementById('deck-uni-sb-a-score').textContent = String(sb.team_a_score ?? 0);
+                    document.getElementById('deck-uni-sb-b-score').textContent = String(sb.team_b_score ?? 0);
+                };
+
+                const sendDeckRuntime = async (patch) => {
+                    const col = getActiveCollection();
+                    if (!col) return;
+                    const res = await postJson(uniUrls.runtimeTpl.replace('__COL__', col.collection_id), patch);
+                    if (res.collection) {
+                        const idx = collectionsData.findIndex((c) => Number(c.collection_id) === Number(res.collection.collection_id));
+                        if (idx >= 0) collectionsData[idx] = res.collection;
+                        renderUnifiedDeck();
+                    }
+                };
+
+                document.querySelectorAll('[data-deck-mode]').forEach((btn) => {
+                    btn.addEventListener('click', async () => {
+                        const nextMode = btn.dataset.deckMode;
+                        const res = await postJson(uniUrls.controlMode, { control_mode: nextMode });
+                        controlMode = res.control_mode || nextMode;
+                        if (res.collection) {
+                            const idx = collectionsData.findIndex((c) => Number(c.collection_id) === Number(res.collection.collection_id));
+                            if (idx >= 0) collectionsData[idx] = res.collection;
+                            else collectionsData.push(res.collection);
+                            activeCollectionId = res.collection.collection_id;
+                        }
+                        renderUnifiedDeck();
+                    });
+                });
+
+                document.getElementById('deck-uni-collection-select')?.addEventListener('change', async (ev) => {
+                    if (!ev.target.value) return;
+                    activeCollectionId = Number(ev.target.value);
+                    await postJson(uniUrls.controlMode, { active_screen_collection_id: activeCollectionId });
+                    renderUnifiedDeck();
+                });
+
+                document.getElementById('deck-uni-push-btn')?.addEventListener('click', async () => {
+                    const col = getActiveCollection();
+                    if (!col) return;
+                    await postJson(uniUrls.pushTpl.replace('__COL__', col.collection_id), {});
+                    showToast('Pushing single Browser Source to OBS');
+                });
+
+                document.getElementById('deck-uni-t-start')?.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'start' } }));
+                document.getElementById('deck-uni-t-pause')?.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'pause' } }));
+                document.getElementById('deck-uni-t-reset')?.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'reset' } }));
+                document.getElementById('deck-uni-t-plus')?.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'add_seconds', seconds: 60 } }));
+                document.getElementById('deck-uni-sb-a-minus')?.addEventListener('click', () => sendDeckRuntime({ scoreboard: { delta_a: -1 } }));
+                document.getElementById('deck-uni-sb-a-plus')?.addEventListener('click', () => sendDeckRuntime({ scoreboard: { delta_a: 1 } }));
+                document.getElementById('deck-uni-sb-b-minus')?.addEventListener('click', () => sendDeckRuntime({ scoreboard: { delta_b: -1 } }));
+                document.getElementById('deck-uni-sb-b-plus')?.addEventListener('click', () => sendDeckRuntime({ scoreboard: { delta_b: 1 } }));
+
+                setInterval(() => {
+                    const col = getActiveCollection();
+                    const timerEl = document.getElementById('deck-uni-timer-display');
+                    if (!col || !timerEl) return;
+                    const t = col.runtime_state?.timer || {};
+                    let secs = Number(t.remaining_seconds ?? t.duration_seconds ?? 0);
+                    if (t.status === 'running' && t.target_at) {
+                        secs = Math.max(0, Math.ceil((Date.parse(t.target_at) - Date.now()) / 1000));
+                    }
+                    timerEl.textContent = fmtDeckClock(secs);
+                }, 250);
+
+                renderUnifiedDeck();
 
                 document.addEventListener('visibilitychange', () => {
                     if (!document.hidden) {

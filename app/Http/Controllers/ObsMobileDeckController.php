@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\ObsMacro;
 use App\Models\ObsScreen;
 use App\Models\ObsStudio;
+use App\Models\ScreenCollection;
 use App\Models\User;
 use App\Services\Obs\ObsCommandService;
+use App\Services\Obs\ScreenCollectionPresetService;
+use App\Services\Obs\ScreenCollectionService;
 use App\Services\ReverbStatusService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -51,11 +54,29 @@ class ObsMobileDeckController extends Controller
             ->orderBy('name')
             ->get();
 
+        $collections = ScreenCollection::query()
+            ->ownedBy($user)
+            ->where(fn ($query) => $query->where('obs_studio_id', $studio->id)->orWhereNull('obs_studio_id'))
+            ->with(['views', 'assets'])
+            ->orderBy('name')
+            ->get();
+
+        $collectionsPayload = $collections
+            ->map(static fn (ScreenCollection $col): array => ScreenCollectionService::buildStagePayload($col))
+            ->values()
+            ->all();
+
+        $activeCollectionId = $studio->active_screen_collection_id ?? $collections->first()?->id;
+
         return view('obs.mobile-deck', [
             'studio' => $studio,
             'studios' => $studios,
             'screens' => $screens,
             'macros' => $macros,
+            'collectionsPayload' => $collectionsPayload,
+            'activeCollectionId' => $activeCollectionId,
+            'controlMode' => $studio->control_mode ?: 'obs',
+            'transitionTypes' => ScreenCollectionPresetService::transitionOptions(),
             'echoConfig' => ReverbStatusService::clientEchoConfig(),
         ]);
     }

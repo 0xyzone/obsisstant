@@ -6,11 +6,14 @@ use App\Models\ObsCommandLog;
 use App\Models\ObsMacro;
 use App\Models\ObsScreen;
 use App\Models\ObsStudio;
+use App\Models\ScreenCollection;
 use App\Models\User;
 use App\Services\ChangelogService;
 use App\Services\Obs\ObsAgentInstallerService;
 use App\Services\Obs\ObsCommandService;
 use App\Services\Obs\ObsMediaStorageService;
+use App\Services\Obs\ScreenCollectionPresetService;
+use App\Services\Obs\ScreenCollectionService;
 use App\Services\ReverbStatusService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -64,6 +67,24 @@ class StudioControlCenterController extends Controller
             ->limit(12)
             ->get(['id', 'command_uuid', 'request_type', 'status', 'error_message', 'created_at']);
 
+        $collections = ScreenCollection::query()
+            ->ownedBy($user)
+            ->where(fn ($query) => $query->where('obs_studio_id', $studio->id)->orWhereNull('obs_studio_id'))
+            ->with(['views', 'assets'])
+            ->orderBy('name')
+            ->get();
+
+        $collectionsPayload = $collections
+            ->map(static fn (ScreenCollection $col): array => ScreenCollectionService::buildStagePayload($col))
+            ->values()
+            ->all();
+
+        $activeCollectionId = $studio->active_screen_collection_id;
+        if ($activeCollectionId !== null && ! $collections->contains('id', $activeCollectionId)) {
+            $activeCollectionId = $collections->first()?->id;
+        }
+        $activeCollectionId ??= $collections->first()?->id;
+
         return view('studio.control-center', [
             'currentVersion' => ChangelogService::getCurrentVersion(),
             'studio' => $studio,
@@ -71,6 +92,10 @@ class StudioControlCenterController extends Controller
             'screens' => $screens,
             'macros' => $macros,
             'recentLogs' => $recentLogs,
+            'collectionsPayload' => $collectionsPayload,
+            'activeCollectionId' => $activeCollectionId,
+            'controlMode' => $studio->control_mode ?: 'obs',
+            'transitionTypes' => ScreenCollectionPresetService::transitionOptions(),
             'echoConfig' => ReverbStatusService::clientEchoConfig(),
             'mediaStoragePath' => app(ObsMediaStorageService::class)->resolveConfiguredDirectory($studio, $user),
             'agentReachable' => $studio->isAgentReachable(),
