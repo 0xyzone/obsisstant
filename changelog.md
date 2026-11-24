@@ -7,6 +7,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.13.0] - 2026-11-25 | type: minor
+
+> Replaced the fixed Mobile Deck button wall with a persistent, per-collection Configurable Tile Deck focused on switching App Screen Views inside the single OBS Browser Source.
+
+### Added
+- Added persistent deck_layout JSON storage on obs_screen_collections with automatic view-tile generation and PUT /studio/{studio}/collections/{collection}/deck-layout API with live Reverb sync
+- Built in-place Edit Tiles Mode on Mobile Deck with Add/Edit/Delete Tile modal, Sync App Views, drag-and-drop & arrow reordering, 1x1 / 2x1 wide tile spans, 6 color accents, and configurable grid columns
+- Supported 8 configurable tile action types: App Screen View switchers (with 16:9 mini-wireframes and ON AIR pills), Timer controls (with live ticking clock), Scoreboard deltas/swap/reset, Lower Third toggles/speaker presets, Pop-Up Alerts, Ticker toggles, Layer toggles, and optional OBS Actions/Macros
+
+### Changed
+- Defaulted Mobile Control Deck to Stage Tiles mode whenever Screen Collections exist while keeping Classic OBS controls tucked neatly under a secondary Classic OBS toggle
+
 ## [v1.12.2] - 2026-11-24 | type: macro
 
 > Redesigned Studio Control Center into a balanced 2-column broadcast console with a full-width transport bar, tabbed Source Editor, and multi-column lower Audio Mixer deck.

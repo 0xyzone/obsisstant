@@ -25,6 +25,7 @@ use Illuminate\Support\Str;
     'theme',
     'default_transition',
     'runtime_state',
+    'deck_layout',
     'obs_scene_name',
     'obs_source_name',
 ])]
@@ -74,6 +75,7 @@ class ScreenCollection extends Model
             'theme' => 'array',
             'default_transition' => 'array',
             'runtime_state' => 'array',
+            'deck_layout' => 'array',
         ];
     }
 
@@ -148,6 +150,83 @@ class ScreenCollection extends Model
             'alert' => array_merge($defaults['alert'], is_array($saved['alert'] ?? null) ? $saved['alert'] : []),
             'hidden_layers' => array_values(is_array($saved['hidden_layers'] ?? null) ? $saved['hidden_layers'] : []),
             'last_transition' => array_merge($defaults['last_transition'], is_array($saved['last_transition'] ?? null) ? $saved['last_transition'] : []),
+        ];
+    }
+
+    /**
+     * Build the configurable Mobile Deck tile layout, falling back to auto-generated tiles for every app view.
+     *
+     * @return array{columns: int, tiles: array<int, array<string, mixed>>}
+     */
+    public function getNormalizedDeckLayout(): array
+    {
+        $saved = $this->deck_layout;
+        if (is_array($saved) && array_key_exists('tiles', $saved) && is_array($saved['tiles'])) {
+            $columns = max(0, min(6, (int) ($saved['columns'] ?? 0)));
+
+            return [
+                'columns' => $columns,
+                'tiles' => array_values($saved['tiles']),
+            ];
+        }
+
+        $this->loadMissing('views');
+        $tiles = [];
+
+        foreach ($this->views as $view) {
+            $tiles[] = [
+                'id' => 'tile_view_'.$view->id,
+                'type' => 'switch_view',
+                'label' => $view->name,
+                'subtitle' => '',
+                'color' => 'neutral',
+                'span' => 1,
+                'config' => [
+                    'view_id' => $view->id,
+                    'transition_type' => 'default',
+                ],
+            ];
+        }
+
+        $tiles[] = [
+            'id' => 'tile_timer_toggle',
+            'type' => 'timer',
+            'label' => 'Countdown Timer',
+            'subtitle' => 'Tap to start / pause',
+            'color' => 'gold',
+            'span' => 1,
+            'config' => [
+                'action' => 'toggle',
+            ],
+        ];
+
+        $tiles[] = [
+            'id' => 'tile_l3_toggle',
+            'type' => 'lower_third',
+            'label' => 'Lower Third',
+            'subtitle' => 'Toggle banner',
+            'color' => 'neutral',
+            'span' => 1,
+            'config' => [
+                'action' => 'toggle',
+            ],
+        ];
+
+        $tiles[] = [
+            'id' => 'tile_push_obs',
+            'type' => 'obs_action',
+            'label' => 'Push to OBS',
+            'subtitle' => 'Sync 1 browser source',
+            'color' => 'neutral',
+            'span' => 1,
+            'config' => [
+                'action' => 'push_stage',
+            ],
+        ];
+
+        return [
+            'columns' => 0,
+            'tiles' => $tiles,
         ];
     }
 }

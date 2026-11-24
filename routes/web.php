@@ -69,6 +69,7 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/studio/{studio:slug}/collections/{collection}', [ScreenCollectionController::class, 'destroy'])->name('studio.collections.destroy');
     Route::post('/studio/{studio:slug}/collections/{collection}/switch', [ScreenCollectionController::class, 'switchView'])->name('studio.collections.switch');
     Route::post('/studio/{studio:slug}/collections/{collection}/runtime', [ScreenCollectionController::class, 'updateRuntime'])->name('studio.collections.runtime');
+    Route::put('/studio/{studio:slug}/collections/{collection}/deck-layout', [ScreenCollectionController::class, 'updateDeckLayout'])->name('studio.collections.deck-layout');
     Route::post('/studio/{studio:slug}/collections/{collection}/push', [ScreenCollectionController::class, 'pushToObs'])->name('studio.collections.push');
     Route::post('/studio/{studio:slug}/collections/{collection}/views', [ScreenCollectionController::class, 'storeView'])->name('studio.collections.views.store');
     Route::post('/studio/{studio:slug}/collections/{collection}/views/reorder', [ScreenCollectionController::class, 'reorderViews'])->name('studio.collections.views.reorder');

@@ -62,7 +62,97 @@ class ScreenCollectionStageTest extends TestCase
             ->assertOk()
             ->assertSee('Unified Screen Stage')
             ->assertSee('Scoreboard')
+            ->assertSee('deck-tiles-grid', false)
+            ->assertSee('deck-edit-mode-btn', false)
+            ->assertSee('tile-editor-dialog', false)
             ->assertSee('deck-uni-l3-show', false);
+    }
+
+    public function test_mobile_deck_configurable_tile_layout_persists_broadcasts_and_resets(): void
+    {
+        Event::fake([ScreenCollectionUpdated::class]);
+
+        $user = User::factory()->create();
+        $stranger = User::factory()->create();
+        $studio = ObsStudio::factory()->online()->for($user)->create([
+            'control_mode' => 'obs',
+        ]);
+        $collection = ScreenCollection::factory()->for($user)->create([
+            'obs_studio_id' => $studio->id,
+            'name' => 'Grand Finals Deck',
+        ]);
+        $viewA = ScreenView::factory()->create(['screen_collection_id' => $collection->id, 'name' => 'Opening Slate', 'sort_order' => 1]);
+        $viewB = ScreenView::factory()->create(['screen_collection_id' => $collection->id, 'name' => 'Live Cam', 'sort_order' => 2]);
+        $collection->update(['active_view_id' => $viewA->id]);
+
+        // Auto-generates view switch tiles by default
+        $defaultLayout = $collection->fresh(['views'])->getNormalizedDeckLayout();
+        $this->assertSame(0, $defaultLayout['columns']);
+        $viewTileIds = array_values(array_map(
+            static fn (array $t): int => (int) ($t['config']['view_id'] ?? 0),
+            array_filter($defaultLayout['tiles'], static fn (array $t): bool => $t['type'] === 'switch_view')
+        ));
+        $this->assertSame([$viewA->id, $viewB->id], $viewTileIds);
+
+        // Unauthorized user cannot save deck layout
+        $this->actingAs($stranger)
+            ->putJson(route('studio.collections.deck-layout', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                'columns' => 3,
+                'tiles' => [],
+            ])
+            ->assertForbidden();
+
+        // Owner saves custom tile layout with app view switchers + custom lower third preset
+        $saveRes = $this->actingAs($user)
+            ->putJson(route('studio.collections.deck-layout', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                'columns' => 3,
+                'tiles' => [
+                    [
+                        'id' => 'tile_custom_a',
+                        'type' => 'switch_view',
+                        'label' => 'Go Opening',
+                        'subtitle' => 'Fade 450ms',
+                        'color' => 'gold',
+                        'span' => 2,
+                        'config' => ['view_id' => $viewA->id, 'transition_type' => 'fade'],
+                    ],
+                    [
+                        'id' => 'tile_speaker_1',
+                        'type' => 'lower_third',
+                        'label' => 'Host: Alex',
+                        'subtitle' => 'Caster Desk',
+                        'color' => 'emerald',
+                        'span' => 1,
+                        'config' => ['action' => 'show', 'title' => 'Alex', 'subtitle' => 'Main Host'],
+                    ],
+                ],
+            ])
+            ->assertOk();
+
+        $saveRes->assertJsonPath('collection.deck_layout.columns', 3);
+        $saveRes->assertJsonPath('collection.deck_layout.tiles.0.label', 'Go Opening');
+        $saveRes->assertJsonPath('collection.deck_layout.tiles.0.span', 2);
+        $saveRes->assertJsonPath('collection.deck_layout.tiles.1.type', 'lower_third');
+
+        // Mobile Deck defaults to Stage Tiles mode when studio owns collections
+        $this->actingAs($user)
+            ->get(route('obs.deck.show', ['studio' => $studio->slug]))
+            ->assertOk()
+            ->assertSee('Go Opening')
+            ->assertSee('Host: Alex')
+            ->assertSee('Stage Tiles');
+
+        // Reset restores auto-generated defaults from collection views
+        $resetRes = $this->actingAs($user)
+            ->putJson(route('studio.collections.deck-layout', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                'reset' => true,
+            ])
+            ->assertOk();
+
+        $resetRes->assertJsonPath('collection.deck_layout.columns', 0);
+        $resetRes->assertJsonPath('collection.deck_layout.tiles.0.label', 'Opening Slate');
+
+        Event::assertDispatched(ScreenCollectionUpdated::class, 2);
     }
 
     public function test_switching_views_updates_active_view_transitions_and_broadcasts(): void

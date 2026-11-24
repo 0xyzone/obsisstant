@@ -273,6 +273,65 @@ class ScreenCollectionController extends Controller
         ]);
     }
 
+    public function updateDeckLayout(
+        Request $request,
+        ObsStudio $studio,
+        ScreenCollection $collection,
+        ScreenCollectionService $collectionService,
+    ): JsonResponse {
+        $user = $this->authorizeStudio($request, $studio);
+        $this->authorizeCollection($user, $collection);
+
+        if ($request->boolean('reset')) {
+            $collection->forceFill(['deck_layout' => null])->save();
+            $collectionService->broadcast($collection);
+
+            return response()->json([
+                'ok' => true,
+                'collection' => ScreenCollectionService::buildStagePayload($collection->fresh(['views', 'assets']) ?? $collection),
+            ]);
+        }
+
+        $validated = $request->validate([
+            'columns' => ['nullable', 'integer', 'min:0', 'max:6'],
+            'tiles' => ['required', 'array', 'max:48'],
+            'tiles.*.id' => ['nullable', 'string', 'max:80'],
+            'tiles.*.type' => ['required', 'string', 'in:switch_view,timer,scoreboard,lower_third,alert,ticker,layer_toggle,obs_action'],
+            'tiles.*.label' => ['required', 'string', 'max:80'],
+            'tiles.*.subtitle' => ['nullable', 'string', 'max:120'],
+            'tiles.*.color' => ['nullable', 'string', 'in:neutral,gold,emerald,crimson,cobalt,violet'],
+            'tiles.*.span' => ['nullable', 'integer', 'in:1,2'],
+            'tiles.*.config' => ['nullable', 'array'],
+        ]);
+
+        $sanitizedTiles = [];
+        foreach ($validated['tiles'] as $index => $tile) {
+            $sanitizedTiles[] = [
+                'id' => trim((string) ($tile['id'] ?? '')) ?: 'tile_'.($index + 1).'_'.Str::lower(Str::random(5)),
+                'type' => (string) $tile['type'],
+                'label' => trim((string) $tile['label']),
+                'subtitle' => trim((string) ($tile['subtitle'] ?? '')),
+                'color' => (string) ($tile['color'] ?? 'neutral'),
+                'span' => (int) ($tile['span'] ?? 1) === 2 ? 2 : 1,
+                'config' => is_array($tile['config'] ?? null) ? $tile['config'] : [],
+            ];
+        }
+
+        $collection->forceFill([
+            'deck_layout' => [
+                'columns' => max(0, min(6, (int) ($validated['columns'] ?? 0))),
+                'tiles' => $sanitizedTiles,
+            ],
+        ])->save();
+
+        $collectionService->broadcast($collection);
+
+        return response()->json([
+            'ok' => true,
+            'collection' => ScreenCollectionService::buildStagePayload($collection->fresh(['views', 'assets']) ?? $collection),
+        ]);
+    }
+
     public function pushToObs(
         Request $request,
         ObsStudio $studio,

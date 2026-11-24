@@ -121,6 +121,7 @@ class ScreenCollectionService
             'theme' => $collection->getMergedTheme(),
             'default_transition' => $defaultTransition,
             'runtime_state' => $collection->getMergedRuntimeState(),
+            'deck_layout' => $collection->getNormalizedDeckLayout(),
             'views' => $views,
             'assets' => $serializedAssets,
             'updated_at' => $collection->updated_at?->toIso8601String() ?? now()->toIso8601String(),

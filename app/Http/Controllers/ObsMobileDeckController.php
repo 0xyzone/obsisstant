@@ -67,15 +67,22 @@ class ObsMobileDeckController extends Controller
             ->all();
 
         $activeCollectionId = $studio->active_screen_collection_id ?? $collections->first()?->id;
+        $initialDeckMode = $collections->isNotEmpty()
+            ? 'screens'
+            : ($studio->control_mode ?: 'obs');
 
         return view('obs.mobile-deck', [
             'studio' => $studio,
             'studios' => $studios,
             'screens' => $screens,
             'macros' => $macros,
+            'macrosPayload' => $macros->map(static fn (ObsMacro $macro): array => [
+                'id' => $macro->id,
+                'name' => $macro->name,
+            ])->values()->all(),
             'collectionsPayload' => $collectionsPayload,
             'activeCollectionId' => $activeCollectionId,
-            'controlMode' => $studio->control_mode ?: 'obs',
+            'controlMode' => $initialDeckMode,
             'transitionTypes' => ScreenCollectionPresetService::transitionOptions(),
             'echoConfig' => ReverbStatusService::clientEchoConfig(),
         ]);
