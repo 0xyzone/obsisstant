@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.12.2] - 2026-11-24 | type: macro
+
+> Redesigned Studio Control Center into a balanced 2-column broadcast console with a full-width transport bar, tabbed Source Editor, and multi-column lower Audio Mixer deck.
+
+### Changed
+- Eliminated the empty center gap in Studio Control Center by replacing the 3-column layout with a full-width Broadcast Outputs & Macros bar over a 2-column Broadcast Workstation
+- Moved Audio Mixer into a wide multi-column searchable fader grid paired with a tabbed Live Overlay Push / Command Log dock directly below the primary workspace
+- Auto-selected the first source per scene in OBS Scenes Mode and organized Source Editor into compact OBS Properties and Position & Size tabs so the full console fits cleanly above the fold
+- Expanded Unified Screen View pads edge-to-edge with auto-fit sizing and added a compact OBS Stage Binding summary card in the left rail
+
 ## [v1.12.1] - 2026-11-24 | type: macro
 
 > Redesigned Studio Control Center, Canvas Builder, and Mobile Deck for clearer workflow hierarchy and fixed Stage Player viewport centering.
