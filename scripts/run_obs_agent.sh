@@ -101,6 +101,20 @@ case "$ACTION" in
             exit 1
         fi
 
+        if [ -f "$APP_DIR/.env" ]; then
+            ROOT_APP_URL=$(grep -E '^APP_URL=' "$APP_DIR/.env" | tail -n 1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r' | sed 's:/*$::')
+            ROOT_RELAY_TOKEN=$(grep -E '^OBS_RELAY_TOKEN=' "$APP_DIR/.env" | tail -n 1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
+            AGENT_URL=$(grep -E '^OBSISSTANT_URL=' "$AGENT_DIR/.env" | tail -n 1 | cut -d'=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r' | sed 's:/*$::')
+            if [ -n "$ROOT_RELAY_TOKEN" ] && ([ -z "$AGENT_URL" ] || [ "$AGENT_URL" = "$ROOT_APP_URL" ]); then
+                if grep -q '^OBSISSTANT_RELAY_TOKEN=' "$AGENT_DIR/.env"; then
+                    sed -i '' "s|^OBSISSTANT_RELAY_TOKEN=.*|OBSISSTANT_RELAY_TOKEN=$ROOT_RELAY_TOKEN|" "$AGENT_DIR/.env" 2>/dev/null || \
+                        sed -i "s|^OBSISSTANT_RELAY_TOKEN=.*|OBSISSTANT_RELAY_TOKEN=$ROOT_RELAY_TOKEN|" "$AGENT_DIR/.env" 2>/dev/null || true
+                else
+                    printf '\nOBSISSTANT_RELAY_TOKEN=%s\n' "$ROOT_RELAY_TOKEN" >> "$AGENT_DIR/.env"
+                fi
+            fi
+        fi
+
         cd "$AGENT_DIR" || exit 1
         if [ -n "$CA_CERT" ]; then
             export NODE_EXTRA_CA_CERTS="$CA_CERT"

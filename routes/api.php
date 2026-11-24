@@ -8,6 +8,7 @@ Route::prefix('obs-agent')
     ->middleware(AuthenticateObsAgent::class)
     ->group(function (): void {
         Route::get('/bootstrap', [ObsAgentController::class, 'bootstrap'])->name('api.obs-agent.bootstrap');
+        Route::get('/commands/pending', [ObsAgentController::class, 'pendingCommands'])->name('api.obs-agent.commands.pending');
         Route::post('/broadcasting/auth', [ObsAgentController::class, 'authenticateBroadcast'])->name('api.obs-agent.broadcast-auth');
         Route::post('/state', [ObsAgentController::class, 'updateState'])->name('api.obs-agent.state');
         Route::post('/preview-frame', [ObsAgentController::class, 'uploadPreviewFrame'])->name('api.obs-agent.preview-frame');

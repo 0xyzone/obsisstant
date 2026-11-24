@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Events\ObsCommandDispatched;
 use App\Events\ObsScreenUpdated;
+use App\Models\ObsCommandLog;
 use App\Models\ObsMacro;
 use App\Models\ObsScreen;
 use App\Models\ObsStudio;
@@ -11,6 +12,7 @@ use App\Models\User;
 use App\Services\Obs\ObsCommandService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use RuntimeException;
 use Tests\TestCase;
 
 class ObsScreenAndDeckTest extends TestCase
@@ -161,6 +163,8 @@ class ObsScreenAndDeckTest extends TestCase
             ->assertSee('Intro')
             ->assertSee('BRB')
             ->assertSee('sendDeckCommand', false)
+            ->assertSee('rollbackSceneSelection', false)
+            ->assertSee('OBS Agent did not respond', false)
             ->assertSee(json_encode('/deck/'.$primary->slug.'/command'), false)
             ->assertSee(json_encode('/studio/'.$primary->slug.'/snapshot'), false);
 
@@ -182,5 +186,84 @@ class ObsScreenAndDeckTest extends TestCase
             return $event->commandLog->request_type === 'SetCurrentProgramScene'
                 && ($event->commandLog->request_data['sceneName'] ?? null) === 'BRB';
         });
+    }
+
+    public function test_pending_commands_endpoint_and_safe_broadcast_fallback_for_scene_commands(): void
+    {
+        $user = User::factory()->create(['relay_token' => 'usr_test_relay_pending_token']);
+        $otherUser = User::factory()->create();
+
+        $studio = ObsStudio::factory()->online()->for($user)->create([
+            'agent_token' => 'obs_test_studio_pending_token',
+        ]);
+        $otherStudio = ObsStudio::factory()->online()->for($otherUser)->create();
+
+        $activeLog = ObsCommandLog::query()->create([
+            'obs_studio_id' => $studio->id,
+            'user_id' => $user->id,
+            'command_uuid' => 'uuid-active-scene-cmd',
+            'request_type' => 'SetCurrentProgramScene',
+            'request_data' => ['sceneName' => 'Starting Soon'],
+            'status' => 'dispatched',
+        ]);
+
+        ObsCommandLog::query()->create([
+            'obs_studio_id' => $studio->id,
+            'user_id' => $user->id,
+            'command_uuid' => 'uuid-done-scene-cmd',
+            'request_type' => 'SetCurrentProgramScene',
+            'request_data' => ['sceneName' => 'BRB'],
+            'status' => 'succeeded',
+        ]);
+
+        ObsCommandLog::query()->create([
+            'obs_studio_id' => $otherStudio->id,
+            'user_id' => $otherUser->id,
+            'command_uuid' => 'uuid-other-user-cmd',
+            'request_type' => 'SetCurrentProgramScene',
+            'request_data' => ['sceneName' => 'Secret'],
+            'status' => 'dispatched',
+        ]);
+
+        // User relay mode fetches only active dispatched commands on owned studios
+        $this->withHeader('Authorization', 'Bearer usr_test_relay_pending_token')
+            ->getJson(route('api.obs-agent.commands.pending'))
+            ->assertOk()
+            ->assertJsonCount(1, 'studios')
+            ->assertJsonPath('studios.0.studio_id', $studio->id)
+            ->assertJsonCount(1, 'studios.0.pending_commands')
+            ->assertJsonPath('studios.0.pending_commands.0.command_uuid', $activeLog->command_uuid)
+            ->assertJsonPath('studios.0.pending_commands.0.request_data.sceneName', 'Starting Soon');
+
+        // Studio token mode also returns pending_commands cleanly
+        $this->withHeader('Authorization', 'Bearer obs_test_studio_pending_token')
+            ->getJson(route('api.obs-agent.commands.pending'))
+            ->assertOk()
+            ->assertJsonCount(1, 'pending_commands')
+            ->assertJsonPath('pending_commands.0.command_uuid', $activeLog->command_uuid);
+
+        // Even if Reverb broadcaster throws, dispatching a scene command persists safely
+        Event::listen(ObsCommandDispatched::class, static function (): void {
+            throw new RuntimeException('Simulated Reverb offline');
+        });
+
+        $response = $this->actingAs($user)
+            ->postJson(route('obs.deck.command', ['studio' => $studio->slug]), [
+                'request_type' => 'SetCurrentProgramScene',
+                'request_data' => ['sceneName' => 'Ending'],
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('request_type', 'SetCurrentProgramScene');
+
+        $newUuid = (string) $response->json('command_uuid');
+        $this->assertDatabaseHas('obs_command_logs', [
+            'command_uuid' => $newUuid,
+            'status' => 'dispatched',
+        ]);
+
+        $agentJs = file_get_contents(base_path('obs-agent/src/index.js')) ?: '';
+        $this->assertStringContainsString('Pusher.Runtime.createWebSocket', $agentJs);
+        $this->assertStringContainsString('pollPendingCommands', $agentJs);
     }
 }

@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.11.4] - 2026-11-24 | type: macro
+
+> Fix obs-agent Pusher WebSocket transport, add pending command fallback polling, and improve Studio/Deck feedback
+
+### Fixed
+- Override Pusher.Runtime WebSocket factory in obs-agent to use ws so TLS proxy connections succeed reliably on production shared hosting
+- Add /api/obs-agent/commands/pending fallback polling, safe broadcast guards, and duplicate command protection in obs-agent
+- Keep obs-agent/.env OBSISSTANT_RELAY_TOKEN automatically synced with root .env OBS_RELAY_TOKEN in ObsLocalRelayService and run_obs_agent.sh
+- Warn clearly when OBS Agent command acknowledgment times out and allow double-click or Go Live scene switching in Studio Control Center
+
 ## [v1.11.3] - 2026-11-24 | type: macro
 
 > Fix cross-origin deck URLs, LAN Echo host detection, Livewire Control Deck quotes, and snapshot fallback sync

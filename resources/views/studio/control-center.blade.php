@@ -872,7 +872,7 @@
                     <div class="dock-head">
                         <div>
                             <h2 class="dock-title">Scenes &amp; Collections</h2>
-                            <div class="dock-subtitle">Click scene to inspect · Live cuts output</div>
+                            <div class="dock-subtitle">Click to edit · Dbl-click or Go Live cuts OBS</div>
                         </div>
                         <button type="button" class="s-btn s-btn-xs" id="sync-obs-btn">Sync</button>
                     </div>
@@ -1836,8 +1836,18 @@
                             showToast(`OBS Error: ${settled.error_message || `${label} failed`}`, 'error');
                         } else if (settled?.status === 'succeeded') {
                             if (!silent) showToast(`${label} complete`, 'success');
-                        } else if (requestType !== 'obsisstant.FetchInputSettings') {
-                            scheduleSnapshotRefresh(700);
+                        } else {
+                            if (requestType !== 'obsisstant.FetchInputSettings') {
+                                scheduleSnapshotRefresh(400);
+                            }
+                            if (!silent) {
+                                showToast(
+                                    studioStatus === 'offline'
+                                        ? 'OBS Agent offline — install or start OBS Agent on your PC'
+                                        : 'OBS Agent did not respond — check OBS WebSocket & restart OBS Agent',
+                                    'error',
+                                );
+                            }
                         }
 
                         return { ...res, settled };
@@ -2054,6 +2064,11 @@
                             pgm.textContent = 'PGM';
                             selectBtn.prepend(pgm);
                         }
+                        const cutSceneLiveOrPreview = () => {
+                            const cmd = liveState?.studioModeEnabled ? 'SetCurrentPreviewScene' : 'SetCurrentProgramScene';
+                            sendObsCommand(cmd, { sceneName: sName });
+                        };
+
                         selectBtn.addEventListener('click', () => {
                             editingScene = sName;
                             selectedSceneItemId = null;
@@ -2062,18 +2077,19 @@
                                 enableSnapshotPreview(true);
                             }
                         });
+                        selectBtn.addEventListener('dblclick', cutSceneLiveOrPreview);
 
                         const actions = document.createElement('div');
                         actions.className = 'scene-actions';
 
                         const cutBtn = document.createElement('button');
                         cutBtn.type = 'button';
-                        cutBtn.className = 's-btn s-btn-xs';
-                        cutBtn.textContent = liveState?.studioModeEnabled ? 'Preview' : 'Live';
-                        cutBtn.addEventListener('click', () => {
-                            const cmd = liveState?.studioModeEnabled ? 'SetCurrentPreviewScene' : 'SetCurrentProgramScene';
-                            sendObsCommand(cmd, { sceneName: sName });
-                        });
+                        cutBtn.className = `s-btn s-btn-xs${isProgram ? ' is-active' : ' s-btn-gold'}`;
+                        cutBtn.textContent = liveState?.studioModeEnabled ? 'Preview' : (isProgram ? 'On Air' : 'Go Live');
+                        cutBtn.title = liveState?.studioModeEnabled
+                            ? `Cue "${sName}" in Preview`
+                            : (isProgram ? `"${sName}" is currently Live in OBS` : `Switch OBS Live to "${sName}"`);
+                        cutBtn.addEventListener('click', cutSceneLiveOrPreview);
 
                         const renameBtn = document.createElement('button');
                         renameBtn.type = 'button';

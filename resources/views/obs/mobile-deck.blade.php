@@ -553,6 +553,16 @@
                     }
                 };
 
+                const rollbackSceneSelection = (requestType, previousScene) => {
+                    if (requestType !== 'SetCurrentProgramScene') {
+                        return;
+                    }
+                    currentProgramScene = previousScene;
+                    document.querySelectorAll('[data-scene]').forEach((b) => {
+                        b.classList.toggle('deck-btn--active', b.dataset.scene === previousScene);
+                    });
+                };
+
                 const sendDeckCommand = async (requestType, requestData = {}, successLabel = null) => {
                     const prevScene = currentProgramScene;
                     try {
@@ -560,29 +570,29 @@
                             request_type: requestType,
                             request_data: requestData,
                         });
-                        showToast(successLabel || `Sent: ${requestType}`);
+                        showToast(successLabel ? `${successLabel} (sending...)` : `Sending ${requestType}...`);
 
-                        const settled = await waitForCommandResult(res.command_uuid, 4000);
+                        const settled = await waitForCommandResult(res.command_uuid, 4500);
                         if (settled?.status === 'failed') {
-                            if (requestType === 'SetCurrentProgramScene') {
-                                currentProgramScene = prevScene;
-                                document.querySelectorAll('[data-scene]').forEach((b) => {
-                                    b.classList.toggle('deck-btn--active', b.dataset.scene === prevScene);
-                                });
-                            }
+                            rollbackSceneSelection(requestType, prevScene);
                             showToast(`OBS Error: ${settled.error_message || 'Command failed'}`, true);
-                        } else if (!settled && !studioOnline) {
-                            showToast('OBS Agent offline — install/start agent on your streaming PC', true);
-                        } else if (Date.now() - lastEchoAt > 600) {
-                            refreshSnapshot();
+                        } else if (settled?.status === 'succeeded') {
+                            showToast(successLabel || `Done: ${requestType}`);
+                            if (Date.now() - lastEchoAt > 600) {
+                                refreshSnapshot();
+                            }
+                        } else {
+                            rollbackSceneSelection(requestType, prevScene);
+                            await refreshSnapshot();
+                            showToast(
+                                studioOnline
+                                    ? 'OBS Agent did not respond — check OBS WebSocket & restart OBS Agent'
+                                    : 'OBS Agent offline — install/start agent on your streaming PC',
+                                true,
+                            );
                         }
                     } catch (err) {
-                        if (requestType === 'SetCurrentProgramScene') {
-                            currentProgramScene = prevScene;
-                            document.querySelectorAll('[data-scene]').forEach((b) => {
-                                b.classList.toggle('deck-btn--active', b.dataset.scene === prevScene);
-                            });
-                        }
+                        rollbackSceneSelection(requestType, prevScene);
                         showToast(`Failed: ${err.message}`, true);
                     }
                 };

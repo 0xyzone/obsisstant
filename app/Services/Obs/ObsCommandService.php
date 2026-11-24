@@ -13,6 +13,7 @@ use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use stdClass;
+use Throwable;
 
 class ObsCommandService
 {
@@ -81,7 +82,7 @@ class ObsCommandService
             'status' => 'dispatched',
         ]);
 
-        event(new ObsCommandDispatched($log));
+        $this->broadcastSafely(new ObsCommandDispatched($log));
 
         return $log;
     }
@@ -107,7 +108,7 @@ class ObsCommandService
             'status' => 'dispatched',
         ]);
 
-        event(new ObsCommandDispatched($transientLog));
+        $this->broadcastSafely(new ObsCommandDispatched($transientLog));
 
         return $transientLog;
     }
@@ -146,7 +147,7 @@ class ObsCommandService
         ]);
 
         $fresh = $screen->fresh() ?? $screen;
-        event(new ObsScreenUpdated($fresh));
+        $this->broadcastSafely(new ObsScreenUpdated($fresh));
 
         return $fresh;
     }
@@ -218,5 +219,14 @@ class ObsCommandService
         }
 
         return $results;
+    }
+
+    private function broadcastSafely(object $event): void
+    {
+        try {
+            event($event);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 }

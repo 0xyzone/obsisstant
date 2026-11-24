@@ -38,7 +38,22 @@ class ObsLocalRelayService
         }
 
         $content = File::get($envPath);
-        if (! str_contains($content, 'OBSISSTANT_RELAY_TOKEN=') || preg_match('/^OBSISSTANT_RELAY_TOKEN=\s*$/m', $content)) {
+        $currentUrl = '';
+        if (preg_match('/^OBSISSTANT_URL=(.*)$/m', $content, $urlMatch)) {
+            $currentUrl = rtrim(trim($urlMatch[1], " \t\n\r\0\x0B\"'"), '/');
+        }
+
+        $targetsLocalApp = $currentUrl === '' || $currentUrl === $appUrl;
+        if (! $targetsLocalApp) {
+            return;
+        }
+
+        $currentRelayToken = '';
+        if (preg_match('/^OBSISSTANT_RELAY_TOKEN=(.*)$/m', $content, $tokenMatch)) {
+            $currentRelayToken = trim($tokenMatch[1], " \t\n\r\0\x0B\"'");
+        }
+
+        if ($currentRelayToken !== $relayToken) {
             if (preg_match('/^OBSISSTANT_RELAY_TOKEN=.*$/m', $content)) {
                 $content = (string) preg_replace('/^OBSISSTANT_RELAY_TOKEN=.*$/m', "OBSISSTANT_RELAY_TOKEN={$relayToken}", $content);
             } else {

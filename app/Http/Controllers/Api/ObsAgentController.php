@@ -27,11 +27,7 @@ class ObsAgentController extends Controller
         $relayUser = $request->attributes->get('obs_relay_user');
 
         if ($isRelayMode) {
-            $studios = ObsStudio::query()
-                ->where('is_active', true)
-                ->when($relayScope === 'user' && $relayUser instanceof User, fn ($q) => $q->ownedBy($relayUser))
-                ->orderBy('id')
-                ->get()
+            $studios = $this->scopedRelayStudios($relayUser instanceof User ? $relayUser : null, $relayScope)
                 ->map(fn (ObsStudio $studio): array => $this->formatStudioBootstrap($studio))
                 ->values();
 
@@ -70,6 +66,38 @@ class ObsAgentController extends Controller
                 'studio_channel' => $formatted['studio_channel'],
             ],
             'pending_commands' => $formatted['pending_commands'],
+        ]);
+    }
+
+    /**
+     * Fallback queue fetch for OBS Agents when WebSocket delivery is interrupted or offline.
+     */
+    public function pendingCommands(Request $request): JsonResponse
+    {
+        $isRelayMode = (bool) $request->attributes->get('obs_relay_mode', false);
+        $relayScope = (string) $request->attributes->get('obs_relay_scope', 'studio');
+        $relayUser = $request->attributes->get('obs_relay_user');
+
+        if ($isRelayMode) {
+            $studios = $this->scopedRelayStudios($relayUser instanceof User ? $relayUser : null, $relayScope)
+                ->map(fn (ObsStudio $studio): array => [
+                    'studio_id' => $studio->id,
+                    'pending_commands' => $this->queryPendingCommands($studio),
+                ])
+                ->values();
+
+            return response()->json(['studios' => $studios]);
+        }
+
+        $studio = $this->resolveStudio($request);
+        $commands = $this->queryPendingCommands($studio);
+
+        return response()->json([
+            'studios' => [[
+                'studio_id' => $studio->id,
+                'pending_commands' => $commands,
+            ]],
+            'pending_commands' => $commands,
         ]);
     }
 
@@ -156,7 +184,7 @@ class ObsAgentController extends Controller
         ]);
 
         $freshStudio = $studio->fresh() ?? $studio;
-        event(new ObsStudioStateUpdated($freshStudio));
+        $this->broadcastSafely(new ObsStudioStateUpdated($freshStudio));
 
         return response()->json([
             'ok' => true,
@@ -207,14 +235,14 @@ class ObsAgentController extends Controller
                     imageData: $inlineDataUri,
                 ));
             } catch (Throwable) {
-                event(new ObsPreviewFrameUpdated(
+                $this->broadcastSafely(new ObsPreviewFrameUpdated(
                     studioId: $studio->id,
                     sceneName: $validated['scene_name'],
                     frameVersion: $version,
                 ));
             }
         } else {
-            event(new ObsPreviewFrameUpdated(
+            $this->broadcastSafely(new ObsPreviewFrameUpdated(
                 studioId: $studio->id,
                 sceneName: $validated['scene_name'],
                 frameVersion: $version,
@@ -271,7 +299,7 @@ class ObsAgentController extends Controller
         ]);
 
         $freshLog = $commandLog->fresh() ?? $commandLog;
-        event(new ObsCommandAcknowledged($freshLog));
+        $this->broadcastSafely(new ObsCommandAcknowledged($freshLog));
 
         return response()->json([
             'ok' => true,
@@ -320,12 +348,23 @@ class ObsAgentController extends Controller
     }
 
     /**
-     * @return array<string, mixed>
+     * @return \Illuminate\Database\Eloquent\Collection<int, ObsStudio>
      */
-    private function formatStudioBootstrap(ObsStudio $studio): array
+    private function scopedRelayStudios(?User $relayUser, string $relayScope): \Illuminate\Database\Eloquent\Collection
     {
-        /** @var Collection<int, array<string, mixed>> $pendingCommands */
-        $pendingCommands = ObsCommandLog::query()
+        return ObsStudio::query()
+            ->where('is_active', true)
+            ->when($relayScope === 'user' && $relayUser instanceof User, fn ($q) => $q->ownedBy($relayUser))
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function queryPendingCommands(ObsStudio $studio): array
+    {
+        return ObsCommandLog::query()
             ->where('obs_studio_id', $studio->id)
             ->whereIn('status', ['queued', 'dispatched'])
             ->where('created_at', '>=', now()->subMinutes(5))
@@ -336,8 +375,15 @@ class ObsAgentController extends Controller
                 'request_type' => $log->request_type,
                 'request_data' => ObsCommandService::normalizeRequestDataForJson($log->request_data),
             ])
-            ->values();
+            ->values()
+            ->all();
+    }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatStudioBootstrap(ObsStudio $studio): array
+    {
         return [
             'studio' => [
                 'id' => $studio->id,
@@ -349,8 +395,17 @@ class ObsAgentController extends Controller
             ],
             'channel' => "private-obs.studio.{$studio->id}.commands",
             'studio_channel' => "private-obs.studio.{$studio->id}",
-            'pending_commands' => $pendingCommands,
+            'pending_commands' => $this->queryPendingCommands($studio),
         ];
+    }
+
+    private function broadcastSafely(object $event): void
+    {
+        try {
+            event($event);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     /**

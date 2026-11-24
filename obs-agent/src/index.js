@@ -29,8 +29,11 @@ if (!BASE_URL || !AUTH_TOKEN) {
 }
 
 let pusherClient = null;
+let pusherConnected = false;
 let relayChannelSub = null;
 let catalogPollTimer = null;
+let pendingPollTimer = null;
+let pendingPollInFlight = false;
 let syncInFlight = false;
 let syncPending = false;
 const workers = new Map();
@@ -116,9 +119,34 @@ class StudioWorker {
         };
         this.commandChannel = null;
         this.studioChannel = null;
+        this.handledCommandUuids = new Set();
         this.liveState = emptyLiveState();
         this.signature = this.buildSignature(this.studio);
         this.bindObsEvents();
+    }
+
+    rememberCommand(uuid) {
+        if (!uuid) {
+            return false;
+        }
+        if (this.handledCommandUuids.has(uuid)) {
+            return true;
+        }
+        this.handledCommandUuids.add(uuid);
+        if (this.handledCommandUuids.size > 500) {
+            const oldest = this.handledCommandUuids.values().next().value;
+            this.handledCommandUuids.delete(oldest);
+        }
+        return false;
+    }
+
+    async drainPendingCommands(commands = []) {
+        if (!Array.isArray(commands) || commands.length === 0 || this.stopped) {
+            return;
+        }
+        for (const pending of commands) {
+            await this.executeCommand(pending);
+        }
     }
 
     buildSignature(studio) {
@@ -882,6 +910,9 @@ class StudioWorker {
 
     async executeCommand(payload) {
         const { command_uuid: uuid, request_type: requestType, request_data: requestData = {} } = payload;
+        if (requestType !== 'obsisstant.SetPreviewStream' && this.rememberCommand(uuid)) {
+            return;
+        }
         const normalizedData = this.normalizeObsPayload(requestType, requestData);
         if (requestType !== 'obsisstant.SetPreviewStream') {
             console.log(`${this.logPrefix()} Executing ${requestType} (${uuid})`);
@@ -1143,9 +1174,7 @@ class StudioWorker {
         this.subscribeCommandChannel();
         await this.connectObs();
 
-        for (const pending of this.pendingCommands) {
-            await this.executeCommand(pending);
-        }
+        await this.drainPendingCommands(this.pendingCommands);
         this.pendingCommands = [];
 
         this.statsTimer = setInterval(async () => {
@@ -1198,6 +1227,10 @@ class StudioWorker {
             }
             await this.connectObs();
         }
+
+        if (Array.isArray(entry.pending_commands) && entry.pending_commands.length > 0) {
+            await this.drainPendingCommands(entry.pending_commands);
+        }
     }
 
     async stop() {
@@ -1240,6 +1273,13 @@ function ensurePusherClient(reverbConfig) {
         return;
     }
 
+    // Force pusher-js Node runtime to use the standard `ws` package instead of
+    // its bundled legacy faye-websocket client (which fails TLS/proxy handshakes).
+    if (Pusher.Runtime) {
+        Pusher.Runtime.getWebSocketAPI = () => WebSocket;
+        Pusher.Runtime.createWebSocket = (url) => new WebSocket(url);
+    }
+
     const useTLS = reverbConfig.scheme === 'https';
 
     pusherClient = new Pusher(reverbConfig.key, {
@@ -1264,6 +1304,60 @@ function ensurePusherClient(reverbConfig) {
             },
         }),
     });
+
+    pusherClient.connection.bind('state_change', ({ previous, current }) => {
+        pusherConnected = current === 'connected';
+        if (current === 'connected') {
+            console.log(`[obs-agent] Reverb connected (${reverbConfig.scheme}://${reverbConfig.host}:${reverbConfig.port})`);
+            pollPendingCommands().catch(() => {});
+        } else if (previous === 'connected') {
+            console.warn(`[obs-agent] Reverb ${current} — polling pending command queue until restored.`);
+        }
+        schedulePendingPoll();
+    });
+
+    pusherClient.connection.bind('error', (err) => {
+        const msg = err?.error?.data?.message || err?.data?.message || err?.message || 'connection error';
+        console.warn(`[obs-agent] Reverb socket error: ${msg}`);
+    });
+}
+
+async function pollPendingCommands() {
+    if (pendingPollInFlight || workers.size === 0) {
+        return;
+    }
+
+    pendingPollInFlight = true;
+    try {
+        const payload = await apiRequest('/api/obs-agent/commands/pending');
+        const entries = Array.isArray(payload?.studios) ? payload.studios : [];
+        for (const entry of entries) {
+            const worker = workers.get(entry.studio_id);
+            if (worker && Array.isArray(entry.pending_commands) && entry.pending_commands.length > 0) {
+                await worker.drainPendingCommands(entry.pending_commands);
+            }
+        }
+    } catch (error) {
+        if (String(error?.message || '').includes('(404)')) {
+            await syncFromBootstrap().catch(() => {});
+        }
+    } finally {
+        pendingPollInFlight = false;
+    }
+}
+
+function schedulePendingPoll() {
+    if (pendingPollTimer) {
+        clearTimeout(pendingPollTimer);
+        pendingPollTimer = null;
+    }
+
+    const delayMs = pusherConnected ? 15000 : 2000;
+    pendingPollTimer = setTimeout(async () => {
+        pendingPollTimer = null;
+        await pollPendingCommands().catch(() => {});
+        schedulePendingPoll();
+    }, delayMs);
 }
 
 async function reconcileStudios(studiosPayload) {
@@ -1337,10 +1431,16 @@ async function main() {
     } else if (bootstrap?.studio) {
         console.log(`[obs-agent] Single-Studio mode active for "${bootstrap.studio.name}" (#${bootstrap.studio.id}).`);
     }
+
+    schedulePendingPoll();
 }
 
 async function shutdown() {
     clearInterval(catalogPollTimer);
+    if (pendingPollTimer) {
+        clearTimeout(pendingPollTimer);
+        pendingPollTimer = null;
+    }
     for (const worker of workers.values()) {
         await worker.stop();
     }
