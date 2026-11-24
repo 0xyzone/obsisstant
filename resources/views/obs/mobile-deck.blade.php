@@ -186,10 +186,35 @@
             }
 
             .deck-btn:hover { border-color: var(--gold); }
-            .deck-btn--active {
-                background: linear-gradient(135deg, rgba(243, 211, 122, 0.28), rgba(161, 98, 7, 0.24));
-                border-color: var(--gold);
+            .deck-btn--accent {
+                border-color: rgba(205, 173, 105, 0.44);
                 color: var(--gold);
+                background: rgba(205, 173, 105, 0.08);
+            }
+            .deck-btn--active {
+                background: linear-gradient(135deg, rgba(76, 195, 138, 0.24), rgba(20, 62, 42, 0.36));
+                border-color: rgba(76, 195, 138, 0.65);
+                color: #9EE6C3;
+            }
+            .deck-input {
+                min-block-size: 2.5rem;
+                border-radius: 0.75rem;
+                padding: 0.45rem 0.75rem;
+                background: #0d0c09;
+                color: var(--text);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                font: inherit;
+                font-size: 0.85rem;
+                inline-size: 100%;
+            }
+            .deck-unified-stack {
+                display: grid;
+                gap: 0.9rem;
+            }
+            #deck-classic-scenes-section[hidden],
+            #deck-unified-screen-section[hidden],
+            #deck-legacy-overlay-section[hidden] {
+                display: none !important;
             }
 
             .section-title {
@@ -335,7 +360,7 @@
                 <h2 class="section-title">1-Click Broadcast Macros</h2>
                 <div class="deck-grid">
                     @foreach ($macros as $macro)
-                        <button type="button" class="deck-btn deck-btn--active" data-macro="{{ $macro->id }}">
+                        <button type="button" class="deck-btn deck-btn--accent" data-macro="{{ $macro->id }}">
                             {{ $macro->name }}
                         </button>
                     @endforeach
@@ -375,12 +400,15 @@
                 </div>
             </section>
 
-            <section id="deck-unified-screen-section" class="glass" style="display: grid; gap: 0.85rem;" @if (($controlMode ?? 'obs') !== 'screens') hidden @endif>
+            <section id="deck-unified-screen-section" class="glass deck-unified-stack" @if (($controlMode ?? 'obs') !== 'screens') hidden @endif>
                 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                    <h2 class="section-title" style="margin: 0;">Unified Screen Stage</h2>
+                    <div>
+                        <h2 class="section-title" style="margin: 0;">Unified Screen Stage</h2>
+                        <div style="font-size: 0.72rem; color: var(--muted);">Tap any Screen View to transition your single OBS Browser Source</div>
+                    </div>
                     <div style="display: inline-flex; flex-wrap: wrap; gap: 0.4rem;">
-                        <a id="deck-uni-builder-link" href="#" class="deck-btn" style="min-block-size: 2rem; padding: 0.25rem 0.7rem; font-size: 0.75rem; text-decoration: none;">Builder</a>
-                        <button type="button" id="deck-uni-push-btn" class="deck-btn deck-btn--active" style="min-block-size: 2rem; padding: 0.25rem 0.7rem; font-size: 0.75rem;">Push to OBS</button>
+                        <a id="deck-uni-builder-link" href="#" class="deck-btn" style="min-block-size: 2rem; padding: 0.25rem 0.7rem; font-size: 0.75rem; text-decoration: none;">Canvas Builder</a>
+                        <button type="button" id="deck-uni-push-btn" class="deck-btn deck-btn--accent" style="min-block-size: 2rem; padding: 0.25rem 0.7rem; font-size: 0.75rem;">Push to OBS</button>
                     </div>
                 </div>
 
@@ -396,20 +424,20 @@
 
                 <div id="deck-unified-views-grid" class="deck-grid"></div>
 
-                <div style="display: grid; gap: 0.5rem; padding-block-start: 0.65rem; border-block-start: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: grid; gap: 0.5rem; padding-block-start: 0.7rem; border-block-start: 1px solid rgba(255,255,255,0.1);">
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <span class="section-title" style="margin: 0;">Live Timer</span>
-                        <strong id="deck-uni-timer-display" style="font-family: ui-monospace, monospace; font-size: 1.15rem; color: var(--gold);">05:00</strong>
+                        <strong id="deck-uni-timer-display" style="font-family: ui-monospace, monospace; font-size: 1.2rem; color: var(--gold);">05:00</strong>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem;">
-                        <button type="button" id="deck-uni-t-start" class="deck-btn deck-btn--active" style="min-block-size: 2.5rem; font-size: 0.8rem;">Start</button>
+                        <button type="button" id="deck-uni-t-start" class="deck-btn deck-btn--accent" style="min-block-size: 2.5rem; font-size: 0.8rem;">Start</button>
                         <button type="button" id="deck-uni-t-pause" class="deck-btn" style="min-block-size: 2.5rem; font-size: 0.8rem;">Pause</button>
                         <button type="button" id="deck-uni-t-reset" class="deck-btn" style="min-block-size: 2.5rem; font-size: 0.8rem;">Reset</button>
                         <button type="button" id="deck-uni-t-plus" class="deck-btn" style="min-block-size: 2.5rem; font-size: 0.8rem;">+1m</button>
                     </div>
                 </div>
 
-                <div style="display: grid; gap: 0.5rem; padding-block-start: 0.65rem; border-block-start: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: grid; gap: 0.5rem; padding-block-start: 0.7rem; border-block-start: 1px solid rgba(255,255,255,0.1);">
                     <span class="section-title" style="margin: 0;">Scoreboard</span>
                     <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem;">
                         <div style="display: grid; gap: 0.3rem; text-align: center;">
@@ -417,7 +445,7 @@
                             <div style="display: flex; gap: 0.35rem; align-items: center;">
                                 <button type="button" id="deck-uni-sb-a-minus" class="deck-btn" style="min-block-size: 2.4rem; flex: 1;">-</button>
                                 <strong id="deck-uni-sb-a-score" style="min-inline-size: 2rem;">0</strong>
-                                <button type="button" id="deck-uni-sb-a-plus" class="deck-btn deck-btn--active" style="min-block-size: 2.4rem; flex: 1;">+</button>
+                                <button type="button" id="deck-uni-sb-a-plus" class="deck-btn deck-btn--accent" style="min-block-size: 2.4rem; flex: 1;">+</button>
                             </div>
                         </div>
                         <div style="display: grid; gap: 0.3rem; text-align: center;">
@@ -425,15 +453,32 @@
                             <div style="display: flex; gap: 0.35rem; align-items: center;">
                                 <button type="button" id="deck-uni-sb-b-minus" class="deck-btn" style="min-block-size: 2.4rem; flex: 1;">-</button>
                                 <strong id="deck-uni-sb-b-score" style="min-inline-size: 2rem;">0</strong>
-                                <button type="button" id="deck-uni-sb-b-plus" class="deck-btn deck-btn--active" style="min-block-size: 2.4rem; flex: 1;">+</button>
+                                <button type="button" id="deck-uni-sb-b-plus" class="deck-btn deck-btn--accent" style="min-block-size: 2.4rem; flex: 1;">+</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; gap: 0.55rem; padding-block-start: 0.7rem; border-block-start: 1px solid rgba(255,255,255,0.1);">
+                    <span class="section-title" style="margin: 0;">Lower Third &amp; Alert Banner</span>
+                    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.45rem;">
+                        <input id="deck-uni-l3-title" type="text" class="deck-input" placeholder="Lower third title" aria-label="Lower third title">
+                        <input id="deck-uni-l3-sub" type="text" class="deck-input" placeholder="Subtitle / role" aria-label="Lower third subtitle">
+                    </div>
+                    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.45rem;">
+                        <button type="button" id="deck-uni-l3-show" class="deck-btn deck-btn--accent" style="min-block-size: 2.4rem; font-size: 0.8rem;">Show Lower Third</button>
+                        <button type="button" id="deck-uni-l3-hide" class="deck-btn" style="min-block-size: 2.4rem; font-size: 0.8rem;">Hide Lower Third</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 0.4rem;">
+                        <input id="deck-uni-alert-msg" type="text" class="deck-input" placeholder="Alert message..." aria-label="Pop-up alert message">
+                        <button type="button" id="deck-uni-alert-show" class="deck-btn deck-btn--accent" style="min-block-size: 2.5rem; padding-inline: 0.85rem; font-size: 0.8rem;">Alert</button>
+                        <button type="button" id="deck-uni-alert-hide" class="deck-btn" style="min-block-size: 2.5rem; padding-inline: 0.75rem; font-size: 0.8rem;">Clear</button>
                     </div>
                 </div>
             </section>
 
             @if ($screens->isNotEmpty())
-                <section class="glass">
+                <section id="deck-legacy-overlay-section" class="glass" @if (($controlMode ?? 'obs') === 'screens') hidden @endif>
                     <h2 class="section-title">Quick Live Lower-Third / Alert Push</h2>
                     <div style="display: grid; gap: 0.65rem;">
                         <select id="live-screen-id" style="min-block-size: 2.75rem; border-radius: 0.75rem; padding: 0.5rem; background: #0d0c09; color: var(--text); border: 1px solid rgba(255,255,255,0.16);">
@@ -442,7 +487,7 @@
                             @endforeach
                         </select>
                         <input id="live-guest-name" type="text" placeholder="Lower-third name / headline..." style="min-block-size: 2.75rem; border-radius: 0.75rem; padding: 0.5rem 0.75rem; background: #0d0c09; color: var(--text); border: 1px solid rgba(255,255,255,0.16);">
-                        <button type="button" id="push-live-text" class="deck-btn deck-btn--active">Broadcast Live Update</button>
+                        <button type="button" id="push-live-text" class="deck-btn deck-btn--accent">Broadcast Live Update</button>
                     </div>
                 </section>
             @endif
@@ -834,8 +879,10 @@
                     });
                     const classicSec = document.getElementById('deck-classic-scenes-section');
                     const uniSec = document.getElementById('deck-unified-screen-section');
+                    const legacyOverlaySec = document.getElementById('deck-legacy-overlay-section');
                     if (classicSec) classicSec.hidden = controlMode === 'screens';
                     if (uniSec) uniSec.hidden = controlMode !== 'screens';
+                    if (legacyOverlaySec) legacyOverlaySec.hidden = controlMode === 'screens';
 
                     const sel = document.getElementById('deck-uni-collection-select');
                     const grid = document.getElementById('deck-unified-views-grid');
@@ -891,6 +938,12 @@
                     document.getElementById('deck-uni-sb-b-name').textContent = sb.team_b_name || 'Team Omega';
                     document.getElementById('deck-uni-sb-a-score').textContent = String(sb.team_a_score ?? 0);
                     document.getElementById('deck-uni-sb-b-score').textContent = String(sb.team_b_score ?? 0);
+
+                    const l3 = col.runtime_state?.lower_third || {};
+                    const l3TitleEl = document.getElementById('deck-uni-l3-title');
+                    const l3SubEl = document.getElementById('deck-uni-l3-sub');
+                    if (l3TitleEl && document.activeElement !== l3TitleEl) l3TitleEl.value = l3.title || '';
+                    if (l3SubEl && document.activeElement !== l3SubEl) l3SubEl.value = l3.subtitle || '';
                 };
 
                 const sendDeckRuntime = async (patch) => {
@@ -941,6 +994,22 @@
                 document.getElementById('deck-uni-sb-a-plus')?.addEventListener('click', () => sendDeckRuntime({ scoreboard: { delta_a: 1 } }));
                 document.getElementById('deck-uni-sb-b-minus')?.addEventListener('click', () => sendDeckRuntime({ scoreboard: { delta_b: -1 } }));
                 document.getElementById('deck-uni-sb-b-plus')?.addEventListener('click', () => sendDeckRuntime({ scoreboard: { delta_b: 1 } }));
+                document.getElementById('deck-uni-l3-show')?.addEventListener('click', () => sendDeckRuntime({
+                    lower_third: {
+                        visible: true,
+                        title: document.getElementById('deck-uni-l3-title')?.value || '',
+                        subtitle: document.getElementById('deck-uni-l3-sub')?.value || '',
+                    },
+                }));
+                document.getElementById('deck-uni-l3-hide')?.addEventListener('click', () => sendDeckRuntime({ lower_third: { visible: false } }));
+                document.getElementById('deck-uni-alert-show')?.addEventListener('click', () => sendDeckRuntime({
+                    alert: {
+                        visible: true,
+                        title: 'Live Update',
+                        message: document.getElementById('deck-uni-alert-msg')?.value?.trim() || '',
+                    },
+                }));
+                document.getElementById('deck-uni-alert-hide')?.addEventListener('click', () => sendDeckRuntime({ alert: { visible: false } }));
 
                 setInterval(() => {
                     const col = getActiveCollection();

@@ -12,10 +12,10 @@
         <style>
             :root {
                 color-scheme: dark;
-                --bg-canvas: #070706;
+                --bg-canvas: #090908;
                 --bg-chrome: #121210;
-                --bg-card: #191815;
-                --bg-raised: #1E1D19;
+                --bg-card: #181714;
+                --bg-raised: #201F1B;
                 --gold-accent: #CDAD69;
                 --gold-light: #F4E185;
                 --positive: #4CC38A;
@@ -23,8 +23,8 @@
                 --ink-primary: #FAF7EE;
                 --ink-secondary: #C8C0AF;
                 --ink-muted: #8E8777;
-                --hairline: rgba(205, 173, 105, 0.16);
-                --hairline-strong: rgba(205, 173, 105, 0.34);
+                --hairline: rgba(255, 255, 255, 0.085);
+                --hairline-strong: rgba(205, 173, 105, 0.3);
             }
 
             *, *::before, *::after { box-sizing: border-box; }
@@ -44,7 +44,7 @@
                 flex-wrap: wrap;
                 align-items: center;
                 justify-content: space-between;
-                gap: 0.625rem;
+                gap: 0.75rem;
                 padding: 0.625rem 1rem;
                 background-color: var(--bg-chrome);
                 border-block-end: 1px solid var(--hairline);
@@ -72,10 +72,12 @@
                 font-size: 0.75rem;
                 font-weight: 500;
                 text-decoration: none;
+                white-space: nowrap;
+                flex-shrink: 0;
                 cursor: pointer;
             }
 
-            .s-btn:hover { border-color: var(--hairline-strong); background: #262520; }
+            .s-btn:hover { border-color: var(--hairline-strong); background: #282722; }
             .s-btn-gold {
                 background: linear-gradient(180deg, #DFC27D 0%, #CDAD69 100%);
                 color: #070706;
@@ -84,15 +86,15 @@
             }
             .s-btn-gold:hover { background: linear-gradient(180deg, #E8CE8D 0%, #D6B773 100%); color: #070706; }
             .s-btn-danger {
-                border-color: rgba(229, 72, 77, 0.4);
-                background: rgba(229, 72, 77, 0.14);
+                border-color: rgba(229, 72, 77, 0.36);
+                background: rgba(229, 72, 77, 0.12);
                 color: #F4A3A6;
             }
-            .s-btn-xs { min-block-size: 1.65rem; padding: 0.125rem 0.45rem; font-size: 0.6875rem; }
-            .s-btn.is-active { border-color: var(--gold-accent); background: rgba(205, 173, 105, 0.16); color: var(--gold-light); }
+            .s-btn-xs { min-block-size: 1.7rem; padding: 0.125rem 0.5rem; font-size: 0.6875rem; }
+            .s-btn.is-active { border-color: var(--gold-accent); background: rgba(205, 173, 105, 0.14); color: var(--gold-light); }
 
             .s-input, .s-select, .s-textarea {
-                background: #0F0E0C;
+                background: #100F0D;
                 color: var(--ink-primary);
                 border: 1px solid var(--hairline);
                 border-radius: 0.45rem;
@@ -108,6 +110,23 @@
                 outline-offset: 1px;
             }
 
+            .pill-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                padding: 0.18rem 0.55rem;
+                border-radius: 9999px;
+                background: var(--bg-raised);
+                border: 1px solid var(--hairline);
+                font-size: 0.6875rem;
+                color: var(--ink-secondary);
+            }
+
+            .pill-badge.is-dirty {
+                border-color: rgba(205, 173, 105, 0.45);
+                color: var(--gold-light);
+            }
+
             .builder-grid {
                 display: grid;
                 grid-template-columns: minmax(0, 1fr);
@@ -118,7 +137,7 @@
 
             @media (min-width: 72rem) {
                 .builder-grid {
-                    grid-template-columns: 18.5rem minmax(0, 1fr) 21.5rem;
+                    grid-template-columns: 19rem minmax(0, 1fr) 21.5rem;
                 }
             }
 
@@ -128,7 +147,7 @@
                 border-radius: 0.875rem;
                 padding: 0.875rem;
                 display: grid;
-                gap: 0.65rem;
+                gap: 0.75rem;
             }
 
             .panel-head {
@@ -136,7 +155,7 @@
                 align-items: center;
                 justify-content: space-between;
                 gap: 0.5rem;
-                padding-block-end: 0.45rem;
+                padding-block-end: 0.5rem;
                 border-block-end: 1px solid var(--hairline);
             }
 
@@ -152,12 +171,42 @@
                 font-weight: 500;
             }
 
-            .stack { display: grid; gap: 0.45rem; }
+            .stack { display: grid; gap: 0.5rem; }
+
+            .tab-row {
+                display: grid;
+                gap: 0.25rem;
+                padding: 0.2rem;
+                border-radius: 0.5rem;
+                background: var(--bg-canvas);
+                border: 1px solid var(--hairline);
+            }
+
+            .tab-row--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .tab-row--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+            .tab-btn {
+                min-block-size: 1.9rem;
+                border: 0;
+                border-radius: 0.375rem;
+                background: transparent;
+                color: var(--ink-muted);
+                font: inherit;
+                font-size: 0.75rem;
+                font-weight: 500;
+                cursor: pointer;
+            }
+
+            .tab-btn[aria-selected="true"] {
+                background: var(--bg-raised);
+                color: var(--ink-primary);
+                box-shadow: inset 0 -2px 0 var(--gold-accent);
+            }
 
             .list-scroll {
                 display: grid;
-                gap: 0.35rem;
-                max-block-size: 16rem;
+                gap: 0.4rem;
+                max-block-size: 32rem;
                 overflow-y: auto;
                 scrollbar-gutter: stable;
                 overscroll-behavior: contain;
@@ -165,8 +214,8 @@
 
             .item-row {
                 display: grid;
-                gap: 0.3rem;
-                padding: 0.45rem;
+                gap: 0.35rem;
+                padding: 0.5rem;
                 border-radius: 0.5rem;
                 background: var(--bg-raised);
                 border: 1px solid transparent;
@@ -174,14 +223,14 @@
 
             .item-row.is-selected {
                 border-color: var(--gold-accent);
-                background: rgba(205, 173, 105, 0.13);
+                background: rgba(205, 173, 105, 0.12);
             }
 
             .row-top {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                gap: 0.35rem;
+                gap: 0.4rem;
                 min-inline-size: 0;
             }
 
@@ -191,7 +240,7 @@
                 color: var(--ink-primary);
                 font: inherit;
                 font-size: 0.78rem;
-                font-weight: 600;
+                font-weight: 500;
                 text-align: start;
                 cursor: pointer;
                 padding: 0;
@@ -200,6 +249,26 @@
                 text-overflow: ellipsis;
                 white-space: nowrap;
                 flex: 1;
+            }
+
+            .asset-thumb {
+                inline-size: 2.5rem;
+                block-size: 1.75rem;
+                border-radius: 0.3rem;
+                object-fit: cover;
+                background: #0B0A08;
+                border: 1px solid var(--hairline);
+                flex-shrink: 0;
+                display: grid;
+                place-items: center;
+                font-size: 0.625rem;
+                color: var(--gold-light);
+            }
+
+            .element-palette {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.35rem;
             }
 
             /* Editable Scaled 16:9 Canvas */
@@ -238,38 +307,46 @@
 
             .canvas-layer {
                 position: absolute;
-                border: 1.5px solid rgba(205, 173, 105, 0.52);
+                border: 1.5px solid rgba(255, 255, 255, 0.22);
                 cursor: grab;
                 transition: border-color 110ms ease;
             }
 
             .canvas-layer:hover { border-color: var(--gold-light); }
-            .canvas-layer.is-selected { border: 2px solid var(--gold-light); box-shadow: 0 0 0 2px rgba(244, 225, 133, 0.25); }
+            .canvas-layer.is-selected { border: 2px solid var(--gold-light); box-shadow: 0 0 0 2px rgba(244, 225, 133, 0.22); }
             .canvas-layer.is-locked { cursor: default; border-color: rgba(142, 135, 119, 0.5); }
-            .canvas-layer.is-hidden { opacity: 0.3; border-style: dashed; }
+            .canvas-layer.is-hidden { opacity: 0.28; border-style: dashed; }
 
             .canvas-tag {
                 position: absolute;
-                inset-inline-start: 4px;
-                inset-block-start: 4px;
-                padding: 2px 6px;
-                border-radius: 4px;
-                background: rgba(7, 7, 6, 0.86);
+                inset-inline-start: 6px;
+                inset-block-start: -24px;
+                padding: 2px 8px;
+                border-radius: 5px;
+                background: rgba(7, 7, 6, 0.9);
+                border: 1px solid rgba(205, 173, 105, 0.35);
                 color: var(--gold-light);
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 600;
                 pointer-events: none;
                 white-space: nowrap;
                 z-index: 5;
+                opacity: 0;
+                transition: opacity 110ms ease;
+            }
+
+            .canvas-layer:hover .canvas-tag,
+            .canvas-layer.is-selected .canvas-tag {
+                opacity: 1;
             }
 
             .resize-handle {
                 position: absolute;
-                inset-inline-end: -7px;
-                inset-block-end: -7px;
-                inline-size: 16px;
-                block-size: 16px;
-                border-radius: 3px;
+                inset-inline-end: -8px;
+                inset-block-end: -8px;
+                inline-size: 18px;
+                block-size: 18px;
+                border-radius: 4px;
                 background: var(--gold-light);
                 border: 2px solid #070706;
                 cursor: nwse-resize;
@@ -278,42 +355,25 @@
 
             .canvas-layer.is-locked .resize-handle { display: none; }
 
-            .tab-row {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 0.25rem;
-                padding: 0.2rem;
-                border-radius: 0.5rem;
-                background: var(--bg-chrome);
-                border: 1px solid var(--hairline);
-            }
-
-            .tab-btn {
-                min-block-size: 1.9rem;
-                border: 0;
-                border-radius: 0.375rem;
-                background: transparent;
-                color: var(--ink-muted);
-                font: inherit;
-                font-size: 0.75rem;
-                font-weight: 600;
-                cursor: pointer;
-            }
-
-            .tab-btn[aria-selected="true"] {
-                background: var(--bg-raised);
-                color: var(--gold-light);
-            }
-
             .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
             .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+
+            .empty-hint {
+                padding: 1rem;
+                border-radius: 0.55rem;
+                border: 1px dashed var(--hairline);
+                background: var(--bg-chrome);
+                color: var(--ink-muted);
+                font-size: 0.75rem;
+                text-align: center;
+            }
 
             .toast {
                 position: fixed;
                 inset-block-end: 1rem;
                 inset-inline-end: 1rem;
                 z-index: 60;
-                padding: 0.6rem 0.9rem;
+                padding: 0.6rem 0.95rem;
                 border-radius: 0.6rem;
                 border: 1px solid var(--hairline-strong);
                 background: rgba(18, 18, 16, 0.96);
@@ -321,44 +381,51 @@
                 font-size: 0.8rem;
                 font-weight: 500;
             }
-            .toast[hidden] { display: none; }
             [hidden] { display: none !important; }
         </style>
     </head>
     <body>
         <header class="topbar">
             <div class="bar-group">
-                <a href="{{ route('studio.show', ['studio' => $studio->slug]) }}" class="s-btn">&larr; Back to Studio</a>
-                <strong style="font-size: 0.9375rem; color: var(--gold-light);" id="collection-title-badge">{{ $collection->name }}</strong>
-                <span class="sub-label">{{ $collection->width }} &times; {{ $collection->height }}</span>
-                <span class="sub-label">v{{ $currentVersion }}</span>
+                <a href="{{ route('studio.show', ['studio' => $studio->slug]) }}" class="s-btn">&larr; Studio</a>
+                <strong style="font-size: 0.9375rem; color: var(--ink-primary);" id="collection-title-badge">{{ $collection->name }}</strong>
+                <span class="pill-badge">{{ $collection->width }} &times; {{ $collection->height }}</span>
+                <span id="builder-save-state" class="pill-badge">Saved</span>
             </div>
 
             <div class="bar-group">
-                <button type="button" id="builder-copy-stage-btn" class="s-btn">Copy Browser URL</button>
-                <a href="{{ $collection->getStageUrl() }}" target="_blank" class="s-btn">Open Stage URL</a>
-                <button type="button" id="builder-push-obs-btn" class="s-btn">Push Single Scene to OBS</button>
-                <button type="button" id="builder-save-view-btn" class="s-btn s-btn-gold">Save View</button>
-                <button type="button" id="builder-go-live-btn" class="s-btn s-btn-gold">Go Live With View</button>
+                <a href="{{ $collection->getStageUrl() }}" target="_blank" class="s-btn">Preview Stage</a>
+                <button type="button" id="builder-copy-stage-btn" class="s-btn">Copy URL</button>
+                <button type="button" id="builder-push-obs-btn" class="s-btn">Push to OBS</button>
+                <button type="button" id="builder-save-view-btn" class="s-btn is-active">Save View</button>
+                <button type="button" id="builder-go-live-btn" class="s-btn s-btn-gold">Go Live</button>
             </div>
         </header>
 
         <main class="builder-grid">
-            {{-- Left: Screen Views, Assets Library & Collection Theme/Transition --}}
-            <aside class="stack">
-                <section class="panel">
+            {{-- Left Column: Tabbed Views / Collection Assets / Theme & Transition --}}
+            <aside class="panel">
+                <div class="tab-row tab-row--3" role="tablist" aria-label="Collection sections">
+                    <button type="button" class="tab-btn" role="tab" aria-selected="true" data-left-tab="views">Views</button>
+                    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-left-tab="assets">Assets</button>
+                    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-left-tab="theme">Theme</button>
+                </div>
+
+                {{-- Tab 1: Screen Views --}}
+                <div id="left-tab-views" class="stack">
                     <div class="panel-head">
                         <h2 class="panel-title">Screen Views</h2>
                         <span class="sub-label" id="views-count-meta">0 views</span>
                     </div>
                     <div style="display: flex; gap: 0.35rem;">
-                        <input type="text" id="new-view-name" class="s-input" placeholder="New view name...">
-                        <button type="button" id="btn-add-view" class="s-btn s-btn-gold">Add</button>
+                        <input type="text" id="new-view-name" class="s-input" placeholder="New view name" aria-label="New view name">
+                        <button type="button" id="btn-add-view" class="s-btn">Add</button>
                     </div>
                     <div id="views-list" class="list-scroll"></div>
-                </section>
+                </div>
 
-                <section class="panel">
+                {{-- Tab 2: Collection Assets Library --}}
+                <div id="left-tab-assets" class="stack" hidden>
                     <div class="panel-head">
                         <h2 class="panel-title">Collection Assets</h2>
                         <span class="sub-label">PNG / SVG / MP4 / WebM</span>
@@ -373,9 +440,10 @@
                         <input type="file" id="asset-file-input" class="s-input" accept="image/*,video/mp4,video/webm,audio/*">
                     </div>
                     <div id="assets-list" class="list-scroll"></div>
-                </section>
+                </div>
 
-                <section class="panel">
+                {{-- Tab 3: Collection Theme & Default Transition --}}
+                <div id="left-tab-theme" class="stack" hidden>
                     <div class="panel-head">
                         <h2 class="panel-title">Collection Theme &amp; Transition</h2>
                     </div>
@@ -421,27 +489,35 @@
                             <option value="">None</option>
                         </select>
                     </label>
-                    <button type="button" id="btn-save-collection-settings" class="s-btn s-btn-gold">Save Collection Theme &amp; Transition</button>
-                </section>
+                    <button type="button" id="btn-save-collection-settings" class="s-btn s-btn-gold">Save Collection Settings</button>
+                </div>
             </aside>
 
-            {{-- Center: Interactive Canvas Editor & Layer Addition Toolbar --}}
+            {{-- Center: Interactive Canvas Editor + Direct Element Palette --}}
             <section class="panel" style="border-color: var(--hairline-strong);">
                 <div class="panel-head">
                     <div>
                         <h1 class="panel-title" style="font-size: 0.95rem;">
                             Canvas Editor · <span id="editing-view-title" style="color: var(--gold-light);">View</span>
                         </h1>
-                        <span class="sub-label">Drag layers to move, bottom-right handle to resize. Checkered cutouts let OBS Cameras shine through.</span>
+                        <span class="sub-label">Drag elements to arrange · Arrow keys nudge · Checkered cutouts reveal OBS cameras underneath</span>
                     </div>
                     <div class="bar-group">
-                        <select id="add-layer-kind" class="s-select" style="inline-size: auto;">
-                            @foreach ($layerTypes as $lKey => $lLabel)
-                                <option value="{{ $lKey }}">{{ $lLabel }}</option>
-                            @endforeach
-                        </select>
-                        <button type="button" id="btn-add-layer" class="s-btn s-btn-gold">+ Add Layer</button>
+                        <button type="button" id="btn-center-layer" class="s-btn s-btn-xs">Center</button>
+                        <button type="button" id="btn-fit-layer" class="s-btn s-btn-xs">Fit 16:9</button>
                     </div>
+                </div>
+
+                <div class="element-palette" role="group" aria-label="Add element to canvas">
+                    <button type="button" class="s-btn s-btn-xs" data-quick-add="camera_cutout">+ Camera Cutout</button>
+                    <button type="button" class="s-btn s-btn-xs" data-quick-add="text">+ Text</button>
+                    <button type="button" class="s-btn s-btn-xs" data-quick-add="timer">+ Timer</button>
+                    <button type="button" class="s-btn s-btn-xs" data-quick-add="scoreboard">+ Scoreboard</button>
+                    <button type="button" class="s-btn s-btn-xs" data-quick-add="lower_third">+ Lower Third</button>
+                    <button type="button" class="s-btn s-btn-xs" data-quick-add="ticker">+ Ticker</button>
+                    <button type="button" class="s-btn s-btn-xs" data-quick-add="shape">+ Glass Card</button>
+                    <button type="button" class="s-btn s-btn-xs" data-quick-add="asset">+ Image / Video</button>
+                    <button type="button" class="s-btn s-btn-xs" data-quick-add="embed">+ Web Embed</button>
                 </div>
 
                 <div id="canvas-stage-wrap" class="canvas-stage-wrap">
@@ -449,168 +525,167 @@
                 </div>
 
                 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                    <span class="sub-label" id="canvas-meta-readout">Logical coordinate space: 1920 × 1080</span>
-                    <div class="bar-group">
-                        <button type="button" id="btn-fit-layer" class="s-btn s-btn-xs">Fit Full Canvas</button>
-                        <button type="button" id="btn-center-layer" class="s-btn s-btn-xs">Center Selected</button>
-                    </div>
+                    <span class="sub-label" id="canvas-meta-readout">Canvas: 1920 × 1080 px</span>
+                    <span class="sub-label">Tip: Cmd/Ctrl + S saves changes immediately to your live stage</span>
                 </div>
             </section>
 
-            {{-- Right: Layer Stack, Layer Properties & View Logic Inspector --}}
-            <aside class="stack">
-                <section class="panel">
-                    <div class="tab-row" role="tablist">
-                        <button type="button" class="tab-btn" role="tab" aria-selected="true" data-inspector-tab="layer">Layer &amp; Animation</button>
-                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-inspector-tab="view">View, Theme &amp; Logic</button>
+            {{-- Right Column: Layer Inspector & View Automation Logic --}}
+            <aside class="panel">
+                <div class="tab-row tab-row--2" role="tablist" aria-label="Inspector sections">
+                    <button type="button" class="tab-btn" role="tab" aria-selected="true" data-inspector-tab="layer">Layer &amp; Motion</button>
+                    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-inspector-tab="view">View &amp; Logic</button>
+                </div>
+
+                <div id="inspector-tab-layer" class="stack">
+                    <div class="panel-head">
+                        <h2 class="panel-title">View Layers</h2>
+                        <span class="sub-label" id="layer-stack-count">0 layers</span>
+                    </div>
+                    <div id="view-layers-list" class="list-scroll" style="max-block-size: 11.5rem;"></div>
+
+                    <div id="no-layer-hint" class="empty-hint">
+                        Click a layer on the canvas or in the list above to edit position, animation, and content.
                     </div>
 
-                    <div id="inspector-tab-layer" class="stack">
-                        <div class="panel-head">
-                            <h2 class="panel-title">View Layers</h2>
-                            <span class="sub-label" id="layer-stack-count">0 layers</span>
-                        </div>
-                        <div id="view-layers-list" class="list-scroll" style="max-block-size: 11rem;"></div>
-
-                        <div id="layer-props-card" class="stack" style="padding-block-start: 0.5rem; border-block-start: 1px solid var(--hairline);" hidden>
-                            <div class="grid-2">
-                                <label class="stack">
-                                    <span class="sub-label">Layer Name</span>
-                                    <input type="text" id="lp-name" class="s-input">
-                                </label>
-                                <label class="stack">
-                                    <span class="sub-label">Opacity (0 - 1)</span>
-                                    <input type="number" id="lp-opacity" class="s-input" min="0" max="1" step="0.05">
-                                </label>
-                            </div>
-                            <div class="grid-3">
-                                <label class="stack"><span class="sub-label">X (px)</span><input type="number" id="lp-x" class="s-input"></label>
-                                <label class="stack"><span class="sub-label">Y (px)</span><input type="number" id="lp-y" class="s-input"></label>
-                                <label class="stack"><span class="sub-label">Rotation (°)</span><input type="number" id="lp-rot" class="s-input"></label>
-                                <label class="stack"><span class="sub-label">Width (px)</span><input type="number" id="lp-w" class="s-input" min="16"></label>
-                                <label class="stack"><span class="sub-label">Height (px)</span><input type="number" id="lp-h" class="s-input" min="16"></label>
-                                <label class="stack"><span class="sub-label">Radius (px)</span><input type="number" id="lp-radius" class="s-input" min="0"></label>
-                            </div>
-
-                            <div class="grid-2">
-                                <label class="stack">
-                                    <span class="sub-label">Enter Animation</span>
-                                    <select id="lp-enter-anim" class="s-select">
-                                        <option value="none">None</option>
-                                        <option value="fade">Fade In</option>
-                                        <option value="slide_up">Slide Up</option>
-                                        <option value="slide_down">Slide Down</option>
-                                        <option value="slide_left">Slide Left</option>
-                                        <option value="slide_right">Slide Right</option>
-                                        <option value="scale_in">Scale Zoom</option>
-                                        <option value="blur_in">Blur Reveal</option>
-                                    </select>
-                                </label>
-                                <label class="stack">
-                                    <span class="sub-label">Loop Effect</span>
-                                    <select id="lp-loop-anim" class="s-select">
-                                        <option value="none">None</option>
-                                        <option value="pulse">Pulse</option>
-                                        <option value="float">Float</option>
-                                        <option value="glow">Accent Glow</option>
-                                    </select>
-                                </label>
-                            </div>
-
+                    <div id="layer-props-card" class="stack" style="padding-block-start: 0.5rem; border-block-start: 1px solid var(--hairline);" hidden>
+                        <div class="grid-2">
                             <label class="stack">
-                                <span class="sub-label">Visibility Logic Condition</span>
-                                <select id="lp-condition" class="s-select">
-                                    <option value="always">Always Visible</option>
-                                    <option value="timer_running">Only When Timer Running</option>
-                                    <option value="timer_paused">Only When Timer Stopped/Paused</option>
-                                    <option value="timer_under_10s">Only Under 10 Seconds Remaining</option>
-                                    <option value="lower_third_visible">Only When Lower Third Active</option>
-                                    <option value="alert_visible">Only When Alert Active</option>
+                                <span class="sub-label">Layer Name</span>
+                                <input type="text" id="lp-name" class="s-input">
+                            </label>
+                            <label class="stack">
+                                <span class="sub-label">Opacity (0 - 1)</span>
+                                <input type="number" id="lp-opacity" class="s-input" min="0" max="1" step="0.05">
+                            </label>
+                        </div>
+                        <div class="grid-3">
+                            <label class="stack"><span class="sub-label">X (px)</span><input type="number" id="lp-x" class="s-input"></label>
+                            <label class="stack"><span class="sub-label">Y (px)</span><input type="number" id="lp-y" class="s-input"></label>
+                            <label class="stack"><span class="sub-label">Rotation (°)</span><input type="number" id="lp-rot" class="s-input"></label>
+                            <label class="stack"><span class="sub-label">Width (px)</span><input type="number" id="lp-w" class="s-input" min="16"></label>
+                            <label class="stack"><span class="sub-label">Height (px)</span><input type="number" id="lp-h" class="s-input" min="16"></label>
+                            <label class="stack"><span class="sub-label">Radius (px)</span><input type="number" id="lp-radius" class="s-input" min="0"></label>
+                        </div>
+
+                        <div class="grid-2">
+                            <label class="stack">
+                                <span class="sub-label">Enter Animation</span>
+                                <select id="lp-enter-anim" class="s-select">
+                                    <option value="none">None</option>
+                                    <option value="fade">Fade In</option>
+                                    <option value="slide_up">Slide Up</option>
+                                    <option value="slide_down">Slide Down</option>
+                                    <option value="slide_left">Slide Left</option>
+                                    <option value="slide_right">Slide Right</option>
+                                    <option value="scale_in">Scale Zoom</option>
+                                    <option value="blur_in">Blur Reveal</option>
                                 </select>
                             </label>
-
-                            <div id="layer-type-fields" class="stack" style="padding: 0.5rem; border-radius: 0.5rem; background: var(--bg-chrome); border: 1px solid var(--hairline);"></div>
-
-                            <div class="grid-2">
-                                <button type="button" id="lp-delete-btn" class="s-btn s-btn-danger">Delete Layer</button>
-                                <button type="button" id="lp-save-btn" class="s-btn s-btn-gold">Save View</button>
-                            </div>
+                            <label class="stack">
+                                <span class="sub-label">Loop Effect</span>
+                                <select id="lp-loop-anim" class="s-select">
+                                    <option value="none">None</option>
+                                    <option value="pulse">Pulse</option>
+                                    <option value="float">Float</option>
+                                    <option value="glow">Accent Glow</option>
+                                </select>
+                            </label>
                         </div>
-                    </div>
 
-                    <div id="inspector-tab-view" class="stack" hidden>
                         <label class="stack">
-                            <span class="sub-label">View Name</span>
-                            <input type="text" id="vp-name" class="s-input">
-                        </label>
-                        <label class="stack">
-                            <span class="sub-label">Background Mode</span>
-                            <select id="vp-bg-mode" class="s-select">
-                                <option value="theme">Opaque Collection Gradient (Cutouts Punch Alpha)</option>
-                                <option value="solid">Solid Color (Cutouts Punch Alpha)</option>
-                                <option value="transparent">Full Transparent Overlay Canvas</option>
-                                <option value="asset">Uploaded Image / Video Backdrop</option>
+                            <span class="sub-label">Visibility Logic Condition</span>
+                            <select id="lp-condition" class="s-select">
+                                <option value="always">Always Visible</option>
+                                <option value="timer_running">Only When Timer Running</option>
+                                <option value="timer_paused">Only When Timer Stopped/Paused</option>
+                                <option value="timer_under_10s">Only Under 10 Seconds Remaining</option>
+                                <option value="lower_third_visible">Only When Lower Third Active</option>
+                                <option value="alert_visible">Only When Alert Active</option>
                             </select>
                         </label>
-                        <div class="grid-2">
-                            <label class="stack">
-                                <span class="sub-label">Solid Bg Color</span>
-                                <input type="color" id="vp-bg-color" class="s-input" style="padding: 0.15rem;">
-                            </label>
-                            <label class="stack">
-                                <span class="sub-label">Bg Media Asset</span>
-                                <select id="vp-bg-asset" class="s-select">
-                                    <option value="">None</option>
-                                </select>
-                            </label>
-                        </div>
+
+                        <div id="layer-type-fields" class="stack" style="padding: 0.55rem; border-radius: 0.5rem; background: var(--bg-chrome); border: 1px solid var(--hairline);"></div>
 
                         <div class="grid-2">
-                            <label class="stack">
-                                <span class="sub-label">View Accent Override</span>
-                                <input type="text" id="vp-theme-accent" class="s-input" placeholder="Inherit (#CDAD69)">
-                            </label>
-                            <label class="stack">
-                                <span class="sub-label">View Surface Override</span>
-                                <input type="text" id="vp-theme-surface" class="s-input" placeholder="Inherit (#0B0A08)">
-                            </label>
+                            <button type="button" id="lp-delete-btn" class="s-btn s-btn-danger">Delete Layer</button>
+                            <button type="button" id="lp-save-btn" class="s-btn is-active">Save View</button>
                         </div>
-
-                        <div class="grid-2">
-                            <label class="stack">
-                                <span class="sub-label">View Transition Override</span>
-                                <select id="vp-tx-type" class="s-select">
-                                    <option value="">Inherit Collection Default</option>
-                                    @foreach ($transitionTypes as $txKey => $txLabel)
-                                        <option value="{{ $txKey }}">{{ $txLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </label>
-                            <label class="stack">
-                                <span class="sub-label">Transition ms</span>
-                                <input type="number" id="vp-tx-dur" class="s-input" placeholder="450">
-                            </label>
-                        </div>
-
-                        <div class="stack" style="padding: 0.55rem; border-radius: 0.5rem; background: var(--bg-chrome); border: 1px solid var(--hairline);">
-                            <strong style="font-size: 0.75rem; color: var(--gold-light);">Timer Automation Logic</strong>
-                            <label class="stack">
-                                <span class="sub-label">When Countdown Hits 00:00</span>
-                                <select id="vp-logic-action" class="s-select">
-                                    <option value="none">Do Nothing</option>
-                                    <option value="switch_view">Auto-Switch to Screen View</option>
-                                    <option value="show_alert">Trigger Pop-Up Alert Toast</option>
-                                </select>
-                            </label>
-                            <label class="stack" id="vp-logic-target-wrap">
-                                <span class="sub-label">Auto-Switch Target View</span>
-                                <select id="vp-logic-target-view" class="s-select"></select>
-                            </label>
-                        </div>
-
-                        <button type="button" id="vp-save-btn" class="s-btn s-btn-gold">Save View &amp; Logic Rules</button>
                     </div>
-                </section>
+                </div>
+
+                <div id="inspector-tab-view" class="stack" hidden>
+                    <label class="stack">
+                        <span class="sub-label">View Name</span>
+                        <input type="text" id="vp-name" class="s-input">
+                    </label>
+                    <label class="stack">
+                        <span class="sub-label">Background Mode</span>
+                        <select id="vp-bg-mode" class="s-select">
+                            <option value="theme">Collection Gradient (Cutouts Punch Alpha)</option>
+                            <option value="solid">Solid Color (Cutouts Punch Alpha)</option>
+                            <option value="transparent">Full Transparent Overlay Canvas</option>
+                            <option value="asset">Uploaded Image / Video Backdrop</option>
+                        </select>
+                    </label>
+                    <div class="grid-2">
+                        <label class="stack">
+                            <span class="sub-label">Solid Bg Color</span>
+                            <input type="color" id="vp-bg-color" class="s-input" style="padding: 0.15rem;">
+                        </label>
+                        <label class="stack">
+                            <span class="sub-label">Bg Media Asset</span>
+                            <select id="vp-bg-asset" class="s-select">
+                                <option value="">None</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="grid-2">
+                        <label class="stack">
+                            <span class="sub-label">View Accent Override</span>
+                            <input type="text" id="vp-theme-accent" class="s-input" placeholder="Inherit (#CDAD69)">
+                        </label>
+                        <label class="stack">
+                            <span class="sub-label">View Surface Override</span>
+                            <input type="text" id="vp-theme-surface" class="s-input" placeholder="Inherit (#0B0A08)">
+                        </label>
+                    </div>
+
+                    <div class="grid-2">
+                        <label class="stack">
+                            <span class="sub-label">Transition Override</span>
+                            <select id="vp-tx-type" class="s-select">
+                                <option value="">Inherit Default</option>
+                                @foreach ($transitionTypes as $txKey => $txLabel)
+                                    <option value="{{ $txKey }}">{{ $txLabel }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="stack">
+                            <span class="sub-label">Transition ms</span>
+                            <input type="number" id="vp-tx-dur" class="s-input" placeholder="450">
+                        </label>
+                    </div>
+
+                    <div class="stack" style="padding: 0.6rem; border-radius: 0.5rem; background: var(--bg-chrome); border: 1px solid var(--hairline);">
+                        <strong style="font-size: 0.75rem; color: var(--gold-light);">Timer Automation Logic</strong>
+                        <label class="stack">
+                            <span class="sub-label">When Countdown Hits 00:00</span>
+                            <select id="vp-logic-action" class="s-select">
+                                <option value="none">Do Nothing</option>
+                                <option value="switch_view">Auto-Switch to Screen View</option>
+                                <option value="show_alert">Trigger Pop-Up Alert Toast</option>
+                            </select>
+                        </label>
+                        <label class="stack" id="vp-logic-target-wrap">
+                            <span class="sub-label">Auto-Switch Target View</span>
+                            <select id="vp-logic-target-view" class="s-select"></select>
+                        </label>
+                    </div>
+
+                    <button type="button" id="vp-save-btn" class="s-btn is-active">Save View &amp; Logic</button>
+                </div>
             </aside>
         </main>
 
@@ -633,13 +708,21 @@
         <script>
             (() => {
                 const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
-                const studioSlug = @json($studio->slug);
                 let colData = @json($collectionPayload);
                 let selectedViewId = Number(colData.active_view_id || colData.views?.[0]?.id || 0);
                 let selectedLayerId = null;
                 let dragActive = false;
-
+                let isDirty = false;
                 const endpoints = @json($builderEndpoints);
+
+                const setDirty = (dirty) => {
+                    isDirty = Boolean(dirty);
+                    const badge = document.getElementById('builder-save-state');
+                    if (badge) {
+                        badge.textContent = isDirty ? 'Unsaved changes' : 'Saved';
+                        badge.classList.toggle('is-dirty', isDirty);
+                    }
+                };
 
                 const showToast = (msg) => {
                     const el = document.getElementById('builder-toast');
@@ -675,7 +758,7 @@
                     if (rect.width > 0) {
                         logical.style.transform = `scale(${rect.width / w})`;
                     }
-                    document.getElementById('canvas-meta-readout').textContent = `Logical coordinate space: ${w} × ${h} px`;
+                    document.getElementById('canvas-meta-readout').textContent = `Canvas: ${w} × ${h} px`;
                 };
 
                 if (window.ResizeObserver) {
@@ -693,23 +776,25 @@
                     logical.innerHTML = '';
 
                     const theme = { ...(colData.theme || {}), ...(view.theme_override || {}) };
+                    const accent = theme.accent_color || '#CDAD69';
+                    const surface = theme.surface_color || '#0B0A08';
+
                     const bg = document.createElement('div');
                     bg.className = 'canvas-backdrop';
                     if (view.background_mode === 'transparent') {
                         bg.style.background = 'transparent';
                     } else if (view.background_mode === 'solid') {
-                        bg.style.background = view.background_color || '#0B0A08';
+                        bg.style.background = view.background_color || surface;
                     } else if (view.background_mode === 'asset' && view.background_asset_url) {
                         bg.style.background = `url(${view.background_asset_url}) center / cover no-repeat, #080807`;
                     } else {
-                        bg.style.background = `radial-gradient(circle at 18% 20%, ${theme.accent_color || '#CDAD69'}33, transparent 48%), linear-gradient(155deg, ${theme.surface_color || '#0B0A08'} 0%, #050507 100%)`;
+                        bg.style.background = `radial-gradient(circle at 18% 20%, ${accent}33, transparent 48%), linear-gradient(155deg, ${surface} 0%, #050507 100%)`;
                     }
                     logical.appendChild(bg);
 
                     const layers = [...(view.layers || [])].sort((a, b) => Number(a.z_index || 0) - Number(b.z_index || 0));
                     const wrap = document.getElementById('canvas-stage-wrap');
                     const wLogical = Math.max(320, Number(colData.width || 1920));
-                    const hLogical = Math.max(180, Number(colData.height || 1080));
 
                     layers.forEach((layer, idx) => {
                         const box = document.createElement('div');
@@ -730,10 +815,14 @@
 
                         const p = layer.props || {};
                         if (layer.type === 'camera_cutout') {
-                            box.style.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.08) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.08) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.08) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.08) 75%)';
+                            box.style.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.09) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.09) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.09) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.09) 75%)';
                             box.style.backgroundSize = '32px 32px';
-                            box.style.backgroundColor = 'rgba(0,0,0,0.45)';
-                            box.style.borderColor = p.border_color || theme.accent_color || '#CDAD69';
+                            box.style.backgroundColor = 'rgba(0,0,0,0.42)';
+                            box.style.borderColor = p.border_color || accent;
+                            const hint = document.createElement('div');
+                            hint.style.cssText = 'width:100%;height:100%;display:grid;place-items:center;color:rgba(250,247,238,0.65);font-size:26px;font-weight:600;pointer-events:none;text-align:center;padding:24px;';
+                            hint.textContent = p.label || 'OBS Camera / Capture Shows Here';
+                            box.appendChild(hint);
                         } else if (layer.type === 'asset' && p.url) {
                             if (p.media_kind === 'video' || /\.webm$|\.mp4$/i.test(p.url)) {
                                 const vid = document.createElement('video');
@@ -753,13 +842,31 @@
                             preview.textContent = p.text || 'Text';
                             preview.style.cssText = `width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:${Number(p.font_size || 48)}px;font-weight:700;color:${p.text_color || '#FAF7EE'};pointer-events:none;`;
                             box.appendChild(preview);
+                        } else if (layer.type === 'timer') {
+                            box.style.background = `${surface}D9`;
+                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;place-content:center;text-align:center;pointer-events:none;"><div style="font-size:20px;letter-spacing:0.12em;color:#ABA291;">${p.label || 'LIVE IN'}</div><div style="font-family:JetBrains Mono,monospace;font-size:${Number(p.font_size || 72)}px;font-weight:700;color:${accent};">05:00</div></div>`;
+                        } else if (layer.type === 'scoreboard') {
+                            const sb = colData.runtime_state?.scoreboard || {};
+                            box.style.background = `${surface}E2`;
+                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 28px;font-size:26px;font-weight:700;pointer-events:none;"><span>${sb.team_a_name || 'Team Alpha'} <strong style="color:${accent};margin-left:12px;">${sb.team_a_score ?? 0}</strong></span><span style="font-size:18px;color:#ABA291;padding:0 20px;">${sb.round_label || 'VS'}</span><span style="text-align:right;"><strong style="color:${accent};margin-right:12px;">${sb.team_b_score ?? 0}</strong> ${sb.team_b_name || 'Team Omega'}</span></div>`;
+                        } else if (layer.type === 'lower_third') {
+                            const l3 = colData.runtime_state?.lower_third || {};
+                            box.style.background = `${surface}E2`;
+                            box.style.borderLeft = `6px solid ${accent}`;
+                            box.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 28px;pointer-events:none;"><div style="font-size:32px;font-weight:700;">${l3.title || 'Broadcast Host'}</div><div style="font-size:20px;color:${accent};">${l3.subtitle || 'Live From Studio'}</div></div>`;
+                        } else if (layer.type === 'ticker') {
+                            box.style.background = `${surface}E2`;
+                            box.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;gap:20px;padding:0 24px;font-size:22px;pointer-events:none;overflow:hidden;"><span style="color:${accent};font-weight:700;">LIVE</span><span style="color:#C8C0AF;white-space:nowrap;">Scrolling news and tournament updates appear here...</span></div>`;
+                        } else if (layer.type === 'embed') {
+                            box.style.background = 'rgba(20, 20, 18, 0.86)';
+                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;place-items:center;font-size:24px;color:#C8C0AF;pointer-events:none;">Web Embed: ${p.url || 'Paste URL in Inspector'}</div>`;
                         } else {
-                            box.style.background = `${theme.surface_color || '#121210'}CC`;
+                            box.style.background = `${surface}CC`;
                         }
 
                         const tag = document.createElement('div');
                         tag.className = 'canvas-tag';
-                        tag.textContent = `${layer.name || layer.type}`;
+                        tag.textContent = layer.name || layer.type;
                         const handle = document.createElement('div');
                         handle.className = 'resize-handle';
                         box.append(tag, handle);
@@ -799,6 +906,7 @@
                                     document.getElementById('lp-x').value = String(layer.x);
                                     document.getElementById('lp-y').value = String(layer.y);
                                 }
+                                setDirty(true);
                             };
                             const onUp = () => {
                                 dragActive = false;
@@ -834,7 +942,8 @@
                     }
 
                     list.innerHTML = '';
-                    views.forEach((v, idx) => {
+                    views.forEach((v) => {
+                        const isLive = Number(v.id) === Number(colData.active_view_id);
                         const row = document.createElement('div');
                         row.className = `item-row${Number(v.id) === Number(selectedViewId) ? ' is-selected' : ''}`;
                         const top = document.createElement('div');
@@ -843,7 +952,12 @@
                         const selBtn = document.createElement('button');
                         selBtn.type = 'button';
                         selBtn.className = 'row-btn';
-                        selBtn.textContent = (Number(v.id) === Number(colData.active_view_id) ? '● ' : '') + v.name;
+                        selBtn.textContent = v.name;
+                        if (isLive) {
+                            const dot = document.createElement('span');
+                            dot.style.cssText = 'display:inline-block;width:7px;height:7px;border-radius:50%;background:#4CC38A;margin-right:6px;vertical-align:middle;';
+                            selBtn.prepend(dot);
+                        }
                         selBtn.addEventListener('click', () => {
                             selectedViewId = Number(v.id);
                             selectedLayerId = null;
@@ -851,7 +965,7 @@
                         });
 
                         const actions = document.createElement('div');
-                        actions.style.cssText = 'display:flex;gap:0.2rem;';
+                        actions.style.cssText = 'display:flex;gap:0.25rem;';
 
                         const dupBtn = document.createElement('button');
                         dupBtn.type = 'button';
@@ -914,24 +1028,37 @@
                         });
                     }
 
-                    list.innerHTML = assets.length === 0 ? '<span class="sub-label">Upload images, looping videos, or .webm stingers above.</span>' : '';
+                    list.innerHTML = assets.length === 0 ? '<div class="empty-hint">Upload images, video loops, or .webm stingers above.</div>' : '';
                     assets.forEach((a) => {
                         const row = document.createElement('div');
                         row.className = 'item-row';
                         const top = document.createElement('div');
                         top.className = 'row-top';
+
+                        let thumb;
+                        if (a.type === 'image' && a.url) {
+                            thumb = document.createElement('img');
+                            thumb.className = 'asset-thumb';
+                            thumb.src = a.url;
+                            thumb.alt = a.name;
+                        } else {
+                            thumb = document.createElement('span');
+                            thumb.className = 'asset-thumb';
+                            thumb.textContent = String(a.type || 'file').toUpperCase().slice(0, 4);
+                        }
+
                         const lbl = document.createElement('span');
                         lbl.className = 'row-btn';
                         lbl.style.cursor = 'default';
-                        lbl.textContent = `${a.name} [${a.type}]`;
+                        lbl.textContent = a.name;
 
                         const btns = document.createElement('div');
                         btns.style.cssText = 'display:flex;gap:0.2rem;';
 
                         const addBtn = document.createElement('button');
                         addBtn.type = 'button';
-                        addBtn.className = 's-btn s-btn-xs s-btn-gold';
-                        addBtn.textContent = '+ Canvas';
+                        addBtn.className = 's-btn s-btn-xs';
+                        addBtn.textContent = '+ Add';
                         addBtn.addEventListener('click', () => {
                             const view = getCurrentView();
                             if (!view) return;
@@ -959,6 +1086,7 @@
                                 props: { asset_id: a.id, url: a.url, media_kind: a.type === 'video' || a.type === 'stinger' ? 'video' : 'image', fit: 'contain', loop: true, muted: true },
                             });
                             selectedLayerId = id;
+                            setDirty(true);
                             renderCanvas();
                             renderLayerStack();
                             populateLayerInspector();
@@ -976,7 +1104,7 @@
                         });
 
                         btns.append(addBtn, rmBtn);
-                        top.append(lbl, btns);
+                        top.append(thumb, lbl, btns);
                         row.appendChild(top);
                         list.appendChild(row);
                     });
@@ -1012,6 +1140,7 @@
                         visBtn.textContent = layer.visible !== false ? 'On' : 'Off';
                         visBtn.addEventListener('click', () => {
                             layer.visible = layer.visible === false;
+                            setDirty(true);
                             renderCanvas();
                             renderLayerStack();
                         });
@@ -1022,6 +1151,7 @@
                         lockBtn.textContent = layer.locked ? 'Lock' : 'Free';
                         lockBtn.addEventListener('click', () => {
                             layer.locked = !layer.locked;
+                            setDirty(true);
                             renderCanvas();
                             renderLayerStack();
                         });
@@ -1034,13 +1164,16 @@
 
                 const populateLayerInspector = () => {
                     const card = document.getElementById('layer-props-card');
+                    const hint = document.getElementById('no-layer-hint');
                     const view = getCurrentView();
                     const layer = (view?.layers || []).find((l) => String(l.id) === String(selectedLayerId));
                     if (!layer) {
                         card.hidden = true;
+                        if (hint) hint.hidden = false;
                         return;
                     }
                     card.hidden = false;
+                    if (hint) hint.hidden = true;
 
                     const bind = (id, val, onChange) => {
                         const el = document.getElementById(id);
@@ -1048,6 +1181,7 @@
                         el.value = val ?? '';
                         el.oninput = el.onchange = () => {
                             onChange(el.value);
+                            setDirty(true);
                             renderCanvas();
                         };
                     };
@@ -1082,27 +1216,27 @@
                         ta.className = 's-textarea';
                         ta.rows = 2;
                         ta.value = layer.props.text || '';
-                        ta.oninput = () => { layer.props.text = ta.value; renderCanvas(); };
+                        ta.oninput = () => { layer.props.text = ta.value; setDirty(true); renderCanvas(); };
                         addExtra('Text Content', ta);
 
                         const fs = document.createElement('input');
                         fs.type = 'number';
                         fs.className = 's-input';
                         fs.value = layer.props.font_size || 48;
-                        fs.oninput = () => { layer.props.font_size = Number(fs.value || 48); renderCanvas(); };
+                        fs.oninput = () => { layer.props.font_size = Number(fs.value || 48); setDirty(true); renderCanvas(); };
                         addExtra('Font Size (px)', fs);
                     } else if (layer.type === 'timer') {
                         const sel = document.createElement('select');
                         sel.className = 's-select';
                         sel.innerHTML = '<option value="countdown">Countdown</option><option value="countup">Stopwatch (Count Up)</option><option value="clock">Local Wall Clock</option>';
                         sel.value = layer.props.mode || 'countdown';
-                        sel.onchange = () => { layer.props.mode = sel.value; };
+                        sel.onchange = () => { layer.props.mode = sel.value; setDirty(true); };
                         addExtra('Timer Mode', sel);
 
                         const lbl = document.createElement('input');
                         lbl.className = 's-input';
                         lbl.value = layer.props.label || 'LIVE IN';
-                        lbl.oninput = () => { layer.props.label = lbl.value; };
+                        lbl.oninput = () => { layer.props.label = lbl.value; setDirty(true); renderCanvas(); };
                         addExtra('Timer Label', lbl);
                     } else if (layer.type === 'asset') {
                         const sel = document.createElement('select');
@@ -1120,6 +1254,7 @@
                             layer.props.asset_id = found ? found.id : null;
                             layer.props.url = found ? found.url : '';
                             layer.props.media_kind = found && ['video', 'stinger'].includes(found.type) ? 'video' : 'image';
+                            setDirty(true);
                             renderCanvas();
                         };
                         addExtra('Media Asset', sel);
@@ -1129,14 +1264,14 @@
                         inp.className = 's-input';
                         inp.placeholder = 'https://vdo.ninja/?view=...';
                         inp.value = layer.props.url || '';
-                        inp.oninput = () => { layer.props.url = inp.value; };
+                        inp.oninput = () => { layer.props.url = inp.value; setDirty(true); renderCanvas(); };
                         addExtra('Widget / VDO.Ninja Embed URL', inp);
                     } else if (layer.type === 'camera_cutout') {
                         const inp = document.createElement('input');
                         inp.className = 's-input';
                         inp.value = layer.props.border_color || '';
                         inp.placeholder = 'Default accent (#CDAD69)';
-                        inp.oninput = () => { layer.props.border_color = inp.value; renderCanvas(); };
+                        inp.oninput = () => { layer.props.border_color = inp.value; setDirty(true); renderCanvas(); };
                         addExtra('Cutout Border Color', inp);
                     }
                 };
@@ -1201,11 +1336,22 @@
                         },
                     });
                     colData = res.collection;
+                    setDirty(false);
                     renderAll();
                     showToast('View saved & synced to live stage');
                 };
 
-                // Tabs
+                // Left & Right Tabs
+                document.querySelectorAll('[data-left-tab]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const t = btn.dataset.leftTab;
+                        document.querySelectorAll('[data-left-tab]').forEach((b) => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
+                        ['views', 'assets', 'theme'].forEach((k) => {
+                            document.getElementById(`left-tab-${k}`).hidden = k !== t;
+                        });
+                    });
+                });
+
                 document.querySelectorAll('[data-inspector-tab]').forEach((btn) => {
                     btn.addEventListener('click', () => {
                         const t = btn.dataset.inspectorTab;
@@ -1228,35 +1374,50 @@
                     showToast('View created');
                 });
 
-                document.getElementById('btn-add-layer').addEventListener('click', () => {
-                    const view = getCurrentView();
-                    if (!view) return;
-                    const type = document.getElementById('add-layer-kind').value;
-                    const id = 'lyr_' + Math.random().toString(36).slice(2, 10);
-                    view.layers = view.layers || [];
-                    view.layers.push({
-                        id,
-                        type,
-                        name: type.replace('_', ' ').toUpperCase(),
-                        x: 260,
-                        y: 180,
-                        w: type === 'ticker' ? 1792 : 640,
-                        h: type === 'ticker' ? 64 : 260,
-                        rotation: 0,
-                        z_index: view.layers.length + 1,
-                        opacity: 1,
-                        visible: true,
-                        locked: false,
-                        radius: 16,
-                        enter_animation: 'fade',
-                        enter_duration_ms: 350,
-                        enter_delay_ms: 0,
-                        loop_animation: 'none',
-                        condition_tag: 'always',
-                        props: { text: 'Live Text', label: 'TIMER', mode: 'countdown' },
+                document.querySelectorAll('[data-quick-add]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const view = getCurrentView();
+                        if (!view) return;
+                        const type = btn.dataset.quickAdd;
+                        const id = 'lyr_' + Math.random().toString(36).slice(2, 10);
+                        view.layers = view.layers || [];
+                        const presets = {
+                            camera_cutout: { name: 'Camera Cutout', x: 260, y: 140, w: 1400, h: 788, radius: 22, props: { label: 'OBS Camera / Capture Shows Here', border_width: 3, glow: true } },
+                            timer: { name: 'Countdown Timer', x: 680, y: 180, w: 560, h: 200, radius: 20, props: { mode: 'countdown', label: 'LIVE IN', font_size: 84 } },
+                            scoreboard: { name: 'Match Scoreboard', x: 360, y: 32, w: 1200, h: 84, radius: 16, props: { style: 'versus_bar' } },
+                            lower_third: { name: 'Lower Third', x: 64, y: 880, w: 640, h: 120, radius: 18, props: { style: 'glass' } },
+                            ticker: { name: 'Scrolling Ticker', x: 64, y: 968, w: 1792, h: 64, radius: 14, props: { speed_sec: 28 } },
+                            shape: { name: 'Glass Card', x: 310, y: 200, w: 1300, h: 520, radius: 24, props: { border_width: 1 } },
+                            asset: { name: 'Media Asset', x: 160, y: 140, w: 480, h: 270, radius: 12, props: { asset_id: null, url: '', fit: 'contain' } },
+                            embed: { name: 'Web Embed', x: 300, y: 180, w: 960, h: 540, radius: 16, props: { url: '' } },
+                            text: { name: 'Text Label', x: 360, y: 400, w: 1200, h: 140, radius: 0, props: { text: 'Broadcast Headline', font_size: 64 } },
+                        };
+                        const cfg = presets[type] || presets.text;
+                        view.layers.push({
+                            id,
+                            type,
+                            name: cfg.name,
+                            x: cfg.x,
+                            y: cfg.y,
+                            w: cfg.w,
+                            h: cfg.h,
+                            rotation: 0,
+                            z_index: view.layers.length + 1,
+                            opacity: 1,
+                            visible: true,
+                            locked: false,
+                            radius: cfg.radius,
+                            enter_animation: 'fade',
+                            enter_duration_ms: 350,
+                            enter_delay_ms: 0,
+                            loop_animation: 'none',
+                            condition_tag: 'always',
+                            props: cfg.props,
+                        });
+                        selectedLayerId = id;
+                        setDirty(true);
+                        renderAll();
                     });
-                    selectedLayerId = id;
-                    renderAll();
                 });
 
                 document.getElementById('lp-delete-btn').addEventListener('click', () => {
@@ -1264,6 +1425,7 @@
                     if (!view || !selectedLayerId) return;
                     view.layers = (view.layers || []).filter((l) => String(l.id) !== String(selectedLayerId));
                     selectedLayerId = null;
+                    setDirty(true);
                     renderAll();
                 });
 
@@ -1272,6 +1434,7 @@
                     const layer = (view?.layers || []).find((l) => String(l.id) === String(selectedLayerId));
                     if (!layer) return;
                     layer.x = 0; layer.y = 0; layer.w = Number(colData.width || 1920); layer.h = Number(colData.height || 1080);
+                    setDirty(true);
                     renderCanvas(); populateLayerInspector();
                 });
 
@@ -1281,7 +1444,29 @@
                     if (!layer) return;
                     layer.x = Math.round((Number(colData.width || 1920) - Number(layer.w || 200)) / 2);
                     layer.y = Math.round((Number(colData.height || 1080) - Number(layer.h || 80)) / 2);
+                    setDirty(true);
                     renderCanvas(); populateLayerInspector();
+                });
+
+                document.addEventListener('keydown', (ev) => {
+                    if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 's') {
+                        ev.preventDefault();
+                        saveCurrentView();
+                        return;
+                    }
+                    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName || '')) return;
+                    const view = getCurrentView();
+                    const layer = (view?.layers || []).find((l) => String(l.id) === String(selectedLayerId));
+                    if (!layer || layer.locked) return;
+                    const step = ev.shiftKey ? 10 : 1;
+                    if (ev.key === 'ArrowLeft') { ev.preventDefault(); layer.x = Number(layer.x || 0) - step; }
+                    else if (ev.key === 'ArrowRight') { ev.preventDefault(); layer.x = Number(layer.x || 0) + step; }
+                    else if (ev.key === 'ArrowUp') { ev.preventDefault(); layer.y = Number(layer.y || 0) - step; }
+                    else if (ev.key === 'ArrowDown') { ev.preventDefault(); layer.y = Number(layer.y || 0) + step; }
+                    else return;
+                    setDirty(true);
+                    renderCanvas();
+                    populateLayerInspector();
                 });
 
                 document.getElementById('asset-file-input').addEventListener('change', async (ev) => {
@@ -1323,7 +1508,7 @@
                     });
                     colData = res.collection;
                     renderAll();
-                    showToast('Collection theme & transition updated live');
+                    showToast('Collection settings updated live');
                 });
 
                 document.getElementById('builder-save-view-btn').addEventListener('click', saveCurrentView);

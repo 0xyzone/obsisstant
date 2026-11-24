@@ -801,30 +801,107 @@
                 }
             }
 
+            :root {
+                --hairline: rgba(255, 255, 255, 0.085);
+                --hairline-strong: rgba(205, 173, 105, 0.28);
+            }
+
+            .s-btn {
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .scene-list {
+                max-block-size: 23rem;
+                overflow-y: auto;
+                scrollbar-gutter: stable;
+                overscroll-behavior: contain;
+                padding-inline-end: 0.125rem;
+            }
+
+            .audio-mixer-scroll {
+                display: grid;
+                gap: 0.45rem;
+                max-block-size: 24rem;
+                overflow-y: auto;
+                scrollbar-gutter: stable;
+                overscroll-behavior: contain;
+                padding-inline-end: 0.125rem;
+            }
+
+            .logs-scroll {
+                display: grid;
+                gap: 0.25rem;
+                font-size: 0.75rem;
+                max-block-size: 11.5rem;
+                overflow-y: auto;
+                scrollbar-gutter: stable;
+                overscroll-behavior: contain;
+            }
+
             .mode-pill-group {
                 display: inline-flex;
                 align-items: center;
-                gap: 0.25rem;
+                gap: 0.2rem;
                 padding: 0.2rem;
                 border-radius: 0.55rem;
                 border: 1px solid var(--hairline);
                 background: var(--bg-chrome);
             }
 
+            .step-block {
+                display: grid;
+                gap: 0.4rem;
+                padding: 0.65rem 0.75rem;
+                border-radius: 0.625rem;
+                background: var(--bg-chrome);
+                border: 1px solid var(--hairline);
+            }
+
+            .step-badge-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.5rem;
+            }
+
+            .step-num {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: var(--ink-primary);
+            }
+
+            .step-num-dot {
+                inline-size: 1.25rem;
+                block-size: 1.25rem;
+                border-radius: 9999px;
+                display: inline-grid;
+                place-items: center;
+                background: rgba(205, 173, 105, 0.16);
+                border: 1px solid var(--hairline-strong);
+                color: var(--gold-light);
+                font-size: 0.6875rem;
+                font-weight: 600;
+                flex-shrink: 0;
+            }
+
             .view-pads-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
-                gap: 0.625rem;
+                grid-template-columns: repeat(auto-fill, minmax(9.85rem, 1fr));
+                gap: 0.65rem;
             }
 
             .view-pad-btn {
                 display: grid;
-                gap: 0.25rem;
+                gap: 0.5rem;
                 text-align: start;
-                padding: 0.75rem 0.85rem;
+                padding: 0.5rem;
                 border-radius: 0.75rem;
                 border: 1px solid var(--hairline);
-                background: var(--bg-raised);
+                background: var(--bg-chrome);
                 color: var(--ink-primary);
                 font: inherit;
                 cursor: pointer;
@@ -832,14 +909,194 @@
             }
 
             .view-pad-btn:hover {
-                border-color: var(--gold-accent);
-                background: #23221D;
+                border-color: var(--hairline-strong);
+                background: var(--bg-raised);
             }
 
             .view-pad-btn.is-active {
-                border-color: var(--gold-light);
-                background: linear-gradient(155deg, rgba(205, 173, 105, 0.24), rgba(45, 31, 17, 0.35));
-                box-shadow: inset 3px 0 0 var(--positive);
+                border-color: var(--positive);
+                background: rgba(76, 195, 138, 0.08);
+            }
+
+            .view-pad-thumb {
+                position: relative;
+                inline-size: 100%;
+                aspect-ratio: 16 / 9;
+                border-radius: 0.45rem;
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.07);
+                background: #0B0A08;
+            }
+
+            .view-pad-thumb.is-transparent {
+                background-color: #12110F;
+                background-image:
+                    linear-gradient(45deg, #1d1c19 25%, transparent 25%),
+                    linear-gradient(-45deg, #1d1c19 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #1d1c19 75%),
+                    linear-gradient(-45deg, transparent 75%, #1d1c19 75%);
+                background-size: 12px 12px;
+                background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+            }
+
+            .mini-layer {
+                position: absolute;
+                border-radius: 2px;
+                pointer-events: none;
+            }
+
+            .mini-layer--cutout {
+                background-image:
+                    linear-gradient(45deg, rgba(255,255,255,0.14) 25%, transparent 25%),
+                    linear-gradient(-45deg, rgba(255,255,255,0.14) 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.14) 75%),
+                    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.14) 75%);
+                background-size: 8px 8px;
+                background-color: rgba(0, 0, 0, 0.4);
+                border: 1px dashed rgba(205, 173, 105, 0.72);
+            }
+
+            .mini-layer--accent {
+                background: rgba(205, 173, 105, 0.28);
+                border: 1px solid rgba(205, 173, 105, 0.45);
+            }
+
+            .mini-layer--block {
+                background: rgba(250, 247, 238, 0.14);
+                border: 1px solid rgba(250, 247, 238, 0.18);
+            }
+
+            .on-air-pill {
+                position: absolute;
+                inset-block-start: 0.35rem;
+                inset-inline-end: 0.35rem;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.28rem;
+                padding: 0.1rem 0.45rem;
+                border-radius: 9999px;
+                background: rgba(7, 7, 6, 0.88);
+                border: 1px solid rgba(76, 195, 138, 0.55);
+                color: #9EE6C3;
+                font-size: 0.625rem;
+                font-weight: 600;
+            }
+
+            .on-air-dot {
+                inline-size: 0.375rem;
+                block-size: 0.375rem;
+                border-radius: 50%;
+                background: var(--positive);
+            }
+
+            .console-card {
+                background: var(--bg-chrome);
+                border: 1px solid var(--hairline);
+                border-radius: 0.875rem;
+                padding: 0.875rem;
+                display: grid;
+                gap: 0.875rem;
+            }
+
+            .console-tab-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.3rem;
+                padding: 0.25rem;
+                border-radius: 0.55rem;
+                background: var(--bg-canvas);
+                border: 1px solid var(--hairline);
+            }
+
+            .console-tab-btn {
+                flex: 1 1 6.5rem;
+                min-block-size: 2rem;
+                padding: 0.25rem 0.65rem;
+                border-radius: 0.4rem;
+                border: 0;
+                background: transparent;
+                color: var(--ink-muted);
+                font: inherit;
+                font-size: 0.75rem;
+                font-weight: 500;
+                cursor: pointer;
+                white-space: nowrap;
+            }
+
+            .console-tab-btn[aria-selected="true"] {
+                background: var(--bg-raised);
+                color: var(--ink-primary);
+                box-shadow: inset 0 -2px 0 var(--gold-accent);
+            }
+
+            .timer-console-wrap {
+                display: grid;
+                gap: 0.85rem;
+                grid-template-columns: minmax(0, 1fr);
+                align-items: center;
+            }
+
+            @media (min-width: 50rem) {
+                .timer-console-wrap {
+                    grid-template-columns: 12rem minmax(0, 1fr);
+                }
+            }
+
+            .timer-big-box {
+                display: grid;
+                place-items: center;
+                gap: 0.25rem;
+                padding: 1rem;
+                border-radius: 0.75rem;
+                background: var(--bg-raised);
+                border: 1px solid var(--hairline);
+            }
+
+            .timer-big-digits {
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 2.15rem;
+                font-weight: 600;
+                line-height: 1.05;
+                font-variant-numeric: tabular-nums;
+                color: var(--gold-light);
+            }
+
+            .sb-desk-grid {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 0.75rem;
+                align-items: start;
+            }
+
+            @media (min-width: 54rem) {
+                .sb-desk-grid {
+                    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr);
+                }
+            }
+
+            .sb-team-card {
+                display: grid;
+                gap: 0.5rem;
+                padding: 0.75rem;
+                border-radius: 0.65rem;
+                background: var(--bg-raised);
+                border: 1px solid var(--hairline);
+            }
+
+            .sb-score-row {
+                display: grid;
+                grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+                gap: 0.4rem;
+                align-items: center;
+            }
+
+            .sb-score-val {
+                text-align: center;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 1.35rem;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+                color: var(--ink-primary);
             }
 
             #classic-scenes-panel[hidden],
@@ -847,7 +1104,9 @@
             #classic-sources-workspace[hidden],
             #unified-screen-workspace[hidden],
             #unified-no-collection-card[hidden],
-            #unified-active-stage-body[hidden] {
+            #unified-active-stage-body[hidden],
+            #legacy-overlay-push-panel[hidden],
+            [data-uni-console-panel][hidden] {
                 display: none !important;
             }
         </style>
@@ -903,36 +1162,35 @@
                 <a href="{{ url('/admin/studio-settings') }}" class="s-btn">Storage Settings</a>
                 <a href="{{ route('obs.deck.show', ['studio' => $studio->slug]) }}" class="s-btn">Mobile Deck</a>
                 <a href="{{ route('knowledge-base') }}" class="s-btn">Knowledge Base</a>
-                <a href="{{ url('/admin') }}" class="s-btn s-btn-gold">Admin Panel</a>
+                <a href="{{ url('/admin') }}" class="s-btn">Admin Panel</a>
             </div>
         </header>
 
         <main class="workspace-grid">
             <h1 class="visually-hidden">Studio Control Center — {{ $studio->name }}</h1>
 
-            {{-- Left Column: Scenes/Screen Collections, Broadcast Outputs & Macros --}}
+            {{-- Left Column: Scenes / Guided Stage Setup, Broadcast Outputs & Macros --}}
             <section class="studio-column" aria-label="Show Control: Scenes, Outputs and Macros">
                 <div id="classic-scenes-panel" class="dock-panel" @if (($controlMode ?? 'obs') === 'screens') hidden @endif>
                     <div class="dock-head">
                         <div>
                             <h2 class="dock-title">Scenes &amp; Collections</h2>
-                            <div class="dock-subtitle">Click to inspect · Dbl-click or Go Live cuts OBS</div>
+                            <div class="dock-subtitle">Click a scene to inspect · Go Live cuts OBS</div>
                         </div>
                         <button type="button" class="s-btn s-btn-xs" id="sync-obs-btn">Sync</button>
                     </div>
 
-                    <div style="display: grid; gap: 0.25rem; padding-block-end: 0.5rem; border-block-end: 1px solid var(--hairline);">
+                    <div style="display: grid; gap: 0.3rem; padding-block-end: 0.5rem; border-block-end: 1px solid var(--hairline);">
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.375rem;">
-                            <label for="scene-collection-select" class="field-label">Scene Collection</label>
+                            <label for="scene-collection-select" class="field-label">OBS Scene Collection</label>
                             <button type="button" class="s-btn s-btn-xs" commandfor="create-collection-dialog" command="show-modal">+ Collection</button>
                         </div>
                         <select id="scene-collection-select" class="s-select" style="inline-size: 100%; min-block-size: 2rem; font-size: 0.75rem;"></select>
-                        <div class="dock-subtitle" style="font-size: 0.6875rem;">Switch or create OBS Scene Collections remotely (rename/delete in OBS desktop menu).</div>
                     </div>
 
                     <div style="display: flex; gap: 0.375rem;">
-                        <input id="new-scene-name" type="text" class="s-input" placeholder="New scene name..." aria-label="New scene name" style="flex: 1; min-inline-size: 0;">
-                        <button type="button" id="create-scene-btn" class="s-btn s-btn-gold">Add</button>
+                        <input id="new-scene-name" type="text" class="s-input" placeholder="New scene name" aria-label="New scene name" style="flex: 1; min-inline-size: 0;">
+                        <button type="button" id="create-scene-btn" class="s-btn">Add</button>
                     </div>
 
                     <div id="scenes-list" class="scene-list"></div>
@@ -942,26 +1200,35 @@
                     <div class="dock-head">
                         <div>
                             <h2 class="dock-title">Screen Collections</h2>
-                            <div class="dock-subtitle">Event &amp; Tournament browser setups</div>
+                            <div class="dock-subtitle">3-step single-scene OBS setup</div>
                         </div>
-                        <button type="button" class="s-btn s-btn-xs s-btn-gold" id="btn-new-unified-col" commandfor="create-unified-collection-dialog" command="show-modal">+ New</button>
+                        <button type="button" class="s-btn s-btn-xs" id="btn-new-unified-col" commandfor="create-unified-collection-dialog" command="show-modal">+ New</button>
                     </div>
 
-                    <label class="field-stack">
-                        <span class="field-label">Active Event / Tournament Collection</span>
-                        <select id="unified-collection-select" class="s-select" style="inline-size: 100%; min-block-size: 2rem; font-size: 0.75rem;"></select>
-                    </label>
-
-                    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.375rem;">
-                        <a id="unified-builder-link" href="#" class="s-btn s-btn-gold">Canvas Builder</a>
-                        <a id="unified-open-stage-link" href="#" target="_blank" class="s-btn">Open Stage</a>
-                        <button type="button" id="btn-copy-unified-url" class="s-btn">Copy URL</button>
-                        <button type="button" id="btn-push-unified-obs" class="s-btn s-btn-gold">Push to OBS</button>
+                    <div class="step-block">
+                        <div class="step-badge-row">
+                            <span class="step-num"><span class="step-num-dot">1</span> Choose Event</span>
+                        </div>
+                        <select id="unified-collection-select" class="s-select" aria-label="Active Event Screen Collection" style="inline-size: 100%; min-block-size: 2rem; font-size: 0.75rem;"></select>
                     </div>
 
-                    <p class="dock-subtitle" style="margin: 0; font-size: 0.6875rem;">
-                        Use <strong>Push to OBS</strong> to set up the single OBS Scene &amp; Browser Source automatically, or paste the Collection URL into your OBS Browser Source.
-                    </p>
+                    <div class="step-block">
+                        <div class="step-badge-row">
+                            <span class="step-num"><span class="step-num-dot">2</span> Design Views &amp; Assets</span>
+                        </div>
+                        <a id="unified-builder-link" href="#" class="s-btn" style="inline-size: 100%;">Open Canvas Builder</a>
+                    </div>
+
+                    <div class="step-block">
+                        <div class="step-badge-row">
+                            <span class="step-num"><span class="step-num-dot">3</span> Connect 1 OBS Scene</span>
+                        </div>
+                        <button type="button" id="btn-push-unified-obs" class="s-btn s-btn-gold" style="inline-size: 100%;">Push Stage to OBS</button>
+                        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35rem;">
+                            <button type="button" id="btn-copy-unified-url" class="s-btn s-btn-xs">Copy URL</button>
+                            <a id="unified-open-stage-link" href="#" target="_blank" class="s-btn s-btn-xs">Preview Stage</a>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="dock-panel">
@@ -1004,7 +1271,7 @@
                 <div
                     id="agent-offline-banner"
                     @if ($studio->isOnline()) hidden @endif
-                    style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0.875rem; border-radius: 0.5rem; border: 1px solid rgba(205, 173, 105, 0.45); background: linear-gradient(135deg, rgba(205, 173, 105, 0.1), rgba(18, 18, 16, 0.92));"
+                    style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0.875rem; border-radius: 0.5rem; border: 1px solid rgba(205, 173, 105, 0.35); background: rgba(205, 173, 105, 0.08);"
                 >
                     <div style="display: grid; gap: 0.125rem;">
                         <strong id="agent-banner-title" style="font-size: 0.875rem; color: var(--gold-light);">
@@ -1033,7 +1300,7 @@
                         </div>
 
                         <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
-                            <button type="button" id="cut-editing-scene-btn" class="s-btn s-btn-gold s-btn-xs">Go Live</button>
+                            <button type="button" id="cut-editing-scene-btn" class="s-btn s-btn-xs">Go Live</button>
                             <button
                                 type="button"
                                 class="s-btn s-btn-gold s-btn-xs"
@@ -1051,7 +1318,7 @@
                             <div class="dock-head">
                                 <div>
                                     <h2 class="dock-title">Scene Sources</h2>
-                                    <div class="dock-subtitle">Reorder, show/hide, lock, edit or delete</div>
+                                    <div class="dock-subtitle">Order, visibility, lock, edit or delete</div>
                                 </div>
                             </div>
                             <div id="layers-list" class="layer-list"></div>
@@ -1061,7 +1328,10 @@
                         <div>
                             <div id="no-source-selected-card" class="source-empty-state">
                                 <strong style="color: var(--ink-primary); font-weight: 600;">No source selected</strong>
-                                <span>Click any source or its <strong>Edit</strong> button in Scene Sources to rename, adjust position/size, configure OBS properties, or delete it.</span>
+                                <span>Select any source on the left or click <strong>Edit</strong> to rename, adjust position/size, configure OBS properties, or delete it.</span>
+                                <div style="margin-block-start: 0.45rem;">
+                                    <button type="button" class="s-btn s-btn-xs" commandfor="add-source-dialog" command="show-modal">+ Add Source to Scene</button>
+                                </div>
                             </div>
 
                             <div id="selected-source-card" class="source-inspector-card" hidden>
@@ -1078,7 +1348,7 @@
                                 </div>
 
                                 <div style="display: flex; gap: 0.375rem; align-items: center;">
-                                    <input type="text" id="rename-source-input" class="s-input" placeholder="Source name..." aria-label="Rename selected source" style="flex: 1; min-inline-size: 0; min-block-size: 2rem;">
+                                    <input type="text" id="rename-source-input" class="s-input" placeholder="Source name" aria-label="Rename selected source" style="flex: 1; min-inline-size: 0; min-block-size: 2rem;">
                                     <button type="button" id="btn-rename-source" class="s-btn s-btn-xs">Rename</button>
                                 </div>
 
@@ -1140,113 +1410,180 @@
                 </div>
 
                 {{-- Unified Single-Browser Screen Remote Control Deck --}}
-                <div id="unified-screen-workspace" class="stack-grid" style="gap: 0.875rem;" @if (($controlMode ?? 'obs') !== 'screens') hidden @endif>
+                <div id="unified-screen-workspace" class="stack-grid" style="gap: 1rem;" @if (($controlMode ?? 'obs') !== 'screens') hidden @endif>
                     <div id="unified-no-collection-card" class="source-empty-state" hidden>
-                        <strong style="color: var(--ink-primary); font-weight: 600;">No Event Screen Collection Yet</strong>
-                        <span>Create your first Screen Collection with built-in tournament views (Starting Soon, Cam + Scoreboard, Gameplay PiP, BRB) and control them from one OBS Browser Source.</span>
+                        <strong style="color: var(--ink-primary); font-weight: 600;">Create your first Event Screen Collection</strong>
+                        <span>Build Starting Soon, Camera Cutout, Gameplay PiP, and Scoreboard views once, then switch them live inside a single OBS Browser Source.</span>
                         <div style="margin-block-start: 0.5rem;">
                             <button type="button" class="s-btn s-btn-gold" commandfor="create-unified-collection-dialog" command="show-modal">+ Create Screen Collection</button>
                         </div>
                     </div>
 
-                    <div id="unified-active-stage-body" class="stack-grid" style="gap: 0.875rem;">
+                    <div id="unified-active-stage-body" class="stack-grid" style="gap: 1rem;">
+                        {{-- Program Header + Transition Bar --}}
                         <div class="sources-toolbar">
                             <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
-                                <span class="stat-chip" id="unified-active-col-label">Collection</span>
                                 <span class="stat-chip is-live" id="unified-active-view-label">Live View: —</span>
+                                <span class="stat-chip" id="unified-active-col-label">Collection</span>
+                                <span class="dock-subtitle" id="unified-views-count">0 views</span>
                             </div>
 
-                            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
-                                <select id="unified-tx-type" class="s-select" style="inline-size: auto; min-block-size: 1.85rem; font-size: 0.75rem;" aria-label="Transition effect">
-                                    <option value="default">Default Transition</option>
+                            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem;">
+                                <label for="unified-tx-type" class="field-label">Transition</label>
+                                <select id="unified-tx-type" class="s-select" style="inline-size: auto; min-block-size: 1.9rem; font-size: 0.75rem;">
+                                    <option value="default">View Default</option>
                                     @foreach ($transitionTypes as $txKey => $txLabel)
                                         <option value="{{ $txKey }}">{{ $txLabel }}</option>
                                     @endforeach
                                 </select>
-                                <input type="number" id="unified-tx-dur" class="s-input" min="0" max="5000" step="50" value="450" style="inline-size: 4.5rem; min-block-size: 1.85rem; font-size: 0.75rem;" aria-label="Transition duration ms" title="Transition duration (ms)">
-                                <a id="unified-center-builder-link" href="#" class="s-btn s-btn-gold s-btn-xs">Edit Views &amp; Canvas</a>
+                                <input type="number" id="unified-tx-dur" class="s-input" min="0" max="5000" step="50" value="450" style="inline-size: 4.5rem; min-block-size: 1.9rem; font-size: 0.75rem;" aria-label="Transition duration in milliseconds" title="Transition duration (ms)">
+                                <span class="dock-subtitle">ms</span>
                             </div>
                         </div>
 
-                        <div>
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-block-end: 0.5rem;">
-                                <h2 class="dock-title">Screen Views (Tap to Transition Live Browser Source)</h2>
-                                <span class="dock-subtitle" id="unified-views-count">0 views</span>
+                        {{-- Screen Views Deck with Mini Schematic Thumbnails --}}
+                        <div class="stack-grid" style="gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                <div>
+                                    <h2 class="dock-title">Screen Views</h2>
+                                    <div class="dock-subtitle">Click any view to transition your live OBS Browser Source</div>
+                                </div>
+                                <a id="unified-center-builder-link" href="#" class="s-btn s-btn-xs">Customize Views</a>
                             </div>
                             <div id="unified-views-grid" class="view-pads-grid"></div>
                         </div>
 
-                        <div class="sources-split-grid">
-                            {{-- Live Timer & Runtime Layer Controls --}}
-                            <div class="dock-panel" style="background: var(--bg-chrome);">
-                                <div class="dock-head">
-                                    <h2 class="dock-title">Live Timer Controls</h2>
-                                    <span id="uni-timer-readout" class="stat-chip" style="font-family: ui-monospace, monospace; font-weight: 700; color: var(--gold-light);">05:00</span>
-                                </div>
-                                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
-                                    <button type="button" id="uni-timer-start" class="s-btn s-btn-gold s-btn-xs">Start</button>
-                                    <button type="button" id="uni-timer-pause" class="s-btn s-btn-xs">Pause</button>
-                                    <button type="button" id="uni-timer-reset" class="s-btn s-btn-xs">Reset</button>
-                                    <button type="button" id="uni-timer-plus" class="s-btn s-btn-xs">+1m</button>
-                                    <button type="button" id="uni-timer-minus" class="s-btn s-btn-xs">-1m</button>
-                                </div>
-                                <div style="display: flex; gap: 0.375rem; align-items: center;">
-                                    <input type="number" id="uni-timer-seconds" class="s-input" min="0" step="30" value="300" aria-label="Timer seconds" style="flex: 1;">
-                                    <button type="button" id="uni-timer-set" class="s-btn s-btn-xs">Set Secs</button>
-                                </div>
+                        {{-- Tabbed Live Show Console (Timer · Scoreboard · Lower Third & Alerts · Layers) --}}
+                        <div class="console-card">
+                            <div class="console-tab-row" role="tablist" aria-label="Live Show Remote Controls">
+                                <button type="button" class="console-tab-btn" role="tab" aria-selected="true" data-uni-console-tab="timer">Timer &amp; Clock</button>
+                                <button type="button" class="console-tab-btn" role="tab" aria-selected="false" data-uni-console-tab="scoreboard">Scoreboard</button>
+                                <button type="button" class="console-tab-btn" role="tab" aria-selected="false" data-uni-console-tab="graphics">Lower Third &amp; Alerts</button>
+                                <button type="button" class="console-tab-btn" role="tab" aria-selected="false" data-uni-console-tab="layers">View Layers</button>
+                            </div>
 
-                                <div style="padding-block-start: 0.5rem; border-block-start: 1px solid var(--hairline);">
-                                    <div class="field-label" style="margin-block-end: 0.35rem;">Quick Layer Visibility Toggles</div>
-                                    <div id="uni-layer-toggles" style="display: flex; flex-wrap: wrap; gap: 0.35rem;"></div>
+                            {{-- Tab 1: Timer & Clock --}}
+                            <div data-uni-console-panel="timer">
+                                <div class="timer-console-wrap">
+                                    <div class="timer-big-box">
+                                        <span class="field-label" id="uni-timer-status-label">Stopped</span>
+                                        <span id="uni-timer-readout" class="timer-big-digits">05:00</span>
+                                    </div>
+                                    <div class="stack-grid" style="gap: 0.6rem;">
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
+                                            <button type="button" id="uni-timer-start" class="s-btn s-btn-gold">Start</button>
+                                            <button type="button" id="uni-timer-pause" class="s-btn">Pause</button>
+                                            <button type="button" id="uni-timer-reset" class="s-btn">Reset</button>
+                                            <button type="button" id="uni-timer-minus" class="s-btn">-1m</button>
+                                            <button type="button" id="uni-timer-plus" class="s-btn">+1m</button>
+                                        </div>
+                                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
+                                            <span class="field-label">Quick Set:</span>
+                                            <button type="button" class="s-btn s-btn-xs" data-uni-timer-preset="60">1m</button>
+                                            <button type="button" class="s-btn s-btn-xs" data-uni-timer-preset="180">3m</button>
+                                            <button type="button" class="s-btn s-btn-xs" data-uni-timer-preset="300">5m</button>
+                                            <button type="button" class="s-btn s-btn-xs" data-uni-timer-preset="600">10m</button>
+                                            <input type="number" id="uni-timer-seconds" class="s-input" min="0" step="30" value="300" aria-label="Custom timer seconds" style="inline-size: 5.5rem; min-block-size: 1.85rem;">
+                                            <button type="button" id="uni-timer-set" class="s-btn s-btn-xs">Set Secs</button>
+                                        </div>
+                                        <div id="uni-timer-rule-hint" class="dock-subtitle">Configure auto-switch rules when timer hits 00:00 inside Canvas Builder.</div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {{-- Tournament Scoreboard & Live Lower Third / Alert --}}
-                            <div class="dock-panel" style="background: var(--bg-chrome);">
-                                <div class="dock-head">
-                                    <h2 class="dock-title">Tournament Scoreboard &amp; Graphics</h2>
-                                </div>
-                                <div class="transform-grid">
-                                    <div class="field-stack">
-                                        <span class="field-label">Team A Name</span>
-                                        <input type="text" id="uni-sb-a-name" class="s-input" value="Team Alpha">
-                                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                                            <button type="button" id="uni-sb-a-minus" class="s-btn s-btn-xs">-</button>
-                                            <span id="uni-sb-a-score" class="stat-chip" style="flex: 1; justify-content: center;">0</span>
-                                            <button type="button" id="uni-sb-a-plus" class="s-btn s-btn-gold s-btn-xs">+</button>
+                            {{-- Tab 2: Tournament Scoreboard --}}
+                            <div data-uni-console-panel="scoreboard" hidden>
+                                <div class="sb-desk-grid">
+                                    <div class="sb-team-card">
+                                        <label class="field-stack">
+                                            <span class="field-label">Team A</span>
+                                            <input type="text" id="uni-sb-a-name" class="s-input" value="Team Alpha">
+                                        </label>
+                                        <div class="sb-score-row">
+                                            <button type="button" id="uni-sb-a-minus" class="s-btn" aria-label="Decrease Team A score">-</button>
+                                            <span id="uni-sb-a-score" class="sb-score-val">0</span>
+                                            <button type="button" id="uni-sb-a-plus" class="s-btn s-btn-gold" aria-label="Increase Team A score">+</button>
                                         </div>
                                     </div>
-                                    <div class="field-stack">
-                                        <span class="field-label">Team B Name</span>
-                                        <input type="text" id="uni-sb-b-name" class="s-input" value="Team Omega">
-                                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                                            <button type="button" id="uni-sb-b-minus" class="s-btn s-btn-xs">-</button>
-                                            <span id="uni-sb-b-score" class="stat-chip" style="flex: 1; justify-content: center;">0</span>
-                                            <button type="button" id="uni-sb-b-plus" class="s-btn s-btn-gold s-btn-xs">+</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div style="display: flex; gap: 0.35rem;">
-                                    <input type="text" id="uni-sb-match" class="s-input" placeholder="Match label" aria-label="Match label">
-                                    <input type="text" id="uni-sb-round" class="s-input" placeholder="Round (BO3)" aria-label="Round label">
-                                    <button type="button" id="uni-sb-save" class="s-btn s-btn-xs">Apply</button>
-                                    <button type="button" id="uni-sb-swap" class="s-btn s-btn-xs">Swap</button>
-                                </div>
 
-                                <div style="display: grid; gap: 0.35rem; padding-block-start: 0.5rem; border-block-start: 1px solid var(--hairline);">
-                                    <div style="display: flex; gap: 0.35rem;">
-                                        <input type="text" id="uni-l3-title" class="s-input" placeholder="Lower-third name">
-                                        <input type="text" id="uni-l3-sub" class="s-input" placeholder="Subtitle / role">
+                                    <div class="sb-team-card">
+                                        <label class="field-stack">
+                                            <span class="field-label">Match Title</span>
+                                            <input type="text" id="uni-sb-match" class="s-input" placeholder="Grand Finals">
+                                        </label>
+                                        <label class="field-stack">
+                                            <span class="field-label">Round / Format</span>
+                                            <input type="text" id="uni-sb-round" class="s-input" placeholder="Game 1 · BO3">
+                                        </label>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+                                            <button type="button" id="uni-sb-save" class="s-btn s-btn-xs" style="flex: 1;">Apply Names</button>
+                                            <button type="button" id="uni-sb-swap" class="s-btn s-btn-xs">Swap</button>
+                                            <button type="button" id="uni-sb-reset" class="s-btn s-btn-xs">0 - 0</button>
+                                        </div>
                                     </div>
-                                    <div style="display: flex; gap: 0.35rem;">
-                                        <button type="button" id="uni-l3-show" class="s-btn s-btn-gold s-btn-xs" style="flex: 1;">Show Lower Third</button>
-                                        <button type="button" id="uni-l3-hide" class="s-btn s-btn-xs" style="flex: 1;">Hide Lower Third</button>
+
+                                    <div class="sb-team-card">
+                                        <label class="field-stack">
+                                            <span class="field-label">Team B</span>
+                                            <input type="text" id="uni-sb-b-name" class="s-input" value="Team Omega">
+                                        </label>
+                                        <div class="sb-score-row">
+                                            <button type="button" id="uni-sb-b-minus" class="s-btn" aria-label="Decrease Team B score">-</button>
+                                            <span id="uni-sb-b-score" class="sb-score-val">0</span>
+                                            <button type="button" id="uni-sb-b-plus" class="s-btn s-btn-gold" aria-label="Increase Team B score">+</button>
+                                        </div>
                                     </div>
-                                    <div style="display: flex; gap: 0.35rem;">
-                                        <input type="text" id="uni-alert-msg" class="s-input" placeholder="Alert message...">
-                                        <button type="button" id="uni-alert-show" class="s-btn s-btn-gold s-btn-xs">Alert</button>
-                                        <button type="button" id="uni-alert-hide" class="s-btn s-btn-xs">Clear</button>
+                                </div>
+                            </div>
+
+                            {{-- Tab 3: Lower Third, Alerts & Ticker --}}
+                            <div data-uni-console-panel="graphics" hidden>
+                                <div class="sources-split-grid">
+                                    <div class="sb-team-card">
+                                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                                            <strong style="font-size: 0.8125rem;">Lower Third Banner</strong>
+                                            <span id="uni-l3-status" class="dock-subtitle">Visible</span>
+                                        </div>
+                                        <label class="field-stack">
+                                            <span class="field-label">Speaker / Headline</span>
+                                            <input type="text" id="uni-l3-title" class="s-input" placeholder="Broadcast Host">
+                                        </label>
+                                        <label class="field-stack">
+                                            <span class="field-label">Role / Subtitle</span>
+                                            <input type="text" id="uni-l3-sub" class="s-input" placeholder="Live From Studio">
+                                        </label>
+                                        <div style="display: flex; gap: 0.375rem;">
+                                            <button type="button" id="uni-l3-show" class="s-btn s-btn-gold" style="flex: 1;">Show Lower Third</button>
+                                            <button type="button" id="uni-l3-hide" class="s-btn" style="flex: 1;">Hide</button>
+                                        </div>
                                     </div>
+
+                                    <div class="sb-team-card">
+                                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                                            <strong style="font-size: 0.8125rem;">Pop-Up Alert &amp; Ticker</strong>
+                                            <button type="button" id="uni-ticker-toggle" class="s-btn s-btn-xs">Ticker: On</button>
+                                        </div>
+                                        <label class="field-stack">
+                                            <span class="field-label">Alert Headline</span>
+                                            <input type="text" id="uni-alert-title" class="s-input" placeholder="Live Update">
+                                        </label>
+                                        <label class="field-stack">
+                                            <span class="field-label">Alert Message</span>
+                                            <input type="text" id="uni-alert-msg" class="s-input" placeholder="Next match starts in 2 minutes">
+                                        </label>
+                                        <div style="display: flex; gap: 0.375rem;">
+                                            <button type="button" id="uni-alert-show" class="s-btn s-btn-gold" style="flex: 1;">Push Alert</button>
+                                            <button type="button" id="uni-alert-hide" class="s-btn" style="flex: 1;">Clear</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Tab 4: Active View Runtime Layer Toggles --}}
+                            <div data-uni-console-panel="layers" hidden>
+                                <div class="stack-grid" style="gap: 0.5rem;">
+                                    <div class="dock-subtitle">Toggle individual elements on the currently live Screen View without switching views or editing saved layouts.</div>
+                                    <div id="uni-layer-toggles" style="display: flex; flex-wrap: wrap; gap: 0.4rem;"></div>
                                 </div>
                             </div>
                         </div>
@@ -1254,20 +1591,23 @@
                 </div>
             </section>
 
-            {{-- Right Column: Audio Mixer, Live Overlay Push & Recent Command Log --}}
+            {{-- Right Column: Scrollable Audio Mixer, Classic Overlay Push & Command Log --}}
             <aside class="studio-column" aria-label="Audio Mixer, Overlays and Command Log">
                 <div class="dock-panel">
                     <div class="dock-head">
-                        <h2 class="dock-title">Audio Mixer</h2>
-                        <span class="dock-subtitle">Live OBS faders</span>
+                        <div>
+                            <h2 class="dock-title">Audio Mixer</h2>
+                            <span id="audio-count-meta" class="dock-subtitle">Live OBS faders</span>
+                        </div>
                     </div>
-                    <div id="audio-mixer-list" style="display: grid; gap: 0.5rem;"></div>
+                    <input type="search" id="audio-mixer-filter" class="s-input" placeholder="Filter audio inputs" aria-label="Filter audio inputs" style="min-block-size: 1.9rem; font-size: 0.75rem;">
+                    <div id="audio-mixer-list" class="audio-mixer-scroll"></div>
                 </div>
 
-                <div class="dock-panel">
+                <div id="legacy-overlay-push-panel" class="dock-panel" @if (($controlMode ?? 'obs') === 'screens') hidden @endif>
                     <div class="dock-head">
                         <h2 class="dock-title">Live Overlay Push</h2>
-                        <span class="dock-subtitle">Browser screens</span>
+                        <span class="dock-subtitle">Standalone screens</span>
                     </div>
                     <div style="display: grid; gap: 0.5rem;">
                         <label class="field-stack">
@@ -1280,12 +1620,12 @@
                         </label>
                         <div style="display: flex; gap: 0.375rem;">
                             <a id="overlay-open-link" href="{{ $screens->first()?->getOverlayUrl() ?? '#' }}" target="_blank" class="s-btn" style="flex: 1;">Open URL</a>
-                            <button type="button" id="btn-push-overlay-scene" class="s-btn s-btn-gold" style="flex: 1;">Push to Scene</button>
+                            <button type="button" id="btn-push-overlay-scene" class="s-btn" style="flex: 1;">Push to Scene</button>
                         </div>
                         <input type="text" id="overlay-guest-name" class="s-input" placeholder="Lower-third name" aria-label="Lower-third name">
                         <input type="text" id="overlay-guest-role" class="s-input" placeholder="Role / subtitle" aria-label="Role or subtitle">
                         <div style="display: flex; gap: 0.375rem;">
-                            <button type="button" id="btn-overlay-show" class="s-btn s-btn-gold" style="flex: 1;">Show Lower Third</button>
+                            <button type="button" id="btn-overlay-show" class="s-btn" style="flex: 1;">Show Lower Third</button>
                             <button type="button" id="btn-overlay-hide" class="s-btn" style="flex: 1;">Hide</button>
                         </div>
                     </div>
@@ -1295,7 +1635,7 @@
                     <div class="dock-head">
                         <h2 class="dock-title">Recent Command Log</h2>
                     </div>
-                    <div id="recent-logs-list" style="display: grid; gap: 0.25rem; font-size: 0.75rem;">
+                    <div id="recent-logs-list" class="logs-scroll">
                         @forelse ($recentLogs as $log)
                             <div style="display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.25rem 0.375rem; border-radius: 0.375rem; background: var(--bg-raised);">
                                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $log->request_type }}</span>
@@ -2335,7 +2675,7 @@
 
                         const cutBtn = document.createElement('button');
                         cutBtn.type = 'button';
-                        cutBtn.className = `s-btn s-btn-xs${isProgram ? ' is-active' : ' s-btn-gold'}`;
+                        cutBtn.className = `s-btn s-btn-xs${isProgram ? ' is-active' : ''}`;
                         cutBtn.textContent = liveState?.studioModeEnabled ? 'Preview' : (isProgram ? 'On Air' : 'Go Live');
                         cutBtn.title = liveState?.studioModeEnabled
                             ? `Cue "${sName}" in Preview`
@@ -3043,13 +3383,35 @@
                     if (!container) return;
 
                     const inputs = Array.isArray(liveState?.audioInputs) ? liveState.audioInputs : [];
+                    const filterInput = document.getElementById('audio-mixer-filter');
+                    const query = (filterInput?.value || '').trim().toLowerCase();
+                    const filtered = query
+                        ? inputs.filter((inp) => String(inp.inputName || '').toLowerCase().includes(query))
+                        : inputs;
+
+                    const countMeta = document.getElementById('audio-count-meta');
+                    if (countMeta) {
+                        if (inputs.length === 0) {
+                            countMeta.textContent = 'Live OBS faders';
+                        } else if (query) {
+                            countMeta.textContent = `${filtered.length} of ${inputs.length} faders`;
+                        } else {
+                            countMeta.textContent = `${inputs.length} live ${inputs.length === 1 ? 'fader' : 'faders'}`;
+                        }
+                    }
+
                     if (inputs.length === 0) {
                         container.innerHTML = '<div class="dock-subtitle">No OBS audio inputs detected yet.</div>';
                         return;
                     }
 
+                    if (filtered.length === 0) {
+                        container.innerHTML = '<div class="dock-subtitle">No audio inputs match your filter.</div>';
+                        return;
+                    }
+
                     container.innerHTML = '';
-                    inputs.forEach((inp) => {
+                    filtered.forEach((inp) => {
                         const name = inp.inputName || '';
                         const muted = Boolean(inp.inputMuted);
                         const db = Math.round(Number(inp.inputVolumeDb ?? 0) * 10) / 10;
@@ -3900,6 +4262,15 @@
                         secs = Math.max(0, Math.ceil((Date.parse(t.target_at) - Date.now()) / 1000));
                     }
                     el.textContent = fmtStageClock(secs);
+
+                    const statusEl = document.getElementById('uni-timer-status-label');
+                    if (statusEl) {
+                        const st = String(t.status || 'stopped');
+                        statusEl.textContent = st === 'running' ? 'Running' : (st === 'paused' ? 'Paused' : 'Stopped');
+                        statusEl.style.color = st === 'running'
+                            ? 'var(--positive)'
+                            : (st === 'paused' ? 'var(--gold-light)' : 'var(--ink-muted)');
+                    }
                 };
 
                 const renderUnifiedWorkspace = () => {
@@ -3912,10 +4283,12 @@
                     const uniLeft = document.getElementById('unified-collections-panel');
                     const classicCenter = document.getElementById('classic-sources-workspace');
                     const uniCenter = document.getElementById('unified-screen-workspace');
+                    const legacyOverlayPanel = document.getElementById('legacy-overlay-push-panel');
                     if (classicLeft) classicLeft.hidden = isScreens;
                     if (uniLeft) uniLeft.hidden = !isScreens;
                     if (classicCenter) classicCenter.hidden = isScreens;
                     if (uniCenter) uniCenter.hidden = !isScreens;
+                    if (legacyOverlayPanel) legacyOverlayPanel.hidden = isScreens;
 
                     const colSel = document.getElementById('unified-collection-select');
                     const col = getActiveCollection();
@@ -3960,24 +4333,69 @@
                     const grid = document.getElementById('unified-views-grid');
                     if (grid) {
                         grid.innerHTML = '';
+                        const stageW = Math.max(320, Number(col.width || 1920));
+                        const stageH = Math.max(180, Number(col.height || 1080));
+
                         (col.views || []).forEach((view) => {
                             const isActive = Number(view.id) === Number(col.active_view_id);
+                            const viewLayers = Array.isArray(view.layers) ? view.layers : [];
                             const btn = document.createElement('button');
                             btn.type = 'button';
                             btn.className = `view-pad-btn${isActive ? ' is-active' : ''}`;
                             btn.dataset.screenViewId = String(view.id);
 
+                            const thumb = document.createElement('div');
+                            thumb.className = `view-pad-thumb${view.background_mode === 'transparent' ? ' is-transparent' : ''}`;
+                            if (view.background_mode === 'solid' && view.background_color) {
+                                thumb.style.background = view.background_color;
+                            } else if (view.background_mode === 'theme' && col.theme?.background_color) {
+                                thumb.style.background = col.theme.background_color;
+                            }
+
+                            viewLayers
+                                .filter((l) => l && l.visible !== false)
+                                .slice()
+                                .sort((a, b) => Number(a.z_index || 0) - Number(b.z_index || 0))
+                                .forEach((layer) => {
+                                    const box = document.createElement('span');
+                                    const lType = String(layer.type || 'shape');
+                                    const cls = lType === 'camera_cutout'
+                                        ? 'mini-layer--cutout'
+                                        : (['timer', 'scoreboard', 'lower_third', 'ticker'].includes(lType) ? 'mini-layer--accent' : 'mini-layer--block');
+                                    box.className = `mini-layer ${cls}`;
+                                    const leftPct = Math.max(0, Math.min(98, (Number(layer.x || 0) / stageW) * 100));
+                                    const topPct = Math.max(0, Math.min(98, (Number(layer.y || 0) / stageH) * 100));
+                                    const wPct = Math.max(4, Math.min(100 - leftPct, (Number(layer.w || 240) / stageW) * 100));
+                                    const hPct = Math.max(4, Math.min(100 - topPct, (Number(layer.h || 120) / stageH) * 100));
+                                    box.style.left = `${leftPct}%`;
+                                    box.style.top = `${topPct}%`;
+                                    box.style.width = `${wPct}%`;
+                                    box.style.height = `${hPct}%`;
+                                    thumb.appendChild(box);
+                                });
+
+                            if (isActive) {
+                                const pill = document.createElement('span');
+                                pill.className = 'on-air-pill';
+                                pill.innerHTML = '<span class="on-air-dot" aria-hidden="true"></span>ON AIR';
+                                thumb.appendChild(pill);
+                            }
+
+                            const info = document.createElement('div');
+                            info.style.cssText = 'display:grid;gap:0.125rem;min-inline-size:0;';
+
                             const title = document.createElement('strong');
-                            title.style.fontSize = '0.85rem';
+                            title.style.cssText = 'font-size:0.8125rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
                             title.textContent = view.name;
 
                             const meta = document.createElement('span');
                             meta.className = 'dock-subtitle';
                             meta.style.fontSize = '0.6875rem';
-                            const txName = view.transition_override?.type || col.default_transition?.type || 'fade';
-                            meta.textContent = isActive ? 'ON AIR · Active View' : `${(view.layers || []).length} layers · ${txName}`;
+                            const txName = String(view.transition_override?.type || col.default_transition?.type || 'fade').replaceAll('_', ' ');
+                            meta.textContent = `${viewLayers.length} ${viewLayers.length === 1 ? 'layer' : 'layers'} · ${txName}`;
 
-                            btn.append(title, meta);
+                            info.append(title, meta);
+                            btn.append(thumb, info);
                             btn.addEventListener('click', async () => {
                                 const txType = document.getElementById('unified-tx-type')?.value || 'default';
                                 const txDur = Number(document.getElementById('unified-tx-dur')?.value || 450);
@@ -3991,6 +4409,21 @@
                             });
                             grid.appendChild(btn);
                         });
+                    }
+
+                    const ruleHint = document.getElementById('uni-timer-rule-hint');
+                    if (ruleHint) {
+                        const rule = activeView?.logic_rules || {};
+                        if (rule.on_timer_end_action === 'switch_view' && rule.on_timer_end_target_view_id) {
+                            const targetView = (col.views || []).find((v) => Number(v.id) === Number(rule.on_timer_end_target_view_id));
+                            ruleHint.textContent = targetView
+                                ? `Auto-rule: switches to "${targetView.name}" when countdown hits 00:00.`
+                                : 'Auto-rule: switches view when countdown hits 00:00.';
+                        } else if (rule.on_timer_end_action === 'show_alert') {
+                            ruleHint.textContent = 'Auto-rule: displays alert banner when countdown hits 00:00.';
+                        } else {
+                            ruleHint.textContent = 'Configure auto-switch rules when timer hits 00:00 inside Canvas Builder.';
+                        }
                     }
 
                     const sb = col.runtime_state?.scoreboard || {};
@@ -4008,22 +4441,43 @@
                     const l3 = col.runtime_state?.lower_third || {};
                     setIfIdle('uni-l3-title', l3.title || '');
                     setIfIdle('uni-l3-sub', l3.subtitle || '');
+                    const l3Status = document.getElementById('uni-l3-status');
+                    if (l3Status) {
+                        l3Status.textContent = l3.visible ? 'On Air' : 'Hidden';
+                        l3Status.style.color = l3.visible ? 'var(--positive)' : 'var(--ink-muted)';
+                    }
+
+                    const alertState = col.runtime_state?.alert || {};
+                    setIfIdle('uni-alert-title', alertState.title || '');
+                    setIfIdle('uni-alert-msg', alertState.message || '');
+
+                    const tickerBtn = document.getElementById('uni-ticker-toggle');
+                    if (tickerBtn) {
+                        const tickerOn = col.runtime_state?.ticker?.visible !== false;
+                        tickerBtn.textContent = tickerOn ? 'Ticker: On' : 'Ticker: Off';
+                        tickerBtn.classList.toggle('is-active', tickerOn);
+                    }
 
                     const layerHost = document.getElementById('uni-layer-toggles');
                     if (layerHost) {
                         const hiddenSet = new Set(Array.isArray(col.runtime_state?.hidden_layers) ? col.runtime_state.hidden_layers : []);
                         layerHost.innerHTML = '';
-                        (activeView?.layers || []).forEach((layer) => {
-                            const visible = layer.visible !== false && !hiddenSet.has(layer.id);
-                            const pill = document.createElement('button');
-                            pill.type = 'button';
-                            pill.className = `s-btn s-btn-xs${visible ? ' is-active' : ''}`;
-                            pill.textContent = `${visible ? 'On' : 'Off'}: ${layer.name || layer.type}`;
-                            pill.addEventListener('click', () => sendUnifiedRuntime({
-                                toggle_layer: { layer_id: layer.id, visible: !visible },
-                            }));
-                            layerHost.appendChild(pill);
-                        });
+                        const activeLayers = Array.isArray(activeView?.layers) ? activeView.layers : [];
+                        if (activeLayers.length === 0) {
+                            layerHost.innerHTML = '<span class="dock-subtitle">No layers on this view yet. Add elements in Canvas Builder.</span>';
+                        } else {
+                            activeLayers.forEach((layer) => {
+                                const visible = layer.visible !== false && !hiddenSet.has(layer.id);
+                                const pill = document.createElement('button');
+                                pill.type = 'button';
+                                pill.className = `s-btn s-btn-xs${visible ? ' is-active' : ''}`;
+                                pill.textContent = `${visible ? 'On' : 'Off'}: ${layer.name || layer.type}`;
+                                pill.addEventListener('click', () => sendUnifiedRuntime({
+                                    toggle_layer: { layer_id: layer.id, visible: !visible },
+                                }));
+                                layerHost.appendChild(pill);
+                            });
+                        }
                     }
 
                     updateUnifiedTimerReadout();
@@ -4101,6 +4555,29 @@
                     showToast('Pushing Single Scene + Browser Source to OBS', 'success');
                 });
 
+                document.getElementById('audio-mixer-filter')?.addEventListener('input', renderAudioMixer);
+
+                document.querySelectorAll('[data-uni-console-tab]').forEach((tabBtn) => {
+                    tabBtn.addEventListener('click', () => {
+                        const target = tabBtn.dataset.uniConsoleTab;
+                        document.querySelectorAll('[data-uni-console-tab]').forEach((b) => {
+                            b.setAttribute('aria-selected', b === tabBtn ? 'true' : 'false');
+                        });
+                        document.querySelectorAll('[data-uni-console-panel]').forEach((panel) => {
+                            panel.hidden = panel.dataset.uniConsolePanel !== target;
+                        });
+                    });
+                });
+
+                document.querySelectorAll('[data-uni-timer-preset]').forEach((presetBtn) => {
+                    presetBtn.addEventListener('click', () => {
+                        const secs = Math.max(0, Number(presetBtn.dataset.uniTimerPreset || 300));
+                        const secsInput = document.getElementById('uni-timer-seconds');
+                        if (secsInput) secsInput.value = String(secs);
+                        sendUnifiedRuntime({ timer: { action: 'set', duration_seconds: secs } });
+                    });
+                });
+
                 document.getElementById('uni-timer-start')?.addEventListener('click', () => sendUnifiedRuntime({ timer: { action: 'start' } }));
                 document.getElementById('uni-timer-pause')?.addEventListener('click', () => sendUnifiedRuntime({ timer: { action: 'pause' } }));
                 document.getElementById('uni-timer-reset')?.addEventListener('click', () => sendUnifiedRuntime({ timer: { action: 'reset' } }));
@@ -4116,6 +4593,7 @@
                 document.getElementById('uni-sb-b-minus')?.addEventListener('click', () => sendUnifiedRuntime({ scoreboard: { delta_b: -1 } }));
                 document.getElementById('uni-sb-b-plus')?.addEventListener('click', () => sendUnifiedRuntime({ scoreboard: { delta_b: 1 } }));
                 document.getElementById('uni-sb-swap')?.addEventListener('click', () => sendUnifiedRuntime({ scoreboard: { swap: true } }));
+                document.getElementById('uni-sb-reset')?.addEventListener('click', () => sendUnifiedRuntime({ scoreboard: { reset_scores: true } }));
                 document.getElementById('uni-sb-save')?.addEventListener('click', () => sendUnifiedRuntime({
                     scoreboard: {
                         team_a_name: document.getElementById('uni-sb-a-name')?.value || 'Team Alpha',
@@ -4133,10 +4611,16 @@
                     },
                 }));
                 document.getElementById('uni-l3-hide')?.addEventListener('click', () => sendUnifiedRuntime({ lower_third: { visible: false } }));
+                document.getElementById('uni-ticker-toggle')?.addEventListener('click', () => {
+                    const col = getActiveCollection();
+                    const currentlyOn = col?.runtime_state?.ticker?.visible !== false;
+                    sendUnifiedRuntime({ ticker: { visible: !currentlyOn } });
+                });
                 document.getElementById('uni-alert-show')?.addEventListener('click', () => sendUnifiedRuntime({
                     alert: {
                         visible: true,
-                        message: document.getElementById('uni-alert-msg')?.value || '',
+                        title: document.getElementById('uni-alert-title')?.value?.trim() || 'Live Update',
+                        message: document.getElementById('uni-alert-msg')?.value?.trim() || '',
                     },
                 }));
                 document.getElementById('uni-alert-hide')?.addEventListener('click', () => sendUnifiedRuntime({ alert: { visible: false } }));

@@ -41,17 +41,18 @@
                 position: relative;
                 inline-size: 100%;
                 block-size: 100dvb;
-                display: grid;
-                place-items: center;
                 overflow: hidden;
                 background: transparent;
             }
 
             .stage-frame {
-                position: relative;
+                position: absolute;
+                inset-inline-start: 50%;
+                inset-block-start: 50%;
                 inline-size: calc(var(--stage-w) * 1px);
                 block-size: calc(var(--stage-h) * 1px);
                 transform-origin: center center;
+                transform: translate(-50%, -50%);
                 overflow: hidden;
                 background: transparent;
             }
@@ -434,7 +435,7 @@
                     document.documentElement.style.setProperty('--stage-w', String(w));
                     document.documentElement.style.setProperty('--stage-h', String(h));
                     const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
-                    frameEl.style.transform = `scale(${scale})`;
+                    frameEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
                 };
 
                 window.addEventListener('resize', fitViewport);

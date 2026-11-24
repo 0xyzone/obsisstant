@@ -51,13 +51,18 @@ class ScreenCollectionStageTest extends TestCase
             ->assertOk()
             ->assertSee('Unified Screen')
             ->assertSee('Screen Collections')
-            ->assertSee('Starting Soon');
+            ->assertSee('Starting Soon')
+            ->assertSee('data-uni-console-tab="timer"', false)
+            ->assertSee('data-uni-console-tab="scoreboard"', false)
+            ->assertSee('data-uni-console-tab="graphics"', false)
+            ->assertSee('audio-mixer-filter', false);
 
         $this->actingAs($user)
             ->get(route('obs.deck.show', ['studio' => $studio->slug]))
             ->assertOk()
             ->assertSee('Unified Screen Stage')
-            ->assertSee('Scoreboard');
+            ->assertSee('Scoreboard')
+            ->assertSee('deck-uni-l3-show', false);
     }
 
     public function test_switching_views_updates_active_view_transitions_and_broadcasts(): void
@@ -211,7 +216,9 @@ class ScreenCollectionStageTest extends TestCase
             ->get(route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => $collection->id]))
             ->assertOk()
             ->assertSee('Canvas Editor')
-            ->assertSee('Collection Assets');
+            ->assertSee('Collection Assets')
+            ->assertSee('data-quick-add="camera_cutout"', false)
+            ->assertSee('data-left-tab="theme"', false);
 
         // Upload PNG asset and verify public binary route serves it cleanly
         $uploadRes = $this->actingAs($user)

@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.12.1] - 2026-11-24 | type: macro
+
+> Redesigned Studio Control Center, Canvas Builder, and Mobile Deck for clearer workflow hierarchy and fixed Stage Player viewport centering.
+
+### Changed
+- Redesigned Unified Screen Control Center with a guided 3-step left workflow, 16:9 mini-wireframe Screen View pads with ON AIR pills, and a spacious 4-tab live console (Timer & Clock, Scoreboard, Lower Third & Alerts, View Layers)
+- Balanced Studio 3-column layout with height-capped scrollable Scenes, searchable Audio Mixer faders, calmer button hierarchy, and automatic hiding of legacy standalone Live Overlay Push in Unified Screen Mode
+- Refined Visual Screen Canvas Builder with 3-tab left panel (Views, Assets, Theme), 1-click Element Palette, live layer previews, hover/selection labels, and keyboard save/nudge shortcuts
+- Polished Mobile Control Deck Unified Screen Mode with integrated Lower Third & Alert controls and fixed Stage Player responsive viewport centering across non-1080p aspect dimensions
+
 ## [v1.12.0] - 2026-11-24 | type: minor
 
 > Unified Single-Browser Screen Collections, Visual Canvas Composer, Transitions, and Live Remote Controls
