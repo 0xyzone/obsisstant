@@ -65,6 +65,9 @@ class ScreenCollectionStageTest extends TestCase
             ->assertSee('deck-tiles-grid', false)
             ->assertSee('deck-edit-mode-btn', false)
             ->assertSee('tile-editor-dialog', false)
+            ->assertSee('timer-controls-dialog', false)
+            ->assertSee('deck-open-timer-btn', false)
+            ->assertSee('tm-custom-min', false)
             ->assertSee('deck-uni-l3-show', false);
     }
 

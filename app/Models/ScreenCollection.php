@@ -192,7 +192,7 @@ class ScreenCollection extends Model
             'id' => 'tile_timer_toggle',
             'type' => 'timer',
             'label' => 'Countdown Timer',
-            'subtitle' => 'Tap to start / pause',
+            'subtitle' => 'Live stage timer',
             'color' => 'gold',
             'span' => 1,
             'config' => [

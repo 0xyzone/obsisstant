@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.13.1] - 2026-11-25 | type: macro
+
+> Upgraded Mobile Control Deck with an interactive multi-control Timer Tile and a full Stage Timer Controls modal with presets, custom Min:Sec input, nudges, modes, and on-screen label.
+
+### Added
+- Added a live ticking Timer pill in the Mobile Deck toolbar and a full Stage Timer Controls modal supporting -1m/-30s/+30s/+1m nudges, 1m-15m presets with optional auto-start, custom Min:Sec duration, Countdown/Count-Up/Live Clock mode switching, and live on-screen timer label editing
+
+### Changed
+- Upgraded the Mobile Deck Timer Tile into a live interactive widget with progress bar and inline Start/Pause, Reset, -1m, +1m, and Set controls
+
 ## [v1.13.0] - 2026-11-25 | type: minor
 
 > Replaced the fixed Mobile Deck button wall with a persistent, per-collection Configurable Tile Deck focused on switching App Screen Views inside the single OBS Browser Source.

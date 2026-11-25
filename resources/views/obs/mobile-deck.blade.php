@@ -483,11 +483,115 @@
 
             .tile-metric-big {
                 font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-                font-size: 1.45rem;
+                font-size: 1.5rem;
                 font-weight: 700;
                 font-variant-numeric: tabular-nums;
                 color: var(--gold);
                 line-height: 1.1;
+            }
+
+            /* Interactive Multi-Control Timer Tile */
+            .timer-progress-track {
+                inline-size: 100%;
+                block-size: 0.25rem;
+                border-radius: 9999px;
+                background: rgba(255, 255, 255, 0.08);
+                overflow: hidden;
+            }
+
+            .timer-progress-fill {
+                block-size: 100%;
+                inline-size: 100%;
+                border-radius: inherit;
+                background: linear-gradient(90deg, var(--gold-strong), var(--gold));
+                transition: inline-size 220ms linear;
+            }
+
+            .deck-tile.is-on-air .timer-progress-fill {
+                background: linear-gradient(90deg, #34A874, var(--positive));
+            }
+
+            .tile-timer-actions {
+                display: grid;
+                gap: 0.3rem;
+            }
+
+            .tile-timer-row {
+                display: grid;
+                gap: 0.28rem;
+            }
+
+            .tile-timer-row--primary {
+                grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+            }
+
+            .tile-timer-row--nudge {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .tile-ctrl-btn {
+                min-block-size: 1.85rem;
+                padding: 0.15rem 0.4rem;
+                border-radius: 0.45rem;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                background: rgba(7, 7, 6, 0.68);
+                color: var(--text);
+                font: inherit;
+                font-size: 0.7rem;
+                font-weight: 600;
+                cursor: pointer;
+                white-space: nowrap;
+                transition: border-color 130ms var(--ease-out), background-color 130ms var(--ease-out), color 130ms var(--ease-out);
+            }
+
+            .tile-ctrl-btn:hover { border-color: var(--border-gold); color: var(--gold); }
+            .tile-ctrl-btn--play {
+                background: linear-gradient(180deg, #DFC27D 0%, #CDAD69 100%);
+                border-color: rgba(244, 225, 133, 0.5);
+                color: #070706;
+            }
+            .tile-ctrl-btn--play:hover { color: #070706; background: linear-gradient(180deg, #E8CE8D 0%, #D6B773 100%); }
+            .tile-ctrl-btn--pause {
+                background: rgba(76, 195, 138, 0.18);
+                border-color: rgba(76, 195, 138, 0.55);
+                color: #9EE6C3;
+            }
+            .tile-ctrl-btn--pause:hover { color: #D1FAE5; border-color: var(--positive); }
+
+            /* Broadcast Timer Controls Modal */
+            .timer-hero-box {
+                padding: 0.9rem 1rem;
+                border-radius: 0.85rem;
+                background: var(--surface-well);
+                border: 1px solid var(--hairline);
+                display: grid;
+                gap: 0.5rem;
+            }
+
+            .timer-hero-digits {
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: clamp(2rem, 1.5rem + 2vw, 2.75rem);
+                font-weight: 700;
+                font-variant-numeric: tabular-nums;
+                line-height: 1;
+                color: var(--gold);
+                text-align: center;
+            }
+
+            .timer-presets-grid {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.4rem;
+            }
+
+            .timer-mode-bar {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.25rem;
+                padding: 0.2rem;
+                border-radius: 0.6rem;
+                background: var(--surface-well);
+                border: 1px solid var(--hairline);
             }
 
             .tile-label {
@@ -797,6 +901,10 @@
                     </div>
 
                     <div class="deck-controls-group">
+                        <button type="button" id="deck-open-timer-btn" class="deck-pill-btn is-outline" title="Open full Timer controls">
+                            <span>Timer</span>
+                            <strong id="deck-bar-timer-digits" data-live-tile-clock="1" style="font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; color: var(--gold);">05:00</strong>
+                        </button>
                         <button type="button" id="deck-quick-panel-btn" class="deck-pill-btn is-outline">Live Text</button>
                         <a id="deck-uni-builder-link" href="#" class="deck-pill-btn is-outline">Canvas Builder</a>
                         <button type="button" id="deck-edit-mode-btn" class="deck-pill-btn is-gold">Edit Tiles</button>
@@ -839,15 +947,25 @@
                 <div id="deck-quick-drawer" class="quick-drawer" hidden>
                     <div class="quick-drawer-grid">
                         <div class="quick-card">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
                                 <span class="section-title">Live Timer &amp; Scoreboard</span>
-                                <strong id="deck-uni-timer-display" style="font-family: ui-monospace, monospace; font-size: 1.05rem; color: var(--gold);">05:00</strong>
+                                <div style="display: inline-flex; align-items: center; gap: 0.45rem;">
+                                    <strong id="deck-uni-timer-display" style="font-family: ui-monospace, monospace; font-size: 1.05rem; color: var(--gold);">05:00</strong>
+                                    <button type="button" id="deck-uni-t-more" class="deck-pill-btn is-outline" style="min-block-size: 1.7rem; padding: 0.1rem 0.5rem; font-size: 0.7rem;">Presets &amp; Mode</button>
+                                </div>
                             </div>
-                            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.35rem;">
+                            <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.3rem;">
                                 <button type="button" id="deck-uni-t-start" class="deck-pill-btn is-active">Start</button>
                                 <button type="button" id="deck-uni-t-pause" class="deck-pill-btn is-outline">Pause</button>
                                 <button type="button" id="deck-uni-t-reset" class="deck-pill-btn is-outline">Reset</button>
+                                <button type="button" id="deck-uni-t-minus" class="deck-pill-btn is-outline">-1m</button>
                                 <button type="button" id="deck-uni-t-plus" class="deck-pill-btn is-outline">+1m</button>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.3rem;">
+                                <button type="button" class="deck-pill-btn is-outline" data-quick-timer-preset="60">1m</button>
+                                <button type="button" class="deck-pill-btn is-outline" data-quick-timer-preset="180">3m</button>
+                                <button type="button" class="deck-pill-btn is-outline" data-quick-timer-preset="300">5m</button>
+                                <button type="button" class="deck-pill-btn is-outline" data-quick-timer-preset="600">10m</button>
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; padding-block-start: 0.35rem;">
                                 <div style="display: grid; gap: 0.25rem; text-align: center;">
@@ -1028,6 +1146,91 @@
                     </div>
                 </div>
             </form>
+        </dialog>
+
+        {{-- Native Top-Layer Modal: Full Broadcast Timer Controls --}}
+        <dialog id="timer-controls-dialog" class="tile-dialog" aria-labelledby="timer-modal-heading">
+            <div class="dialog-inner">
+                <div class="dialog-head">
+                    <div>
+                        <h2 id="timer-modal-heading" style="margin: 0; font-size: 0.95rem; font-weight: 600;">Stage Timer Controls</h2>
+                        <div style="font-size: 0.7rem; color: var(--muted);">Updates your live Browser Source immediately</div>
+                    </div>
+                    <button type="button" id="timer-modal-close" class="deck-pill-btn">Close</button>
+                </div>
+
+                <div class="timer-hero-box">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                        <span id="timer-modal-mode-badge" class="tile-type-chip">Countdown</span>
+                        <span id="timer-modal-status" class="tile-status-pill">Stopped</span>
+                    </div>
+                    <div id="timer-modal-digits" class="timer-hero-digits">05:00</div>
+                    <div class="timer-progress-track">
+                        <div id="timer-modal-progress-bar" class="timer-progress-fill" style="inline-size: 100%;"></div>
+                    </div>
+                    <div id="timer-modal-rule-hint" style="font-size: 0.7rem; color: var(--muted); text-align: center;"></div>
+                </div>
+
+                {{-- Transport & Quick Time Nudges --}}
+                <div style="display: grid; gap: 0.4rem;">
+                    <div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 0.4rem;">
+                        <button type="button" id="tm-toggle-btn" class="deck-pill-btn is-gold" style="min-block-size: 2.6rem; font-size: 0.85rem;">Start Timer</button>
+                        <button type="button" id="tm-reset-btn" class="deck-pill-btn is-outline" style="min-block-size: 2.6rem; font-size: 0.85rem;">Reset</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.35rem;">
+                        <button type="button" class="deck-pill-btn is-outline" data-tm-add="-60">-1m</button>
+                        <button type="button" class="deck-pill-btn is-outline" data-tm-add="-30">-30s</button>
+                        <button type="button" class="deck-pill-btn is-outline" data-tm-add="30">+30s</button>
+                        <button type="button" class="deck-pill-btn is-outline" data-tm-add="60">+1m</button>
+                    </div>
+                </div>
+
+                {{-- Quick Presets --}}
+                <div style="display: grid; gap: 0.4rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                        <span class="field-label">Quick Presets</span>
+                        <label style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; color: var(--muted); cursor: pointer;">
+                            <input type="checkbox" id="tm-preset-autostart" style="accent-color: var(--gold-strong);">
+                            <span>Auto-start</span>
+                        </label>
+                    </div>
+                    <div class="timer-presets-grid">
+                        <button type="button" class="deck-pill-btn is-outline" data-tm-preset="60">1:00</button>
+                        <button type="button" class="deck-pill-btn is-outline" data-tm-preset="120">2:00</button>
+                        <button type="button" class="deck-pill-btn is-outline" data-tm-preset="180">3:00</button>
+                        <button type="button" class="deck-pill-btn is-outline" data-tm-preset="300">5:00</button>
+                        <button type="button" class="deck-pill-btn is-outline" data-tm-preset="600">10:00</button>
+                        <button type="button" class="deck-pill-btn is-outline" data-tm-preset="900">15:00</button>
+                    </div>
+                </div>
+
+                {{-- Custom Minutes : Seconds Setter --}}
+                <div style="display: grid; gap: 0.4rem;">
+                    <span class="field-label">Custom Duration (Min : Sec)</span>
+                    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto; gap: 0.35rem; align-items: center;">
+                        <input type="number" id="tm-custom-min" class="deck-input" min="0" max="180" value="5" aria-label="Minutes" placeholder="Min">
+                        <input type="number" id="tm-custom-sec" class="deck-input" min="0" max="59" value="0" aria-label="Seconds" placeholder="Sec">
+                        <button type="button" id="tm-set-btn" class="deck-pill-btn is-outline">Set</button>
+                        <button type="button" id="tm-set-start-btn" class="deck-pill-btn is-gold">Set &amp; Start</button>
+                    </div>
+                </div>
+
+                {{-- Timer Mode & On-Screen Label --}}
+                <div style="display: grid; gap: 0.5rem; padding-block-start: 0.45rem; border-block-start: 1px solid var(--hairline);">
+                    <div class="field-stack">
+                        <span class="field-label">Timer Mode</span>
+                        <div class="timer-mode-bar" role="group" aria-label="Timer Mode">
+                            <button type="button" class="deck-pill-btn is-active" data-tm-mode="countdown">Countdown</button>
+                            <button type="button" class="deck-pill-btn" data-tm-mode="countup">Count-Up</button>
+                            <button type="button" class="deck-pill-btn" data-tm-mode="clock">Live Clock</button>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.35rem;">
+                        <input type="text" id="tm-label-input" class="deck-input" maxlength="60" placeholder="On-screen label (e.g. LIVE IN, HALFTIME)" aria-label="Timer on-screen label">
+                        <button type="button" id="tm-label-save" class="deck-pill-btn is-outline">Set Label</button>
+                    </div>
+                </div>
+            </div>
         </dialog>
 
         <div id="toast" class="toast" role="status" hidden></div>
@@ -1293,16 +1496,26 @@
 
                 const getCurrentTimerSeconds = (col) => {
                     const t = col?.runtime_state?.timer || {};
+                    const mode = t.mode || 'countdown';
+                    const duration = Math.max(1, Number(t.duration_seconds ?? 300));
+                    if (mode === 'clock') {
+                        const d = new Date();
+                        const text = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+                        return { secs: 0, duration, mode, status: 'running', label: t.label || 'LOCAL TIME', text, pct: 100 };
+                    }
                     let secs = Number(t.remaining_seconds ?? t.duration_seconds ?? 0);
-                    if (t.mode === 'countup') {
+                    if (mode === 'countup') {
                         secs = Number(t.elapsed_base_seconds || 0);
                         if (t.status === 'running' && t.started_at) {
                             secs += Math.max(0, Math.floor((Date.now() - Date.parse(t.started_at)) / 1000));
                         }
-                    } else if (t.status === 'running' && t.target_at) {
+                        return { secs, duration, mode, status: t.status || 'stopped', label: t.label || 'ELAPSED', text: fmtDeckClock(secs), pct: 100 };
+                    }
+                    if (t.status === 'running' && t.target_at) {
                         secs = Math.max(0, Math.ceil((Date.parse(t.target_at) - Date.now()) / 1000));
                     }
-                    return { secs, status: t.status || 'stopped' };
+                    const pct = Math.max(0, Math.min(100, Math.round((secs / duration) * 100)));
+                    return { secs, duration, mode, status: t.status || 'stopped', label: t.label || 'LIVE IN', text: fmtDeckClock(secs), pct };
                 };
 
                 const subscribeDeckCollectionEcho = (col) => {
@@ -1538,8 +1751,9 @@
 
                     tiles.forEach((tile, idx) => {
                         const cfg = tile.config || {};
-                        const card = document.createElement(isEditMode ? 'div' : 'button');
-                        if (!isEditMode) card.type = 'button';
+                        const isRichTimerWidget = tile.type === 'timer' && ['toggle', 'console'].includes(cfg.action || 'toggle');
+                        const card = document.createElement((isEditMode || isRichTimerWidget) ? 'div' : 'button');
+                        if (!isEditMode && !isRichTimerWidget) card.type = 'button';
 
                         let isOnAir = false;
                         let isLiveDanger = false;
@@ -1559,11 +1773,12 @@
                                 ? `${(viewObj.layers || []).length} layers · ${String(txKey).replaceAll('_', ' ')}`
                                 : 'Missing view — edit tile';
                         } else if (tile.type === 'timer') {
-                            topBadge = 'Timer';
-                            if ((cfg.action || 'toggle') === 'toggle') {
-                                metricText = fmtDeckClock(timerInfo.secs);
+                            topBadge = timerInfo.mode === 'countup' ? 'Stopwatch' : (timerInfo.mode === 'clock' ? 'Clock' : 'Timer');
+                            if (isRichTimerWidget) {
+                                metricText = timerInfo.text;
                                 isOnAir = timerInfo.status === 'running';
                                 liveStatusPill = timerInfo.status === 'running' ? 'RUNNING' : (timerInfo.status === 'paused' ? 'PAUSED' : 'READY');
+                                autoSub = timerInfo.label || 'Live stage timer';
                             } else {
                                 autoSub = cfg.action === 'set' ? `Set ${fmtDeckClock(cfg.duration_seconds || 300)}` : (cfg.action === 'add_seconds' ? `${Number(cfg.seconds || 60) >= 0 ? '+' : ''}${cfg.seconds || 60}s` : cfg.action);
                             }
@@ -1608,7 +1823,7 @@
                             autoSub = act === 'push_stage' ? 'Sync single browser source' : act;
                         }
 
-                        card.className = `deck-tile${!isEditMode ? ' deck-tile--tap' : ''}${Number(tile.span) === 2 ? ' is-wide' : ''}${isOnAir ? ' is-on-air' : ''}${isLiveDanger ? ' is-live-danger' : ''}`;
+                        card.className = `deck-tile${(!isEditMode && !isRichTimerWidget) ? ' deck-tile--tap' : ''}${Number(tile.span) === 2 ? ' is-wide' : ''}${isOnAir ? ' is-on-air' : ''}${isLiveDanger ? ' is-live-danger' : ''}`;
                         card.dataset.tileColor = tile.color || 'neutral';
                         card.dataset.tileId = tile.id || String(idx);
                         card.dataset.tileType = tile.type;
@@ -1644,19 +1859,81 @@
                                 if (tile.type === 'timer') m.setAttribute('data-live-tile-clock', '1');
                                 m.textContent = metricText;
                                 card.appendChild(m);
+
+                                if (isRichTimerWidget) {
+                                    const track = document.createElement('div');
+                                    track.className = 'timer-progress-track';
+                                    const fill = document.createElement('div');
+                                    fill.className = 'timer-progress-fill';
+                                    fill.setAttribute('data-live-tile-progress', '1');
+                                    fill.style.inlineSize = `${timerInfo.pct}%`;
+                                    track.appendChild(fill);
+                                    card.appendChild(track);
+                                }
                             }
                         }
 
-                        const footer = document.createElement('div');
-                        footer.style.cssText = 'display:grid;gap:0.12rem;min-inline-size:0;';
-                        const lbl = document.createElement('div');
-                        lbl.className = 'tile-label';
-                        lbl.textContent = tile.label || (viewObj?.name || 'Untitled Tile');
-                        const sub = document.createElement('div');
-                        sub.className = 'tile-sub';
-                        sub.textContent = tile.subtitle || autoSub;
-                        footer.append(lbl, sub);
-                        card.appendChild(footer);
+                        if (!isRichTimerWidget || isEditMode) {
+                            const footer = document.createElement('div');
+                            footer.style.cssText = 'display:grid;gap:0.12rem;min-inline-size:0;';
+                            const lbl = document.createElement('div');
+                            lbl.className = 'tile-label';
+                            lbl.textContent = tile.label || (viewObj?.name || 'Untitled Tile');
+                            const sub = document.createElement('div');
+                            sub.className = 'tile-sub';
+                            sub.textContent = tile.subtitle || autoSub;
+                            footer.append(lbl, sub);
+                            card.appendChild(footer);
+                        } else {
+                            const controls = document.createElement('div');
+                            controls.className = 'tile-timer-actions';
+
+                            const primaryRow = document.createElement('div');
+                            primaryRow.className = 'tile-timer-row tile-timer-row--primary';
+
+                            const toggleBtn = document.createElement('button');
+                            toggleBtn.type = 'button';
+                            toggleBtn.className = `tile-ctrl-btn ${timerInfo.status === 'running' ? 'tile-ctrl-btn--pause' : 'tile-ctrl-btn--play'}`;
+                            toggleBtn.textContent = timerInfo.status === 'running' ? 'Pause' : 'Start';
+                            toggleBtn.addEventListener('click', () => {
+                                const running = col.runtime_state?.timer?.status === 'running';
+                                sendDeckRuntime({ timer: { action: running ? 'pause' : 'start' } }, running ? 'Timer paused' : 'Timer started');
+                            });
+
+                            const resetBtn = document.createElement('button');
+                            resetBtn.type = 'button';
+                            resetBtn.className = 'tile-ctrl-btn';
+                            resetBtn.textContent = 'Reset';
+                            resetBtn.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'reset' } }, 'Timer reset'));
+
+                            primaryRow.append(toggleBtn, resetBtn);
+
+                            const nudgeRow = document.createElement('div');
+                            nudgeRow.className = 'tile-timer-row tile-timer-row--nudge';
+
+                            const minusBtn = document.createElement('button');
+                            minusBtn.type = 'button';
+                            minusBtn.className = 'tile-ctrl-btn';
+                            minusBtn.textContent = '-1m';
+                            minusBtn.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'add_seconds', seconds: -60 } }, '-1m'));
+
+                            const plusBtn = document.createElement('button');
+                            plusBtn.type = 'button';
+                            plusBtn.className = 'tile-ctrl-btn';
+                            plusBtn.textContent = '+1m';
+                            plusBtn.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'add_seconds', seconds: 60 } }, '+1m'));
+
+                            const moreBtn = document.createElement('button');
+                            moreBtn.type = 'button';
+                            moreBtn.className = 'tile-ctrl-btn';
+                            moreBtn.textContent = 'Set';
+                            moreBtn.title = 'Presets, custom time & timer mode';
+                            moreBtn.addEventListener('click', () => openTimerModal());
+
+                            nudgeRow.append(minusBtn, plusBtn, moreBtn);
+                            controls.append(primaryRow, nudgeRow);
+                            card.appendChild(controls);
+                        }
 
                         if (isEditMode) {
                             card.draggable = true;
@@ -1738,7 +2015,7 @@
                             actGroup.append(editBtn, delBtn);
                             editBar.append(moveGroup, actGroup);
                             card.appendChild(editBar);
-                        } else {
+                        } else if (!isRichTimerWidget) {
                             card.addEventListener('click', () => executeTileAction(tile));
                         }
 
@@ -1826,6 +2103,75 @@
                     const l3Sub = document.getElementById('deck-uni-l3-sub');
                     if (l3Title && document.activeElement !== l3Title) l3Title.value = l3.title || '';
                     if (l3Sub && document.activeElement !== l3Sub) l3Sub.value = l3.subtitle || '';
+
+                    syncTimerModalUI();
+                };
+
+                // Full Broadcast Timer Controls Dialog
+                const timerModal = document.getElementById('timer-controls-dialog');
+
+                const syncTimerModalUI = () => {
+                    const col = getActiveCollection();
+                    if (!col) return;
+                    const info = getCurrentTimerSeconds(col);
+                    const digitsEl = document.getElementById('timer-modal-digits');
+                    const statusEl = document.getElementById('timer-modal-status');
+                    const modeBadge = document.getElementById('timer-modal-mode-badge');
+                    const progBar = document.getElementById('timer-modal-progress-bar');
+                    const toggleBtn = document.getElementById('tm-toggle-btn');
+                    const ruleHint = document.getElementById('timer-modal-rule-hint');
+                    const labelInput = document.getElementById('tm-label-input');
+
+                    if (digitsEl) digitsEl.textContent = info.text;
+                    if (progBar) progBar.style.inlineSize = `${info.pct}%`;
+                    if (modeBadge) {
+                        modeBadge.textContent = info.mode === 'countup' ? 'Stopwatch' : (info.mode === 'clock' ? 'Live Clock' : 'Countdown');
+                    }
+                    if (statusEl) {
+                        const isRun = info.status === 'running';
+                        statusEl.textContent = isRun ? 'Running' : (info.status === 'paused' ? 'Paused' : 'Stopped');
+                        statusEl.style.borderColor = isRun ? 'rgba(76,195,138,0.55)' : 'rgba(255,255,255,0.14)';
+                        statusEl.style.color = isRun ? '#9EE6C3' : (info.status === 'paused' ? 'var(--gold)' : 'var(--muted)');
+                    }
+                    if (toggleBtn) {
+                        const isRun = info.status === 'running';
+                        toggleBtn.textContent = isRun ? 'Pause Timer' : 'Start Timer';
+                        toggleBtn.classList.toggle('is-active', isRun);
+                        toggleBtn.classList.toggle('is-gold', !isRun);
+                    }
+
+                    document.querySelectorAll('[data-tm-mode]').forEach((b) => {
+                        b.classList.toggle('is-active', b.dataset.tmMode === info.mode);
+                    });
+
+                    if (labelInput && document.activeElement !== labelInput) {
+                        labelInput.value = col.runtime_state?.timer?.label || '';
+                    }
+
+                    if (ruleHint) {
+                        const activeView = (col.views || []).find((v) => Number(v.id) === Number(col.active_view_id));
+                        const rule = activeView?.logic_rules || {};
+                        if (rule.on_timer_end_action === 'switch_view' && rule.on_timer_end_target_view_id) {
+                            const target = (col.views || []).find((v) => Number(v.id) === Number(rule.on_timer_end_target_view_id));
+                            ruleHint.textContent = target ? `Auto-rule: switches to "${target.name}" at 00:00` : 'Auto-rule: switches view at 00:00';
+                        } else if (rule.on_timer_end_action === 'show_alert') {
+                            ruleHint.textContent = 'Auto-rule: fires alert banner at 00:00';
+                        } else {
+                            ruleHint.textContent = '';
+                        }
+                    }
+                };
+
+                const openTimerModal = () => {
+                    const col = getActiveCollection();
+                    if (!col || !timerModal) return;
+                    const dur = Math.max(0, Number(col.runtime_state?.timer?.duration_seconds ?? 300));
+                    const minInput = document.getElementById('tm-custom-min');
+                    const secInput = document.getElementById('tm-custom-sec');
+                    if (minInput) minInput.value = String(Math.floor(dur / 60));
+                    if (secInput) secInput.value = String(dur % 60);
+                    syncTimerModalUI();
+                    timerModal.showModal();
                 };
 
                 // Tile Configurator Dialog Logic
@@ -1893,8 +2239,8 @@
                             <label class="field-stack">
                                 <span class="field-label">Timer Action</span>
                                 <select id="cfg-timer-action" class="deck-select">
-                                    <option value="toggle">Start / Pause Toggle (Shows live clock)</option>
-                                    <option value="start">Start Timer</option>
+                                    <option value="toggle">Full Timer Controls Pad (Play/Pause, Reset, ±1m, Set)</option>
+                                    <option value="start">Start Timer Only</option>
                                     <option value="pause">Pause Timer</option>
                                     <option value="reset">Reset Timer</option>
                                     <option value="add_seconds">Add / Subtract Seconds</option>
@@ -2296,10 +2642,73 @@
                     ev.currentTarget.classList.toggle('is-active', !drawer.hidden);
                 });
 
-                // Quick Drawer Controls
+                // Quick Drawer & Full Timer Controls Modal Listeners
+                document.getElementById('deck-open-timer-btn')?.addEventListener('click', openTimerModal);
+                document.getElementById('deck-uni-t-more')?.addEventListener('click', openTimerModal);
+                document.getElementById('timer-modal-close')?.addEventListener('click', () => timerModal?.close());
+
+                document.getElementById('tm-toggle-btn')?.addEventListener('click', () => {
+                    const col = getActiveCollection();
+                    const isRunning = col?.runtime_state?.timer?.status === 'running';
+                    sendDeckRuntime({ timer: { action: isRunning ? 'pause' : 'start' } }, isRunning ? 'Timer paused' : 'Timer started');
+                });
+                document.getElementById('tm-reset-btn')?.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'reset' } }, 'Timer reset'));
+
+                document.querySelectorAll('[data-tm-add]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const delta = Number(btn.dataset.tmAdd || 0);
+                        sendDeckRuntime({ timer: { action: 'add_seconds', seconds: delta } }, `${delta >= 0 ? '+' : ''}${delta}s`);
+                    });
+                });
+
+                document.querySelectorAll('[data-tm-preset]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const secs = Math.max(0, Number(btn.dataset.tmPreset || 300));
+                        const autoStart = Boolean(document.getElementById('tm-preset-autostart')?.checked);
+                        const minInput = document.getElementById('tm-custom-min');
+                        const secInput = document.getElementById('tm-custom-sec');
+                        if (minInput) minInput.value = String(Math.floor(secs / 60));
+                        if (secInput) secInput.value = String(secs % 60);
+                        sendDeckRuntime({
+                            timer: { action: 'set', duration_seconds: secs, auto_start: autoStart },
+                        }, autoStart ? `Started ${fmtDeckClock(secs)}` : `Set ${fmtDeckClock(secs)}`);
+                    });
+                });
+
+                const applyCustomTimerDuration = (autoStart = false) => {
+                    const mins = Math.max(0, Math.min(180, Number(document.getElementById('tm-custom-min')?.value || 0)));
+                    const secs = Math.max(0, Math.min(59, Number(document.getElementById('tm-custom-sec')?.value || 0)));
+                    const total = (mins * 60) + secs;
+                    sendDeckRuntime({
+                        timer: { action: 'set', duration_seconds: total, auto_start: autoStart },
+                    }, autoStart ? `Started ${fmtDeckClock(total)}` : `Timer set to ${fmtDeckClock(total)}`);
+                };
+                document.getElementById('tm-set-btn')?.addEventListener('click', () => applyCustomTimerDuration(false));
+                document.getElementById('tm-set-start-btn')?.addEventListener('click', () => applyCustomTimerDuration(true));
+
+                document.querySelectorAll('[data-tm-mode]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const mode = btn.dataset.tmMode || 'countdown';
+                        sendDeckRuntime({ timer: { action: 'update', mode } }, `Mode: ${mode}`);
+                    });
+                });
+
+                document.getElementById('tm-label-save')?.addEventListener('click', () => {
+                    const label = document.getElementById('tm-label-input')?.value?.trim() || '';
+                    sendDeckRuntime({ timer: { action: 'update', label } }, 'Timer label updated');
+                });
+
+                document.querySelectorAll('[data-quick-timer-preset]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const secs = Math.max(0, Number(btn.dataset.quickTimerPreset || 300));
+                        sendDeckRuntime({ timer: { action: 'set', duration_seconds: secs } }, `Timer set to ${fmtDeckClock(secs)}`);
+                    });
+                });
+
                 document.getElementById('deck-uni-t-start')?.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'start' } }));
                 document.getElementById('deck-uni-t-pause')?.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'pause' } }));
                 document.getElementById('deck-uni-t-reset')?.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'reset' } }));
+                document.getElementById('deck-uni-t-minus')?.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'add_seconds', seconds: -60 } }));
                 document.getElementById('deck-uni-t-plus')?.addEventListener('click', () => sendDeckRuntime({ timer: { action: 'add_seconds', seconds: 60 } }));
                 document.getElementById('deck-uni-sb-a-minus')?.addEventListener('click', () => sendDeckRuntime({ scoreboard: { delta_a: -1 } }));
                 document.getElementById('deck-uni-sb-a-plus')?.addEventListener('click', () => sendDeckRuntime({ scoreboard: { delta_a: 1 } }));
@@ -2401,16 +2810,22 @@
                         .listenForWhisper('obs.command.acknowledged', handleCommandAck);
                 }
 
-                // Live Clock Tick for Timer Tiles & Quick Drawer
+                // Live Clock Tick for Timer Tiles, Toolbar Pill, Quick Drawer & Timer Modal
                 setInterval(() => {
                     const col = getActiveCollection();
                     if (!col) return;
-                    const { secs } = getCurrentTimerSeconds(col);
-                    const formatted = fmtDeckClock(secs);
+                    const info = getCurrentTimerSeconds(col);
                     const drawerClock = document.getElementById('deck-uni-timer-display');
-                    if (drawerClock) drawerClock.textContent = formatted;
+                    if (drawerClock) drawerClock.textContent = info.text;
+                    const modalClock = document.getElementById('timer-modal-digits');
+                    if (modalClock) modalClock.textContent = info.text;
+                    const modalProg = document.getElementById('timer-modal-progress-bar');
+                    if (modalProg) modalProg.style.inlineSize = `${info.pct}%`;
                     document.querySelectorAll('[data-live-tile-clock]').forEach((el) => {
-                        el.textContent = formatted;
+                        el.textContent = info.text;
+                    });
+                    document.querySelectorAll('[data-live-tile-progress]').forEach((el) => {
+                        el.style.inlineSize = `${info.pct}%`;
                     });
                 }, 250);
 
