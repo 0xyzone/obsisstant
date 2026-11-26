@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.21.1] - 2026-11-27 | type: macro
+
+> Renamed the 3D mascot and assistant from Lumi to Oxy, and upgraded the chat engine with natural human-like conversation, small talk, multi-turn follow-up memory, richer Knowledge Base excerpts, and smarter live studio command parsing.
+
+### Improved
+- **Oxy Rebrand & Conversational Upgrade**: Renamed the mascot, drawer, and `/oxy/ask` endpoint to **Oxy**, added conversation history (`history`), natural greetings/small-talk/follow-ups, synonym-expanded Knowledge Base answers with readable excerpts, macro/view/scene listing and execution, and an animated typing indicator with dynamic follow-up suggestion chips.
+
 ## [v1.21.0] - 2026-11-27 | type: minor
 
 > Turned Lumi into Obsisstant's built-in smart AI assistant across the app (including Filament panels, Studio Control Center, Mobile Deck, Knowledge Base, and Changelog), slowed Lumi's flight motion for buttery-smooth tracking, and refined speech bubbles to appear briefly on section arrivals and interactions with crisp, readable sizing on mobile and desktop.

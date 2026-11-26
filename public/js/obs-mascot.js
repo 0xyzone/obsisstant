@@ -433,11 +433,13 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
     const form = host.querySelector('[data-lumi-form]');
     const input = host.querySelector('[data-lumi-input]');
     const log = host.querySelector('[data-lumi-log]');
+    const quickRow = host.querySelector('.lumi-quick-row');
     if (!drawer || !form || !input || !log) return;
 
-    const askUrl = host.dataset.lumiUrl || '/lumi/ask';
+    const askUrl = host.dataset.oxyUrl || '/oxy/ask';
     const studioSlug = host.dataset.studioSlug || '';
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const history = [];
 
     const setOpen = (open) => {
         drawer.hidden = !open;
@@ -474,14 +476,33 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
         }
         log.appendChild(bubble);
         log.scrollTop = log.scrollHeight;
+        return bubble;
+    };
+
+    const renderSuggestions = (suggestions) => {
+        if (!quickRow || !Array.isArray(suggestions) || suggestions.length === 0) return;
+        quickRow.innerHTML = '';
+        suggestions.slice(0, 4).forEach((prompt) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'lumi-quick-btn';
+            btn.textContent = prompt;
+            btn.addEventListener('click', () => sendQuestion(prompt));
+            quickRow.appendChild(btn);
+        });
     };
 
     const sendQuestion = async (text) => {
         const q = String(text || '').trim();
         if (!q) return;
         appendMsg(q, 'user');
+        const priorHistory = history.slice(-6);
+        history.push({ role: 'user', text: q.slice(0, 500) });
         input.value = '';
         input.disabled = true;
+
+        const typingBubble = appendMsg('Oxy is typing…', 'bot');
+        typingBubble.style.opacity = '0.7';
 
         try {
             const res = await fetch(askUrl, {
@@ -494,17 +515,22 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
                 body: JSON.stringify({
                     message: q,
                     studio_slug: studioSlug || null,
+                    history: priorHistory,
                 }),
             });
             const data = await res.json().catch(() => null);
-            const replyText = data?.reply || 'Could not reach Lumi right now—try again in a moment.';
+            typingBubble.remove();
+            const replyText = data?.reply || 'Oops, lost my train of thought for a second — try asking me again!';
             appendMsg(replyText, 'bot', data?.links || []);
+            history.push({ role: 'assistant', text: replyText.slice(0, 500) });
+            renderSuggestions(data?.suggestions);
             instance?.triggerReaction(data?.reaction || 'wave', false);
             if (drawer.hidden) {
                 showBriefSpeech(replyText.split('\n')[0]);
             }
         } catch {
-            appendMsg('Connection hiccup—please try again.', 'bot');
+            typingBubble.remove();
+            appendMsg('Hit a quick connection hiccup — mind trying that again?', 'bot');
         } finally {
             input.disabled = false;
             input.focus();

@@ -279,21 +279,37 @@ class ObsidianUiThemeTest extends TestCase
             ->assertDontSee('data-obs-mascot', false);
     }
 
-    public function test_lumi_assistant_answers_questions_generates_copy_and_executes_live_studio_actions(): void
+    public function test_oxy_assistant_chats_naturally_generates_copy_and_executes_live_studio_actions(): void
     {
-        // Guest: copy generation works
-        $this->postJson(route('lumi.ask'), ['message' => 'Suggest lower-third copy'])
+        // Guest: natural small talk & follow-up history work
+        $this->postJson(route('oxy.ask'), ['message' => 'Hey Oxy, how are you?'])
             ->assertOk()
             ->assertJsonPath('ok', true)
-            ->assertJsonStructure(['reply', 'reaction', 'links']);
+            ->assertJsonPath('reaction', 'cheer');
 
-        // Guest: KB search works
-        $this->postJson(route('lumi.ask'), ['message' => 'How do I pair OBS?'])
+        // Guest: copy generation works
+        $this->postJson(route('oxy.ask'), ['message' => 'Suggest lower-third copy'])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonStructure(['reply', 'reaction', 'links', 'suggestions']);
+
+        // Guest: KB search + follow-up context work
+        $kbResponse = $this->postJson(route('oxy.ask'), ['message' => 'How do I pair OBS?'])
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $this->postJson(route('oxy.ask'), [
+            'message' => 'Tell me more',
+            'history' => [
+                ['role' => 'user', 'text' => 'How do I pair OBS?'],
+                ['role' => 'assistant', 'text' => (string) $kbResponse->json('reply')],
+            ],
+        ])
             ->assertOk()
             ->assertJsonPath('ok', true);
 
         // Guest: live studio actions require authentication
-        $this->postJson(route('lumi.ask'), ['message' => 'Start 5m timer'])
+        $this->postJson(route('oxy.ask'), ['message' => 'Start 5m timer'])
             ->assertOk()
             ->assertJsonPath('ok', true)
             ->assertJsonPath('reaction', 'peek');
@@ -313,7 +329,7 @@ class ObsidianUiThemeTest extends TestCase
 
         // Signed-in operator: live studio actions mutate runtime_state and check status
         $this->actingAs($user)
-            ->postJson(route('lumi.ask'), ['message' => 'Start 10m timer', 'studio_slug' => $studio->slug])
+            ->postJson(route('oxy.ask'), ['message' => 'Start 10m timer', 'studio_slug' => $studio->slug])
             ->assertOk()
             ->assertJsonPath('ok', true)
             ->assertJsonPath('reaction', 'cheer');
@@ -323,7 +339,7 @@ class ObsidianUiThemeTest extends TestCase
         $this->assertSame(600, data_get($collection->runtime_state, 'timer.duration_seconds'));
 
         $this->actingAs($user)
-            ->postJson(route('lumi.ask'), ['message' => 'Show lower third', 'studio_slug' => $studio->slug])
+            ->postJson(route('oxy.ask'), ['message' => 'Show lower third', 'studio_slug' => $studio->slug])
             ->assertOk()
             ->assertJsonPath('ok', true);
 
@@ -331,7 +347,7 @@ class ObsidianUiThemeTest extends TestCase
         $this->assertTrue((bool) data_get($collection->runtime_state, 'lower_third.visible'));
 
         $this->actingAs($user)
-            ->postJson(route('lumi.ask'), ['message' => 'Check studio status', 'studio_slug' => $studio->slug])
+            ->postJson(route('oxy.ask'), ['message' => 'Check studio status', 'studio_slug' => $studio->slug])
             ->assertOk()
             ->assertJsonPath('ok', true);
     }

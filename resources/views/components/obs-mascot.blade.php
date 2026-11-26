@@ -14,7 +14,7 @@
     class="obs-mascot-host {{ $isHero ? 'obs-mascot-hero' : 'obs-mascot-assistant' }}"
     data-obs-mascot
     data-mascot-mode="{{ $mode }}"
-    data-lumi-url="{{ route('lumi.ask', [], false) }}"
+    data-oxy-url="{{ route('oxy.ask', [], false) }}"
     data-studio-slug="{{ $studioSlug }}"
 >
     @if ($isHero)
@@ -35,7 +35,7 @@
                 <button type="button" class="obs-mascot-chip" data-mascot-react="spin">Spin</button>
                 <button type="button" class="obs-mascot-chip" data-mascot-react="cheer">Cheer</button>
                 <button type="button" class="obs-mascot-chip" data-mascot-react="dance">Dance</button>
-                <button type="button" class="obs-mascot-chip obs-mascot-chip--gold" data-lumi-toggle aria-expanded="false">Ask Lumi</button>
+                <button type="button" class="obs-mascot-chip obs-mascot-chip--gold" data-lumi-toggle aria-expanded="false">Ask Oxy</button>
             </div>
         </div>
     @endif
@@ -44,28 +44,28 @@
     <div class="obs-mascot-flyer" data-mascot-flyer data-side="{{ $isHero ? 'hero' : 'right' }}">
         <div class="obs-mascot-bubble" data-mascot-speech>{{ $isHero ? $greeting : '' }}</div>
         <div class="obs-mascot-flyer-canvas">
-            <canvas data-mascot-canvas aria-label="Lumi 3D Assistant — tap to animate or ask, drag to move"></canvas>
+            <canvas data-mascot-canvas aria-label="Oxy 3D Assistant — tap to animate or ask, drag to move"></canvas>
         </div>
         @if (! $isHero)
-            <button type="button" class="obs-mascot-ask-pill" data-lumi-toggle aria-expanded="false">Ask Lumi</button>
+            <button type="button" class="obs-mascot-ask-pill" data-lumi-toggle aria-expanded="false">Ask Oxy</button>
         @endif
     </div>
 
     {{-- Built-in Smart AI Assistant Drawer --}}
-    <section class="lumi-drawer" data-lumi-drawer hidden aria-label="Lumi AI Assistant">
+    <section class="lumi-drawer" data-lumi-drawer hidden aria-label="Oxy Assistant">
         <header class="lumi-drawer-head">
             <div>
-                <strong class="lumi-drawer-title">Lumi Assistant</strong>
-                <span class="lumi-drawer-sub">{{ $isSignedIn ? 'Live Studio Actions & Help' : 'Guides & Overlay Ideas' }}</span>
+                <strong class="lumi-drawer-title">Oxy</strong>
+                <span class="lumi-drawer-sub">{{ $isSignedIn ? 'Your Studio Sidekick' : 'OBS & Overlay Buddy' }}</span>
             </div>
-            <button type="button" class="lumi-close-btn" data-lumi-close aria-label="Close Lumi Assistant">&times;</button>
+            <button type="button" class="lumi-close-btn" data-lumi-close aria-label="Close Oxy Assistant">&times;</button>
         </header>
 
         <div class="lumi-log" data-lumi-log>
             <div class="lumi-msg lumi-msg--bot">
                 {{ $isSignedIn
-                    ? 'Hi! Ask me anything about OBS, request lower-third/ticker copy, or tell me to run a live action (like "Start 5m timer" or "Show lower third").'
-                    : 'Hi! Ask me how Obsisstant connects to OBS, or ask for lower-third and ticker text ideas.' }}
+                    ? 'Hey! I\'m Oxy. Ask me anything about OBS, brainstorm overlay text, or tell me to run a live action like "start a 5m timer" or "show lower third".'
+                    : 'Hey there! I\'m Oxy. Ask me how Obsisstant connects to OBS, or ask me for lower-third and ticker text ideas.' }}
             </div>
         </div>
 
@@ -87,8 +87,8 @@
                 class="lumi-input"
                 data-lumi-input
                 maxlength="360"
-                placeholder="{{ $isSignedIn ? 'Ask or command Lumi...' : 'Ask Lumi anything...' }}"
-                aria-label="Message Lumi"
+                placeholder="{{ $isSignedIn ? 'Chat with Oxy or run an action...' : 'Chat with Oxy...' }}"
+                aria-label="Message Oxy"
             >
             <button type="submit" class="lumi-send-btn">Send</button>
         </form>

@@ -4,9 +4,9 @@ use App\Http\Controllers\AgentInstallerController;
 use App\Http\Controllers\ChangelogController;
 use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\LandingController;
-use App\Http\Controllers\LumiAssistantController;
 use App\Http\Controllers\ObsMobileDeckController;
 use App\Http\Controllers\ObsOverlayController;
+use App\Http\Controllers\OxyAssistantController;
 use App\Http\Controllers\ScreenCollectionController;
 use App\Http\Controllers\StagePlayerController;
 use App\Http\Controllers\StudioControlCenterController;
@@ -18,9 +18,9 @@ Route::get('/changelog', ChangelogController::class)->name('changelog');
 
 Route::get('/knowledge-base', KnowledgeBaseController::class)->name('knowledge-base');
 
-Route::post('/lumi/ask', LumiAssistantController::class)
+Route::post('/oxy/ask', OxyAssistantController::class)
     ->middleware('throttle:45,1')
-    ->name('lumi.ask');
+    ->name('oxy.ask');
 
 // Public token-scoped Browser Source endpoints for OBS Studio
 Route::get('/screens/{token}', [ObsOverlayController::class, 'show'])->name('obs.screen.show');
