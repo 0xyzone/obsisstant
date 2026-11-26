@@ -8,7 +8,7 @@
         <x-app-favicon />
         <x-dev-hot-reload />
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700,800|jetbrains-mono:500,600,700|poppins:400,500,600,700,800&display=swap" rel="stylesheet">
+        <link href="https://fonts.bunny.net/css?family=barlow-condensed:500,600,700,800|bebas-neue:400|fira-code:400,500,600,700|instrument-sans:400,500,600,700,800|inter:400,500,600,700,800|jetbrains-mono:400,500,600,700|montserrat:400,500,600,700,800|oswald:400,500,600,700|playfair-display:500,600,700,800|poppins:400,500,600,700,800|space-grotesk:400,500,600,700|syne:500,600,700,800&display=swap" rel="stylesheet">
         <style>
             :root {
                 color-scheme: dark;
@@ -78,6 +78,24 @@
             }
 
             .s-btn:hover { border-color: var(--hairline-strong); background: #282722; }
+            .s-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+            .live-content-box {
+                display: grid;
+                gap: 0.45rem;
+                padding: 0.55rem;
+                border-radius: 0.5rem;
+                border: 1px solid rgba(205, 173, 105, 0.28);
+                background: rgba(205, 173, 105, 0.06);
+            }
+            .live-content-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.4rem;
+                font-size: 0.72rem;
+                font-weight: 600;
+                color: var(--gold-light);
+            }
             .s-btn-gold {
                 background: linear-gradient(180deg, #DFC27D 0%, #CDAD69 100%);
                 color: #070706;
@@ -526,7 +544,7 @@
                 padding: 0;
                 border: 1px solid var(--hairline-strong);
                 border-radius: 0.85rem;
-                background: var(--bg-panel);
+                background: var(--bg-card);
                 color: var(--ink-primary);
                 box-shadow: 0 24px 64px rgba(0, 0, 0, 0.72);
             }
@@ -659,6 +677,14 @@
                             <span class="sub-label">Sweep Color</span>
                             <input type="text" id="col-sweep-color" class="s-input" data-color-picker data-fallback="#CDAD69" aria-label="Sweep Color">
                         </div>
+                        <label class="stack">
+                            <span class="sub-label">Collection Font Family</span>
+                            <select id="col-font-family" class="s-select">
+                                @foreach ($fontFamilies as $fontKey => $fontLabel)
+                                    <option value="{{ $fontKey }}">{{ $fontLabel }}</option>
+                                @endforeach
+                            </select>
+                        </label>
                     </div>
 
                     <div class="stack" style="padding: 0.55rem; border-radius: 0.5rem; background: var(--bg-chrome); border: 1px solid var(--hairline);">
@@ -734,6 +760,8 @@
                         <span class="sub-label">Drag elements to arrange · Arrow keys nudge · Checkered cutouts reveal OBS cameras underneath</span>
                     </div>
                     <div class="bar-group">
+                        <button type="button" id="btn-undo-canvas" class="s-btn s-btn-xs" title="Undo (Cmd/Ctrl + Z)" disabled>↶ Undo</button>
+                        <button type="button" id="btn-redo-canvas" class="s-btn s-btn-xs" title="Redo (Cmd/Ctrl + Shift + Z)" disabled>↷ Redo</button>
                         <button type="button" id="btn-center-layer" class="s-btn s-btn-xs">Center</button>
                         <button type="button" id="btn-fit-layer" class="s-btn s-btn-xs">Fit 16:9</button>
                     </div>
@@ -758,7 +786,7 @@
 
                 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
                     <span class="sub-label" id="canvas-meta-readout">Canvas: 1920 × 1080 px</span>
-                    <span class="sub-label">Tip: Cmd/Ctrl + S saves changes immediately to your live stage</span>
+                    <span class="sub-label">Shortcuts: Cmd/Ctrl+Z Undo · Delete removes selected layer · Cmd/Ctrl+S saves live</span>
                 </div>
             </section>
 
@@ -945,6 +973,7 @@
         @php
             $builderEndpoints = [
                 'updateCollection' => route('studio.collections.update', ['studio' => $studio->slug, 'collection' => $collection->id], false),
+                'updateRuntime' => route('studio.collections.runtime', ['studio' => $studio->slug, 'collection' => $collection->id], false),
                 'switchView' => route('studio.collections.switch', ['studio' => $studio->slug, 'collection' => $collection->id], false),
                 'pushObs' => route('studio.collections.push', ['studio' => $studio->slug, 'collection' => $collection->id], false),
                 'storeView' => route('studio.collections.views.store', ['studio' => $studio->slug, 'collection' => $collection->id], false),
@@ -961,13 +990,172 @@
             (() => {
                 const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
                 let colData = @json($collectionPayload);
-                let selectedViewId = Number(colData.active_view_id || colData.views?.[0]?.id || 0);
+                const requestedViewId = @json($initialViewId ?? null);
+                const FONT_FAMILY_MAP = @json($fontFamilies ?? []);
+                const FONT_FAMILY_OPTIONS = [['', 'Inherit Collection Font'], ...Object.entries(FONT_FAMILY_MAP)];
+                let selectedViewId = Number(
+                    (requestedViewId && (colData.views || []).some((v) => Number(v.id) === Number(requestedViewId)))
+                        ? requestedViewId
+                        : (colData.active_view_id || colData.views?.[0]?.id || 0)
+                );
                 let selectedLayerId = null;
                 let dragActive = false;
                 let isDirty = false;
                 let themeDirty = false;
+                let runtimeDirty = false;
                 let lastEffectiveBgLabel = '';
                 const endpoints = @json($builderEndpoints);
+
+                const formatFontStack = (family, fallbackStack = "'Instrument Sans', ui-sans-serif, system-ui, sans-serif") => {
+                    const clean = String(family || '').trim();
+                    if (!clean) return fallbackStack;
+                    if (['system-ui', 'serif', 'sans-serif', 'monospace'].includes(clean.toLowerCase())) {
+                        return clean;
+                    }
+                    return `'${clean.replace(/'/g, '')}', ${fallbackStack}`;
+                };
+
+                const applyStrokeStyle = (el, { width = 0, style = 'solid', color = '', position = 'inside', fallbackBorder = null } = {}) => {
+                    const bw = Math.max(0, Number(width || 0));
+                    const bs = style || 'solid';
+                    const pos = position || 'inside';
+                    el.style.outline = 'none';
+                    el.style.outlineOffset = '0px';
+                    if (bw > 0 && color) {
+                        if (pos === 'outside') {
+                            el.style.border = 'none';
+                            el.style.outline = `${bw}px ${bs} ${color}`;
+                            el.style.outlineOffset = '0px';
+                        } else if (pos === 'center') {
+                            el.style.border = 'none';
+                            el.style.outline = `${bw}px ${bs} ${color}`;
+                            el.style.outlineOffset = `${-(bw / 2)}px`;
+                        } else {
+                            el.style.border = `${bw}px ${bs} ${color}`;
+                        }
+                    } else if (fallbackBorder) {
+                        el.style.border = fallbackBorder;
+                    } else {
+                        el.style.border = 'none';
+                    }
+                };
+
+                // Per-view Undo / Redo History Engine
+                const historyByView = new Map();
+                const MAX_HISTORY = 60;
+                let lastUndoBurstAt = 0;
+                let lastUndoBurstKey = '';
+
+                const getViewHistory = (viewId) => {
+                    const key = Number(viewId || 0);
+                    if (!historyByView.has(key)) {
+                        historyByView.set(key, { undo: [], redo: [] });
+                    }
+                    return historyByView.get(key);
+                };
+
+                const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
+
+                const captureViewSnapshot = (view) => ({
+                    name: view.name,
+                    background_mode: view.background_mode,
+                    background_color: view.background_color,
+                    background_asset_id: view.background_asset_id,
+                    background_asset_url: view.background_asset_url,
+                    background_asset_type: view.background_asset_type,
+                    theme_override: view.theme_override ? deepClone(view.theme_override) : null,
+                    transition_override: view.transition_override ? deepClone(view.transition_override) : null,
+                    layers: deepClone(view.layers || []),
+                    logic_rules: view.logic_rules ? deepClone(view.logic_rules) : null,
+                    selectedLayerId,
+                });
+
+                const applyViewSnapshot = (view, snap) => {
+                    view.name = snap.name;
+                    view.background_mode = snap.background_mode;
+                    view.background_color = snap.background_color;
+                    view.background_asset_id = snap.background_asset_id;
+                    view.background_asset_url = snap.background_asset_url;
+                    view.background_asset_type = snap.background_asset_type;
+                    view.theme_override = snap.theme_override ? deepClone(snap.theme_override) : null;
+                    view.transition_override = snap.transition_override ? deepClone(snap.transition_override) : null;
+                    view.layers = deepClone(snap.layers || []);
+                    view.logic_rules = snap.logic_rules ? deepClone(snap.logic_rules) : null;
+                    selectedLayerId = snap.selectedLayerId && view.layers.some((l) => String(l.id) === String(snap.selectedLayerId))
+                        ? snap.selectedLayerId
+                        : null;
+                };
+
+                const syncHistoryButtons = () => {
+                    const hist = getViewHistory(selectedViewId);
+                    const undoBtn = document.getElementById('btn-undo-canvas');
+                    const redoBtn = document.getElementById('btn-redo-canvas');
+                    if (undoBtn) undoBtn.disabled = hist.undo.length === 0;
+                    if (redoBtn) redoBtn.disabled = hist.redo.length === 0;
+                };
+
+                const pushUndoSnapshot = (explicitSnap = null) => {
+                    const view = getCurrentView();
+                    if (!view) return;
+                    const hist = getViewHistory(view.id);
+                    const snap = explicitSnap || captureViewSnapshot(view);
+                    hist.undo.push(snap);
+                    if (hist.undo.length > MAX_HISTORY) hist.undo.shift();
+                    hist.redo = [];
+                    lastUndoBurstAt = 0;
+                    lastUndoBurstKey = '';
+                    syncHistoryButtons();
+                };
+
+                const recordDebouncedUndo = (burstKey = 'edit') => {
+                    const now = Date.now();
+                    if (burstKey === lastUndoBurstKey && (now - lastUndoBurstAt) < 550) {
+                        lastUndoBurstAt = now;
+                        return;
+                    }
+                    pushUndoSnapshot();
+                    lastUndoBurstKey = burstKey;
+                    lastUndoBurstAt = now;
+                };
+
+                const performUndo = () => {
+                    const view = getCurrentView();
+                    if (!view) return;
+                    const hist = getViewHistory(view.id);
+                    if (hist.undo.length === 0) return;
+                    hist.redo.push(captureViewSnapshot(view));
+                    const prev = hist.undo.pop();
+                    applyViewSnapshot(view, prev);
+                    setDirty(true);
+                    renderAll();
+                    syncHistoryButtons();
+                    showToast('Undid last change');
+                };
+
+                const performRedo = () => {
+                    const view = getCurrentView();
+                    if (!view) return;
+                    const hist = getViewHistory(view.id);
+                    if (hist.redo.length === 0) return;
+                    hist.undo.push(captureViewSnapshot(view));
+                    const next = hist.redo.pop();
+                    applyViewSnapshot(view, next);
+                    setDirty(true);
+                    renderAll();
+                    syncHistoryButtons();
+                    showToast('Redid change');
+                };
+
+                const pushRuntimePatch = async (patch, toastMsg = 'Live content synced to stage') => {
+                    const res = await apiJson(endpoints.updateRuntime, 'POST', patch);
+                    if (res.collection?.runtime_state) {
+                        colData.runtime_state = res.collection.runtime_state;
+                    }
+                    runtimeDirty = false;
+                    renderCanvas();
+                    if (toastMsg) showToast(toastMsg);
+                    return res.collection;
+                };
 
                 const setDirty = (dirty) => {
                     isDirty = Boolean(dirty);
@@ -1385,12 +1573,14 @@
                     const surface = theme.surface_color || '#0B0A08';
                     const textColor = theme.text_color || '#FAF7EE';
                     const mutedColor = theme.muted_color || '#ABA291';
+                    const themeFontStack = formatFontStack(theme.font_family || 'Instrument Sans');
                     const secondary = theme.secondary_color && theme.secondary_color !== '#F4E185'
                         ? theme.secondary_color
                         : (accent === '#CDAD69' ? '#F4E185' : accent);
                     const effectiveBg = resolveEffectiveBackground(view, theme);
 
                     logical.style.color = textColor;
+                    logical.style.fontFamily = themeFontStack;
 
                     const bg = document.createElement('div');
                     bg.className = 'canvas-backdrop';
@@ -1451,14 +1641,27 @@
                         const applyInnerOutline = (el, defaultBorder = null) => {
                             const bw = Number(p.border_width ?? 0);
                             const bs = p.border_style || 'solid';
+                            const pos = p.border_position || 'inside';
                             if (p.border_width !== undefined && p.border_width !== '' && bw > 0) {
-                                el.style.border = `${bw}px ${bs} ${p.border_color || accent}`;
+                                applyStrokeStyle(el, {
+                                    width: bw,
+                                    style: bs,
+                                    color: p.border_color || accent,
+                                    position: pos,
+                                });
                             } else if (p.border_width === 0 || p.border_width === '0') {
                                 el.style.border = 'none';
+                                el.style.outline = 'none';
                             } else if (p.border_color) {
-                                el.style.border = `2px ${bs} ${p.border_color}`;
+                                applyStrokeStyle(el, {
+                                    width: 2,
+                                    style: bs,
+                                    color: p.border_color,
+                                    position: pos,
+                                });
                             } else if (defaultBorder) {
                                 el.style.border = defaultBorder;
+                                el.style.outline = 'none';
                             }
                         };
 
@@ -1467,7 +1670,12 @@
                             cutoutInner.style.cssText = `width:100%;height:100%;box-sizing:border-box;border-radius:${layerRadiusCss};background-image:linear-gradient(45deg, rgba(255,255,255,0.09) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.09) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.09) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.09) 75%);background-size:32px 32px;background-color:rgba(0,0,0,0.42);display:grid;place-items:center;color:rgba(250,247,238,0.65);font-size:26px;font-weight:600;pointer-events:none;text-align:center;padding:24px;`;
                             const bw = Number(p.border_width ?? 3);
                             const bc = p.border_color || accent;
-                            if (bw > 0) cutoutInner.style.border = `${bw}px solid ${bc}`;
+                            applyStrokeStyle(cutoutInner, {
+                                width: bw,
+                                style: p.border_style || 'solid',
+                                color: bc,
+                                position: p.border_position || 'inside',
+                            });
                             if (p.glow) cutoutInner.style.boxShadow = `inset 0 0 0 1px rgba(255,236,179,0.22), 0 0 36px -14px ${bc}`;
                             cutoutInner.textContent = p.label || 'OBS Camera / Capture Shows Here';
                             box.appendChild(cutoutInner);
@@ -1488,7 +1696,12 @@
                             } else {
                                 inner.style.background = fillColor;
                             }
-                            if (bw > 0) inner.style.border = `${bw}px ${bs} ${bc}`;
+                            applyStrokeStyle(inner, {
+                                width: bw,
+                                style: bs,
+                                color: bc,
+                                position: p.border_position || 'inside',
+                            });
                             if (p.shadow) inner.style.boxShadow = '0 22px 48px -12px rgba(0, 0, 0, 0.72)';
                             box.appendChild(inner);
                         } else if (layer.type === 'asset' && p.url) {
@@ -1522,22 +1735,32 @@
                             const span = document.createElement('span');
                             span.textContent = p.text || 'Text';
                             span.style.cssText = `font-size:${Number(p.font_size || 48)}px;font-weight:${Number(p.font_weight || 700)};line-height:1.12;letter-spacing:${Number(p.letter_spacing || 0)}px;color:${p.text_color || textColor};white-space:pre-wrap;`;
-                            if (p.font_family) span.style.fontFamily = `'${p.font_family}', ui-sans-serif, system-ui, sans-serif`;
+                            if (p.font_family) span.style.fontFamily = formatFontStack(p.font_family, themeFontStack);
                             if (p.text_shadow) span.style.textShadow = '0 4px 18px rgba(0,0,0,0.75)';
                             preview.appendChild(span);
                             box.appendChild(preview);
                         } else if (layer.type === 'timer') {
                             const showBg = p.show_bg !== false;
+                            const rtTimer = colData.runtime_state?.timer || {};
+                            const durSecs = Math.max(0, Number(rtTimer.duration_seconds ?? 300));
+                            const hh = Math.floor(durSecs / 3600);
+                            const mm = Math.floor((durSecs % 3600) / 60);
+                            const ss = durSecs % 60;
+                            const sampleClock = p.show_hours
+                                ? `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`
+                                : `${String(Math.floor(durSecs / 60)).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
                             const inner = document.createElement('div');
                             inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:grid;place-content:center;text-align:center;gap:6px;padding:12px 20px;border-radius:${layerRadiusCss};pointer-events:none;`;
                             inner.style.background = showBg ? (p.bg_color || `color-mix(in oklab, ${surface} 85%, transparent)`) : 'transparent';
+                            if (p.font_family) inner.style.fontFamily = formatFontStack(p.font_family, themeFontStack);
                             applyInnerOutline(inner, showBg ? `1px solid ${glassBorder}` : null);
                             const lblDiv = document.createElement('div');
                             lblDiv.style.cssText = `font-size:${Number(p.label_font_size || 20)}px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${p.label_color || mutedColor};`;
-                            lblDiv.textContent = p.label || 'LIVE IN';
+                            lblDiv.textContent = p.label || rtTimer.label || 'LIVE IN';
                             const digitsDiv = document.createElement('div');
-                            digitsDiv.style.cssText = `font-family:'JetBrains Mono',monospace;font-size:${Number(p.font_size || 72)}px;font-weight:700;line-height:1;color:${p.text_color || accent};`;
-                            digitsDiv.textContent = p.show_hours ? '00:05:00' : '05:00';
+                            const digitFont = p.font_family ? formatFontStack(p.font_family, themeFontStack) : "'JetBrains Mono', monospace";
+                            digitsDiv.style.cssText = `font-family:${digitFont};font-size:${Number(p.font_size || 72)}px;font-weight:700;line-height:1;color:${p.text_color || accent};`;
+                            digitsDiv.textContent = sampleClock;
                             inner.append(lblDiv, digitsDiv);
                             box.appendChild(inner);
                         } else if (layer.type === 'scoreboard') {
@@ -1546,26 +1769,52 @@
                             const sbText = p.text_color || textColor;
                             const inner = document.createElement('div');
                             inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 28px;font-size:26px;font-weight:700;border-radius:${layerRadiusCss};color:${sbText};background:${p.bg_color || `color-mix(in oklab, ${surface} 88%, transparent)`};pointer-events:none;`;
+                            if (p.font_family) inner.style.fontFamily = formatFontStack(p.font_family, themeFontStack);
                             applyInnerOutline(inner, `1px solid ${glassBorder}`);
-                            inner.innerHTML = `<span>${sb.team_a_name || 'Team Alpha'} <strong style="color:${sbAccent};margin-left:12px;">${sb.team_a_score ?? 0}</strong></span><span style="font-size:18px;color:${mutedColor};padding:0 20px;">${sb.round_label || 'VS'}</span><span style="text-align:right;"><strong style="color:${sbAccent};margin-right:12px;">${sb.team_b_score ?? 0}</strong> ${sb.team_b_name || 'Team Omega'}</span>`;
+                            const esc = (str) => String(str ?? '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+                            const centerTop = sb.match_label ? `<div style="font-size:13px;color:${sbAccent};letter-spacing:0.08em;text-transform:uppercase;">${esc(sb.match_label)}</div>` : '';
+                            inner.innerHTML = `<span>${esc(sb.team_a_name || 'Team Alpha')} <strong style="color:${sbAccent};margin-left:12px;">${Number(sb.team_a_score ?? 0)}</strong></span><span style="text-align:center;padding:0 20px;">${centerTop}<div style="font-size:18px;color:${mutedColor};">${esc(sb.round_label || 'VS')}</div></span><span style="text-align:right;"><strong style="color:${sbAccent};margin-right:12px;">${Number(sb.team_b_score ?? 0)}</strong> ${esc(sb.team_b_name || 'Team Omega')}</span>`;
                             box.appendChild(inner);
                         } else if (layer.type === 'lower_third') {
                             const l3 = colData.runtime_state?.lower_third || {};
                             const l3Accent = p.accent_color || accent;
                             const l3Text = p.text_color || textColor;
                             const inner = document.createElement('div');
-                            inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;padding:0 28px;border-radius:${layerRadiusCss};color:${l3Text};background:${p.bg_color || `color-mix(in oklab, ${surface} 88%, transparent)`};pointer-events:none;`;
+                            inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;gap:18px;padding:0 28px;border-radius:${layerRadiusCss};color:${l3Text};background:${p.bg_color || `color-mix(in oklab, ${surface} 88%, transparent)`};pointer-events:none;`;
+                            if (p.font_family) inner.style.fontFamily = formatFontStack(p.font_family, themeFontStack);
                             applyInnerOutline(inner, `1px solid ${glassBorder}`);
                             inner.style.borderLeft = `6px solid ${l3Accent}`;
-                            inner.innerHTML = `<div style="font-size:32px;font-weight:700;">${l3.title || 'Broadcast Host'}</div><div style="font-size:20px;color:${l3Accent};">${l3.subtitle || 'Live From Studio'}</div>`;
+                            const badgeEl = document.createElement('span');
+                            badgeEl.style.cssText = `padding:4px 12px;border-radius:999px;font-size:14px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:${l3Accent};background:color-mix(in oklab, ${l3Accent} 22%, transparent);flex-shrink:0;`;
+                            badgeEl.textContent = l3.badge || 'LIVE';
+                            const txtWrap = document.createElement('div');
+                            const tEl = document.createElement('div');
+                            tEl.style.cssText = 'font-size:30px;font-weight:700;line-height:1.15;';
+                            tEl.textContent = l3.title || 'Broadcast Host';
+                            const sEl = document.createElement('div');
+                            sEl.style.cssText = `font-size:19px;color:${l3Accent};`;
+                            sEl.textContent = l3.subtitle || 'Live From Studio';
+                            txtWrap.append(tEl, sEl);
+                            inner.append(badgeEl, txtWrap);
                             box.appendChild(inner);
                         } else if (layer.type === 'ticker') {
+                            const tk = colData.runtime_state?.ticker || {};
                             const tkAccent = p.accent_color || accent;
                             const tkText = p.text_color || textColor;
                             const inner = document.createElement('div');
                             inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;gap:20px;padding:0 24px;font-size:22px;border-radius:${layerRadiusCss};color:${tkText};background:${p.bg_color || `color-mix(in oklab, ${surface} 88%, transparent)`};pointer-events:none;overflow:hidden;`;
+                            if (p.font_family) inner.style.fontFamily = formatFontStack(p.font_family, themeFontStack);
                             applyInnerOutline(inner, `1px solid ${glassBorder}`);
-                            inner.innerHTML = `<span style="color:${tkAccent};font-weight:700;">LIVE</span><span style="color:${tkText};opacity:0.86;white-space:nowrap;">Scrolling news and tournament updates appear here...</span>`;
+                            const pillEl = document.createElement('span');
+                            pillEl.style.cssText = `color:${tkAccent};font-weight:800;letter-spacing:0.06em;text-transform:uppercase;flex-shrink:0;`;
+                            pillEl.textContent = tk.label || 'LIVE';
+                            const trackEl = document.createElement('span');
+                            trackEl.style.cssText = `color:${tkText};opacity:0.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+                            const itemsText = Array.isArray(tk.items) && tk.items.length > 0
+                                ? tk.items.join('   •   ')
+                                : 'Edit Ticker headlines in the Inspector on the right...';
+                            trackEl.textContent = itemsText;
+                            inner.append(pillEl, trackEl);
                             box.appendChild(inner);
                         } else if (layer.type === 'embed') {
                             const inner = document.createElement('div');
@@ -1607,12 +1856,17 @@
                             const startX = ev.clientX;
                             const startY = ev.clientY;
                             const init = { x: Number(layer.x || 0), y: Number(layer.y || 0), w: Number(layer.w || 200), h: Number(layer.h || 80) };
+                            const preDragSnap = captureViewSnapshot(view);
+                            let movedDuringDrag = false;
                             dragActive = true;
                             box.setPointerCapture(ev.pointerId);
 
                             const onMove = (mEv) => {
                                 const dx = (mEv.clientX - startX) / scale;
                                 const dy = (mEv.clientY - startY) / scale;
+                                if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+                                    movedDuringDrag = true;
+                                }
                                 if (isResize) {
                                     const lockSquare = layer.type === 'color_box'
                                         && ['square', 'circle'].includes(layer.props?.shape_preset || '');
@@ -1640,6 +1894,9 @@
                             };
                             const onUp = () => {
                                 dragActive = false;
+                                if (movedDuringDrag) {
+                                    pushUndoSnapshot(preDragSnap);
+                                }
                                 box.removeEventListener('pointermove', onMove);
                                 box.removeEventListener('pointerup', onUp);
                                 box.removeEventListener('pointercancel', onUp);
@@ -1994,6 +2251,7 @@
                         if (!el) return;
                         el.value = val ?? '';
                         el.oninput = el.onchange = () => {
+                            recordDebouncedUndo(`lp:${id}:${layer.id}`);
                             onChange(el.value);
                             setDirty(true);
                             renderCanvas();
@@ -2042,6 +2300,7 @@
                             allowClear: true,
                             labelForAria,
                             onChange: (val) => {
+                                recordDebouncedUndo(`color:${labelForAria}:${layer.id}`);
                                 onChange(val);
                                 setDirty(true);
                                 renderCanvas();
@@ -2059,6 +2318,7 @@
                         inp.step = String(step);
                         inp.value = val ?? fallback;
                         inp.oninput = inp.onchange = () => {
+                            recordDebouncedUndo(`num:${min}:${max}:${layer.id}`);
                             onChange(Number(inp.value === '' ? fallback : inp.value));
                             setDirty(true);
                             renderCanvas();
@@ -2077,6 +2337,7 @@
                         });
                         sel.value = String(currentVal ?? options[0]?.[0] ?? '');
                         sel.onchange = () => {
+                            pushUndoSnapshot();
                             onChange(sel.value);
                             setDirty(true);
                             renderCanvas();
@@ -2093,6 +2354,7 @@
                         chk.type = 'checkbox';
                         chk.checked = Boolean(checked);
                         chk.onchange = () => {
+                            pushUndoSnapshot();
                             onChange(chk.checked);
                             setDirty(true);
                             renderCanvas();
@@ -2107,7 +2369,8 @@
                             layer.props.border_color || '',
                             activeTheme.accent_color || '#CDAD69',
                             'Default / None',
-                            (v) => { layer.props.border_color = v; }
+                            (v) => { layer.props.border_color = v; },
+                            'Outline Color'
                         ));
                         const g = makeGrid2();
                         addExtra('Outline Thickness (px)', makeNumberField(
@@ -2115,12 +2378,17 @@
                             { min: 0, max: 40, step: 1, fallback: defaultWidth },
                             (v) => { layer.props.border_width = Math.max(0, v); }
                         ), g);
+                        addExtra('Outline Direction', makeSelectField(
+                            [['inside', 'Inside Shape'], ['outside', 'Outside Shape'], ['center', 'Center (Half In / Out)']],
+                            layer.props.border_position || 'inside',
+                            (v) => { layer.props.border_position = v; }
+                        ), g);
                         if (allowStyle) {
                             addExtra('Outline Style', makeSelectField(
                                 [['solid', 'Solid'], ['dashed', 'Dashed'], ['dotted', 'Dotted']],
                                 layer.props.border_style || 'solid',
                                 (v) => { layer.props.border_style = v; }
-                            ), g);
+                            ));
                         }
                     };
 
@@ -2129,7 +2397,12 @@
                         ta.className = 's-textarea';
                         ta.rows = 2;
                         ta.value = layer.props.text || '';
-                        ta.oninput = () => { layer.props.text = ta.value; setDirty(true); renderCanvas(); };
+                        ta.oninput = () => {
+                            recordDebouncedUndo(`text:${layer.id}`);
+                            layer.props.text = ta.value;
+                            setDirty(true);
+                            renderCanvas();
+                        };
                         addExtra('Text Content', ta);
 
                         const g1 = makeGrid2();
@@ -2142,7 +2415,7 @@
 
                         const g2 = makeGrid2();
                         addExtra('Font Family', makeSelectField(
-                            [['', 'Inherit Theme'], ['Instrument Sans', 'Instrument Sans'], ['Poppins', 'Poppins'], ['JetBrains Mono', 'JetBrains Mono']],
+                            FONT_FAMILY_OPTIONS,
                             layer.props.font_family || '',
                             (v) => { layer.props.font_family = v; }
                         ), g2);
@@ -2156,8 +2429,8 @@
                         addExtra('Padding (px)', makeNumberField(layer.props.padding ?? 12, { min: 0, max: 120, step: 2, fallback: 12 }, (v) => { layer.props.padding = Math.max(0, v); }), g3);
                         addExtra('Letter Spacing (px)', makeNumberField(layer.props.letter_spacing ?? 0, { min: -4, max: 24, step: 0.5, fallback: 0 }, (v) => { layer.props.letter_spacing = v; }), g3);
 
-                        addExtra('Font Color', makeColorField(layer.props.text_color || '', activeTheme.text_color || '#FAF7EE', 'Inherit Theme Text', (v) => { layer.props.text_color = v; }));
-                        addExtra('Background Color', makeColorField(layer.props.bg_color || '', activeTheme.surface_color || '#0B0A08', 'Transparent', (v) => { layer.props.bg_color = v; }));
+                        addExtra('Font Color', makeColorField(layer.props.text_color || '', activeTheme.text_color || '#FAF7EE', 'Inherit Theme Text', (v) => { layer.props.text_color = v; }, 'Font Color'));
+                        addExtra('Background Color', makeColorField(layer.props.bg_color || '', activeTheme.surface_color || '#0B0A08', 'Transparent', (v) => { layer.props.bg_color = v; }, 'Background Color'));
                         addOutlineControls(0, true);
                         makeToggleField('Text Drop Shadow', Boolean(layer.props.text_shadow), (v) => { layer.props.text_shadow = v; });
                     } else if (layer.type === 'timer') {
@@ -2170,16 +2443,66 @@
                         const lbl = document.createElement('input');
                         lbl.className = 's-input';
                         lbl.value = layer.props.label || 'LIVE IN';
-                        lbl.oninput = () => { layer.props.label = lbl.value; setDirty(true); renderCanvas(); };
+                        lbl.oninput = () => {
+                            recordDebouncedUndo(`timer-label:${layer.id}`);
+                            layer.props.label = lbl.value;
+                            colData.runtime_state = colData.runtime_state || {};
+                            colData.runtime_state.timer = { ...(colData.runtime_state.timer || {}), label: lbl.value };
+                            runtimeDirty = true;
+                            setDirty(true);
+                            renderCanvas();
+                        };
                         addExtra('Timer Label', lbl);
+
+                        const rtTimer = colData.runtime_state?.timer || {};
+                        const timerLiveBox = document.createElement('div');
+                        timerLiveBox.className = 'live-content-box';
+                        const tlHead = document.createElement('div');
+                        tlHead.className = 'live-content-head';
+                        tlHead.textContent = 'Live Timer Content';
+                        const durRow = document.createElement('div');
+                        durRow.style.cssText = 'display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0.35rem;align-items:end;';
+                        const durInp = document.createElement('input');
+                        durInp.type = 'number';
+                        durInp.className = 's-input';
+                        durInp.min = '0';
+                        durInp.step = '30';
+                        durInp.value = String(rtTimer.duration_seconds ?? 300);
+                        durInp.oninput = () => {
+                            colData.runtime_state = colData.runtime_state || {};
+                            colData.runtime_state.timer = { ...(colData.runtime_state.timer || {}), duration_seconds: Math.max(0, Number(durInp.value || 0)) };
+                            runtimeDirty = true;
+                            setDirty(true);
+                            renderCanvas();
+                        };
+                        const durApply = document.createElement('button');
+                        durApply.type = 'button';
+                        durApply.className = 's-btn s-btn-xs s-btn-gold';
+                        durApply.textContent = 'Apply Live';
+                        durApply.onclick = () => pushRuntimePatch({
+                            timer: { action: 'set', duration_seconds: Math.max(0, Number(durInp.value || 0)), label: lbl.value.trim(), mode: layer.props.mode || 'countdown' },
+                        }, 'Live timer duration & label synced');
+                        durRow.append(durInp, durApply);
+                        const durField = document.createElement('label');
+                        durField.className = 'stack';
+                        durField.innerHTML = '<span class="sub-label">Countdown Duration (seconds)</span>';
+                        durField.appendChild(durRow);
+                        timerLiveBox.append(tlHead, durField);
+                        extra.appendChild(timerLiveBox);
+
+                        addExtra('Font Family', makeSelectField(
+                            [['', 'Default Mono (JetBrains Mono)'], ...Object.entries(FONT_FAMILY_MAP)],
+                            layer.props.font_family || '',
+                            (v) => { layer.props.font_family = v; }
+                        ));
 
                         const g1 = makeGrid2();
                         addExtra('Digit Size (px)', makeNumberField(layer.props.font_size ?? 72, { min: 18, max: 260, step: 2, fallback: 72 }, (v) => { layer.props.font_size = Math.max(18, v); }), g1);
                         addExtra('Label Size (px)', makeNumberField(layer.props.label_font_size ?? 20, { min: 10, max: 80, step: 1, fallback: 20 }, (v) => { layer.props.label_font_size = Math.max(10, v); }), g1);
 
-                        addExtra('Digit Font Color', makeColorField(layer.props.text_color || '', activeTheme.accent_color || '#CDAD69', 'Inherit Accent', (v) => { layer.props.text_color = v; }));
-                        addExtra('Label Font Color', makeColorField(layer.props.label_color || '', activeTheme.muted_color || '#ABA291', 'Inherit Muted', (v) => { layer.props.label_color = v; }));
-                        addExtra('Background Color', makeColorField(layer.props.bg_color || '', activeTheme.surface_color || '#0B0A08', 'Inherit Surface Glass', (v) => { layer.props.bg_color = v; }));
+                        addExtra('Digit Font Color', makeColorField(layer.props.text_color || '', activeTheme.accent_color || '#CDAD69', 'Inherit Accent', (v) => { layer.props.text_color = v; }, 'Digit Font Color'));
+                        addExtra('Label Font Color', makeColorField(layer.props.label_color || '', activeTheme.muted_color || '#ABA291', 'Inherit Muted', (v) => { layer.props.label_color = v; }, 'Label Font Color'));
+                        addExtra('Background Color', makeColorField(layer.props.bg_color || '', activeTheme.surface_color || '#0B0A08', 'Inherit Surface Glass', (v) => { layer.props.bg_color = v; }, 'Background Color'));
                         addOutlineControls(1, true);
                         makeToggleField('Show Card Background', layer.props.show_bg !== false, (v) => { layer.props.show_bg = v; });
                         makeToggleField('Show Hours (HH:MM:SS)', Boolean(layer.props.show_hours), (v) => { layer.props.show_hours = v; });
@@ -2263,6 +2586,180 @@
                         addOutlineControls(0, true);
                         makeToggleField('Drop Shadow', Boolean(layer.props.shadow), (v) => { layer.props.shadow = v; });
                     } else if (layer.type === 'scoreboard' || layer.type === 'lower_third' || layer.type === 'ticker') {
+                        colData.runtime_state = colData.runtime_state || {};
+                        const liveBox = document.createElement('div');
+                        liveBox.className = 'live-content-box';
+                        const liveHead = document.createElement('div');
+                        liveHead.className = 'live-content-head';
+
+                        if (layer.type === 'scoreboard') {
+                            colData.runtime_state.scoreboard = {
+                                team_a_name: 'Team Alpha',
+                                team_b_name: 'Team Omega',
+                                team_a_score: 0,
+                                team_b_score: 0,
+                                match_label: '',
+                                round_label: 'VS',
+                                ...(colData.runtime_state.scoreboard || {}),
+                            };
+                            const sb = colData.runtime_state.scoreboard;
+                            liveHead.innerHTML = '<span>Live Scoreboard Content</span>';
+                            const applyBtn = document.createElement('button');
+                            applyBtn.type = 'button';
+                            applyBtn.className = 's-btn s-btn-xs s-btn-gold';
+                            applyBtn.textContent = 'Push Live';
+                            applyBtn.onclick = () => pushRuntimePatch({
+                                scoreboard: {
+                                    team_a_name: sb.team_a_name,
+                                    team_b_name: sb.team_b_name,
+                                    team_a_score: Number(sb.team_a_score || 0),
+                                    team_b_score: Number(sb.team_b_score || 0),
+                                    match_label: sb.match_label || '',
+                                    round_label: sb.round_label || '',
+                                },
+                            }, 'Live scoreboard content updated');
+                            liveHead.appendChild(applyBtn);
+                            liveBox.appendChild(liveHead);
+
+                            const makeRtText = (lbl, val, onChg, parentEl) => {
+                                const inp = document.createElement('input');
+                                inp.type = 'text';
+                                inp.className = 's-input';
+                                inp.value = val ?? '';
+                                inp.oninput = () => { onChg(inp.value); runtimeDirty = true; setDirty(true); renderCanvas(); };
+                                addExtra(lbl, inp, parentEl);
+                            };
+                            const makeRtNum = (lbl, val, onChg, parentEl) => {
+                                const inp = document.createElement('input');
+                                inp.type = 'number';
+                                inp.className = 's-input';
+                                inp.min = '0';
+                                inp.value = String(val ?? 0);
+                                inp.oninput = () => { onChg(Math.max(0, Number(inp.value || 0))); runtimeDirty = true; setDirty(true); renderCanvas(); };
+                                addExtra(lbl, inp, parentEl);
+                            };
+                            const rowA = document.createElement('div');
+                            rowA.className = 'grid-2';
+                            makeRtText('Team A Name', sb.team_a_name, (v) => { sb.team_a_name = v; }, rowA);
+                            makeRtNum('Team A Score', sb.team_a_score, (v) => { sb.team_a_score = v; }, rowA);
+                            const rowB = document.createElement('div');
+                            rowB.className = 'grid-2';
+                            makeRtText('Team B Name', sb.team_b_name, (v) => { sb.team_b_name = v; }, rowB);
+                            makeRtNum('Team B Score', sb.team_b_score, (v) => { sb.team_b_score = v; }, rowB);
+                            const rowM = document.createElement('div');
+                            rowM.className = 'grid-2';
+                            makeRtText('Match Title', sb.match_label, (v) => { sb.match_label = v; }, rowM);
+                            makeRtText('Round / Center', sb.round_label, (v) => { sb.round_label = v; }, rowM);
+                            liveBox.append(rowA, rowB, rowM);
+                        } else if (layer.type === 'lower_third') {
+                            colData.runtime_state.lower_third = {
+                                visible: true,
+                                badge: 'LIVE',
+                                title: 'Broadcast Host',
+                                subtitle: 'Live From Studio',
+                                ...(colData.runtime_state.lower_third || {}),
+                            };
+                            const l3 = colData.runtime_state.lower_third;
+                            liveHead.innerHTML = '<span>Live Lower Third Content</span>';
+                            const applyBtn = document.createElement('button');
+                            applyBtn.type = 'button';
+                            applyBtn.className = 's-btn s-btn-xs s-btn-gold';
+                            applyBtn.textContent = 'Push Live';
+                            applyBtn.onclick = () => pushRuntimePatch({
+                                lower_third: {
+                                    visible: Boolean(l3.visible),
+                                    badge: l3.badge || 'LIVE',
+                                    title: l3.title || '',
+                                    subtitle: l3.subtitle || '',
+                                },
+                            }, 'Live Lower Third content updated');
+                            liveHead.appendChild(applyBtn);
+                            liveBox.appendChild(liveHead);
+
+                            const badgeInp = document.createElement('input');
+                            badgeInp.className = 's-input';
+                            badgeInp.value = l3.badge || 'LIVE';
+                            badgeInp.oninput = () => { l3.badge = badgeInp.value; runtimeDirty = true; setDirty(true); renderCanvas(); };
+                            addExtra('Badge Text', badgeInp, liveBox);
+
+                            const titleInp = document.createElement('input');
+                            titleInp.className = 's-input';
+                            titleInp.value = l3.title || '';
+                            titleInp.placeholder = 'Speaker / Headline';
+                            titleInp.oninput = () => { l3.title = titleInp.value; runtimeDirty = true; setDirty(true); renderCanvas(); };
+                            addExtra('Headline / Speaker', titleInp, liveBox);
+
+                            const subInp = document.createElement('input');
+                            subInp.className = 's-input';
+                            subInp.value = l3.subtitle || '';
+                            subInp.placeholder = 'Role / Subtitle';
+                            subInp.oninput = () => { l3.subtitle = subInp.value; runtimeDirty = true; setDirty(true); renderCanvas(); };
+                            addExtra('Subtitle / Role', subInp, liveBox);
+
+                            const visWrap = document.createElement('label');
+                            visWrap.className = 'toggle-row';
+                            visWrap.innerHTML = '<span>Visible On Air</span>';
+                            const visChk = document.createElement('input');
+                            visChk.type = 'checkbox';
+                            visChk.checked = Boolean(l3.visible);
+                            visChk.onchange = () => { l3.visible = visChk.checked; runtimeDirty = true; setDirty(true); };
+                            visWrap.appendChild(visChk);
+                            liveBox.appendChild(visWrap);
+                        } else if (layer.type === 'ticker') {
+                            colData.runtime_state.ticker = {
+                                visible: true,
+                                label: 'LIVE',
+                                items: ['Welcome to the live broadcast!'],
+                                ...(colData.runtime_state.ticker || {}),
+                            };
+                            const tk = colData.runtime_state.ticker;
+                            liveHead.innerHTML = '<span>Live Ticker Content</span>';
+                            const applyBtn = document.createElement('button');
+                            applyBtn.type = 'button';
+                            applyBtn.className = 's-btn s-btn-xs s-btn-gold';
+                            applyBtn.textContent = 'Push Live';
+                            applyBtn.onclick = () => pushRuntimePatch({
+                                ticker: {
+                                    visible: tk.visible !== false,
+                                    label: tk.label || 'LIVE',
+                                    items: Array.isArray(tk.items) ? tk.items : [],
+                                },
+                            }, 'Live Ticker content updated');
+                            liveHead.appendChild(applyBtn);
+                            liveBox.appendChild(liveHead);
+
+                            const badgeInp = document.createElement('input');
+                            badgeInp.className = 's-input';
+                            badgeInp.value = tk.label || 'LIVE';
+                            badgeInp.placeholder = 'LIVE';
+                            badgeInp.oninput = () => { tk.label = badgeInp.value; runtimeDirty = true; setDirty(true); renderCanvas(); };
+                            addExtra('Ticker Badge Label', badgeInp, liveBox);
+
+                            const itemsTa = document.createElement('textarea');
+                            itemsTa.className = 's-textarea';
+                            itemsTa.rows = 3;
+                            itemsTa.placeholder = 'One scrolling headline per line...';
+                            itemsTa.value = Array.isArray(tk.items) ? tk.items.join('\n') : '';
+                            itemsTa.oninput = () => {
+                                tk.items = itemsTa.value.split('\n').map((s) => s.trim()).filter(Boolean);
+                                runtimeDirty = true;
+                                setDirty(true);
+                                renderCanvas();
+                            };
+                            addExtra('Ticker Headlines (one per line)', itemsTa, liveBox);
+
+                            const visWrap = document.createElement('label');
+                            visWrap.className = 'toggle-row';
+                            visWrap.innerHTML = '<span>Visible On Air</span>';
+                            const visChk = document.createElement('input');
+                            visChk.type = 'checkbox';
+                            visChk.checked = tk.visible !== false;
+                            visChk.onchange = () => { tk.visible = visChk.checked; runtimeDirty = true; setDirty(true); };
+                            visWrap.appendChild(visChk);
+                            liveBox.appendChild(visWrap);
+                        }
+                        extra.appendChild(liveBox);
+
                         if (layer.type === 'ticker') {
                             addExtra('Scroll Speed (seconds)', makeNumberField(
                                 layer.props.speed_sec ?? 28,
@@ -2270,9 +2767,14 @@
                                 (v) => { layer.props.speed_sec = Math.max(5, v); }
                             ));
                         }
-                        addExtra('Text Color', makeColorField(layer.props.text_color || '', activeTheme.text_color || '#FAF7EE', 'Inherit Theme Text', (v) => { layer.props.text_color = v; }));
-                        addExtra('Accent / Highlight Color', makeColorField(layer.props.accent_color || '', activeTheme.accent_color || '#CDAD69', 'Inherit Theme Accent', (v) => { layer.props.accent_color = v; }));
-                        addExtra('Background Color', makeColorField(layer.props.bg_color || '', activeTheme.surface_color || '#0B0A08', 'Inherit Surface Glass', (v) => { layer.props.bg_color = v; }));
+                        addExtra('Font Family', makeSelectField(
+                            FONT_FAMILY_OPTIONS,
+                            layer.props.font_family || '',
+                            (v) => { layer.props.font_family = v; }
+                        ));
+                        addExtra('Text Color', makeColorField(layer.props.text_color || '', activeTheme.text_color || '#FAF7EE', 'Inherit Theme Text', (v) => { layer.props.text_color = v; }, 'Text Color'));
+                        addExtra('Accent / Highlight Color', makeColorField(layer.props.accent_color || '', activeTheme.accent_color || '#CDAD69', 'Inherit Theme Accent', (v) => { layer.props.accent_color = v; }, 'Accent Color'));
+                        addExtra('Background Color', makeColorField(layer.props.bg_color || '', activeTheme.surface_color || '#0B0A08', 'Inherit Surface Glass', (v) => { layer.props.bg_color = v; }, 'Background Color'));
                         addOutlineControls(1, true);
                     } else if (layer.type === 'shape') {
                         addExtra('Fill / Background Color', makeColorField(layer.props.fill_color || '', activeTheme.surface_color || '#0B0A08', 'Inherit Surface Glass', (v) => { layer.props.fill_color = v; }));
@@ -2330,13 +2832,20 @@
                             layer.props.border_color || '',
                             activeTheme.accent_color || '#CDAD69',
                             'Inherit Theme Accent',
-                            (v) => { layer.props.border_color = v; }
+                            (v) => { layer.props.border_color = v; },
+                            'Cutout Border Color'
                         ));
+                        const cg = makeGrid2();
                         addExtra('Border Thickness (px)', makeNumberField(
                             layer.props.border_width ?? 3,
                             { min: 0, max: 30, step: 1, fallback: 3 },
                             (v) => { layer.props.border_width = Math.max(0, v); }
-                        ));
+                        ), cg);
+                        addExtra('Outline Direction', makeSelectField(
+                            [['inside', 'Inside Cutout'], ['outside', 'Outside Cutout'], ['center', 'Center (Half In / Out)']],
+                            layer.props.border_position || 'inside',
+                            (v) => { layer.props.border_position = v; }
+                        ), cg);
                         makeToggleField('Accent Border Glow', layer.props.glow !== false, (v) => { layer.props.glow = v; });
                     }
                 };
@@ -2364,6 +2873,8 @@
                     setStaticColorValue('col-surface-color', th.surface_color || '#0B0A08');
                     setStaticColorValue('col-text-color', th.text_color || '#FAF7EE');
                     setStaticColorValue('col-sweep-color', tx.sweep_color || th.accent_color || '#CDAD69');
+                    const fontSel = document.getElementById('col-font-family');
+                    if (fontSel) fontSel.value = th.font_family || 'Instrument Sans';
                     document.getElementById('col-bg-mode').value = th.background_mode || 'gradient';
                     setStaticColorValue('col-bg-color', th.background_color || th.surface_color || '#0B0A08');
                     document.getElementById('col-bg-asset').value = String(th.background_asset_id || '');
@@ -2382,6 +2893,7 @@
                     populateViewSettings();
                     populateCollectionSettings();
                     renderCanvas();
+                    syncHistoryButtons();
                 };
 
                 const saveCollectionSettings = async (silent = false) => {
@@ -2399,6 +2911,7 @@
                             secondary_color: accent === '#CDAD69' ? '#F4E185' : accent,
                             surface_color: document.getElementById('col-surface-color').value,
                             text_color: document.getElementById('col-text-color').value,
+                            font_family: document.getElementById('col-font-family')?.value || 'Instrument Sans',
                             background_mode: document.getElementById('col-bg-mode').value || 'gradient',
                             background_color: document.getElementById('col-bg-color').value || '#0B0A08',
                             background_asset_id: bgAssetIdVal ? Number(bgAssetIdVal) : null,
@@ -2426,6 +2939,30 @@
                     if (!view) return;
                     if (themeDirty) {
                         await saveCollectionSettings(true);
+                    }
+                    if (runtimeDirty && colData.runtime_state) {
+                        const rt = colData.runtime_state;
+                        await pushRuntimePatch({
+                            scoreboard: rt.scoreboard ? {
+                                team_a_name: rt.scoreboard.team_a_name,
+                                team_b_name: rt.scoreboard.team_b_name,
+                                team_a_score: Number(rt.scoreboard.team_a_score || 0),
+                                team_b_score: Number(rt.scoreboard.team_b_score || 0),
+                                match_label: rt.scoreboard.match_label || '',
+                                round_label: rt.scoreboard.round_label || '',
+                            } : undefined,
+                            lower_third: rt.lower_third ? {
+                                visible: Boolean(rt.lower_third.visible),
+                                badge: rt.lower_third.badge || 'LIVE',
+                                title: rt.lower_third.title || '',
+                                subtitle: rt.lower_third.subtitle || '',
+                            } : undefined,
+                            ticker: rt.ticker ? {
+                                visible: rt.ticker.visible !== false,
+                                label: rt.ticker.label || 'LIVE',
+                                items: Array.isArray(rt.ticker.items) ? rt.ticker.items : [],
+                            } : undefined,
+                        }, null);
                     }
                     const accentOv = document.getElementById('vp-theme-accent').value.trim();
                     const surfaceOv = document.getElementById('vp-theme-surface').value.trim();
@@ -2508,6 +3045,7 @@
                             text: { name: 'Text Label', x: 360, y: 400, w: 1200, h: 140, radius: 12, props: { text: 'Broadcast Headline', font_size: 64, font_weight: 700, align: 'center', padding: 12 } },
                         };
                         const cfg = presets[type] || presets.text;
+                        pushUndoSnapshot();
                         view.layers.push({
                             id,
                             type,
@@ -2535,21 +3073,28 @@
                     });
                 });
 
-                document.getElementById('lp-delete-btn').addEventListener('click', async () => {
+                const requestDeleteSelectedLayer = async () => {
                     const view = getCurrentView();
                     if (!view || !selectedLayerId) return;
                     const targetLayer = (view.layers || []).find((l) => String(l.id) === String(selectedLayerId));
+                    if (!targetLayer) return;
                     const ok = await confirmBuilderAction({
                         title: 'Remove Canvas Layer',
-                        message: `Remove layer "${targetLayer?.name || targetLayer?.type || 'Selected Layer'}" from "${view.name}"? Saving the view will also delete any media file used only by this layer.`,
+                        message: `Remove layer "${targetLayer.name || targetLayer.type || 'Selected Layer'}" from "${view.name}"? Saving the view will also delete any media file used only by this layer.`,
                         confirmLabel: 'Remove Layer',
                     });
                     if (!ok) return;
+                    pushUndoSnapshot();
                     view.layers = (view.layers || []).filter((l) => String(l.id) !== String(selectedLayerId));
                     selectedLayerId = null;
                     setDirty(true);
                     renderAll();
-                });
+                    showToast(`Removed layer "${targetLayer.name || targetLayer.type}" (Cmd/Ctrl+Z to undo)`);
+                };
+
+                document.getElementById('lp-delete-btn').addEventListener('click', requestDeleteSelectedLayer);
+                document.getElementById('btn-undo-canvas')?.addEventListener('click', performUndo);
+                document.getElementById('btn-redo-canvas')?.addEventListener('click', performRedo);
 
                 document.getElementById('btn-clean-unused-assets')?.addEventListener('click', async () => {
                     const unusedCount = (colData.assets || []).filter((a) => a.in_use === false).length;
@@ -2580,6 +3125,7 @@
                     const view = getCurrentView();
                     const layer = (view?.layers || []).find((l) => String(l.id) === String(selectedLayerId));
                     if (!layer) return;
+                    pushUndoSnapshot();
                     layer.x = 0; layer.y = 0; layer.w = Number(colData.width || 1920); layer.h = Number(colData.height || 1080);
                     setDirty(true);
                     renderCanvas(); populateLayerInspector();
@@ -2589,6 +3135,7 @@
                     const view = getCurrentView();
                     const layer = (view?.layers || []).find((l) => String(l.id) === String(selectedLayerId));
                     if (!layer) return;
+                    pushUndoSnapshot();
                     layer.x = Math.round((Number(colData.width || 1920) - Number(layer.w || 200)) / 2);
                     layer.y = Math.round((Number(colData.height || 1080) - Number(layer.h || 80)) / 2);
                     setDirty(true);
@@ -2596,20 +3143,49 @@
                 });
 
                 document.addEventListener('keydown', (ev) => {
-                    if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 's') {
+                    const keyLower = ev.key.toLowerCase();
+                    if ((ev.metaKey || ev.ctrlKey) && keyLower === 's') {
                         ev.preventDefault();
                         saveCurrentView();
                         return;
                     }
-                    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName || '')) return;
+
+                    const activeEl = document.activeElement;
+                    const isTypingTarget = activeEl && (
+                        ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName)
+                        || activeEl.isContentEditable
+                    );
+                    if (isTypingTarget) return;
+
+                    const confirmDlg = document.getElementById('builder-confirm-dialog');
+                    if (confirmDlg?.open) return;
+
+                    if ((ev.metaKey || ev.ctrlKey) && keyLower === 'z') {
+                        ev.preventDefault();
+                        if (ev.shiftKey) performRedo();
+                        else performUndo();
+                        return;
+                    }
+                    if (ev.ctrlKey && !ev.metaKey && keyLower === 'y') {
+                        ev.preventDefault();
+                        performRedo();
+                        return;
+                    }
+
+                    if ((ev.key === 'Delete' || ev.key === 'Backspace') && selectedLayerId) {
+                        ev.preventDefault();
+                        requestDeleteSelectedLayer();
+                        return;
+                    }
+
                     const view = getCurrentView();
                     const layer = (view?.layers || []).find((l) => String(l.id) === String(selectedLayerId));
                     if (!layer || layer.locked) return;
                     const step = ev.shiftKey ? 10 : 1;
-                    if (ev.key === 'ArrowLeft') { ev.preventDefault(); layer.x = Number(layer.x || 0) - step; }
-                    else if (ev.key === 'ArrowRight') { ev.preventDefault(); layer.x = Number(layer.x || 0) + step; }
-                    else if (ev.key === 'ArrowUp') { ev.preventDefault(); layer.y = Number(layer.y || 0) - step; }
-                    else if (ev.key === 'ArrowDown') { ev.preventDefault(); layer.y = Number(layer.y || 0) + step; }
+                    if (ev.key === 'ArrowLeft') { ev.preventDefault(); recordDebouncedUndo(`nudge:${layer.id}`); layer.x = Number(layer.x || 0) - step; }
+                    else if (ev.key === 'ArrowRight') { ev.preventDefault(); recordDebouncedUndo(`nudge:${layer.id}`); layer.x = Number(layer.x || 0) + step; }
+                    else if (ev.key === 'ArrowUp') { ev.preventDefault(); recordDebouncedUndo(`nudge:${layer.id}`); layer.y = Number(layer.y || 0) - step; }
+                    else if (ev.key === 'ArrowDown') { ev.preventDefault(); recordDebouncedUndo(`nudge:${layer.id}`); layer.y = Number(layer.y || 0) + step; }
                     else return;
                     setDirty(true);
                     renderCanvas();
@@ -2657,6 +3233,7 @@
                     colData.theme.secondary_color = accent === '#CDAD69' ? '#F4E185' : accent;
                     colData.theme.surface_color = surface;
                     colData.theme.text_color = textColor;
+                    colData.theme.font_family = document.getElementById('col-font-family')?.value || 'Instrument Sans';
                     colData.theme.background_mode = bgMode;
                     colData.theme.background_color = bgColor;
                     colData.theme.background_asset_id = bgAsset ? bgAsset.id : null;
@@ -2698,7 +3275,7 @@
                     renderCanvas();
                 };
 
-                ['col-bg-mode', 'col-bg-asset'].forEach((id) => {
+                ['col-font-family', 'col-bg-mode', 'col-bg-asset'].forEach((id) => {
                     const el = document.getElementById(id);
                     if (!el) return;
                     el.addEventListener('input', applyLiveThemeFromInputs);

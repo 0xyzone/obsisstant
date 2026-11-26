@@ -819,4 +819,156 @@ class ScreenCollectionStageTest extends TestCase
             ->assertSee("layer.type === 'color_box'", false)
             ->assertSee('applyLayerOutline', false);
     }
+
+    public function test_font_families_undo_redo_delete_key_outline_direction_live_content_editors_and_studio_pencil_links(): void
+    {
+        Event::fake([ScreenCollectionUpdated::class]);
+
+        $fontOptions = ScreenCollectionPresetService::fontFamilyOptions();
+        $this->assertArrayHasKey('Instrument Sans', $fontOptions);
+        $this->assertArrayHasKey('Oswald', $fontOptions);
+        $this->assertArrayHasKey('Montserrat', $fontOptions);
+        $this->assertArrayHasKey('Bebas Neue', $fontOptions);
+        $this->assertArrayHasKey('Playfair Display', $fontOptions);
+
+        $user = User::factory()->create();
+        $studio = ObsStudio::factory()->for($user)->create(['control_mode' => 'screens']);
+        $collection = ScreenCollection::factory()->for($user)->create([
+            'obs_studio_id' => $studio->id,
+            'name' => 'Broadcast Main',
+        ]);
+        $viewA = ScreenView::factory()->create([
+            'screen_collection_id' => $collection->id,
+            'name' => 'Intro Slate',
+            'sort_order' => 1,
+        ]);
+        $viewB = ScreenView::factory()->create([
+            'screen_collection_id' => $collection->id,
+            'name' => 'Live Match',
+            'sort_order' => 2,
+        ]);
+        $collection->update(['active_view_id' => $viewA->id]);
+        $studio->update(['active_screen_collection_id' => $collection->id]);
+
+        // Collection Theme persists selected font_family
+        $this->actingAs($user)
+            ->putJson(route('studio.collections.update', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+            ]), [
+                'theme' => [
+                    'font_family' => 'Montserrat',
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('collection.theme.font_family', 'Montserrat');
+
+        // Layer persists font_family and border_position ('outside' / 'center' / 'inside')
+        $boxLayer = ScreenCollectionPresetService::makeDefaultLayer('color_box', 'Frame Box', [
+            'shape_preset' => 'rounded',
+            'border_width' => 8,
+            'border_style' => 'solid',
+            'border_color' => '#CDAD69',
+            'border_position' => 'outside',
+        ], 1);
+
+        $headlineLayer = ScreenCollectionPresetService::makeDefaultLayer('text', 'Match Header', [
+            'text' => 'SEMI FINALS',
+            'font_family' => 'Oswald',
+            'border_width' => 4,
+            'border_color' => '#FAF7EE',
+            'border_position' => 'center',
+        ], 2);
+
+        $this->actingAs($user)
+            ->putJson(route('studio.collections.views.update', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+                'view' => $viewB->id,
+            ]), [
+                'name' => 'Live Match',
+                'layers' => [$boxLayer, $headlineLayer],
+            ])
+            ->assertOk()
+            ->assertJsonPath('collection.views.1.layers.0.props.border_position', 'outside')
+            ->assertJsonPath('collection.views.1.layers.1.props.font_family', 'Oswald')
+            ->assertJsonPath('collection.views.1.layers.1.props.border_position', 'center');
+
+        // Live runtime endpoint updates Ticker badge/headlines and Lower Third badge from Builder or Studio Control Center
+        $this->actingAs($user)
+            ->postJson(route('studio.collections.runtime', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+            ]), [
+                'lower_third' => [
+                    'visible' => true,
+                    'badge' => 'ANALYST',
+                    'title' => 'Jordan Lee',
+                    'subtitle' => 'Lead Caster',
+                ],
+                'ticker' => [
+                    'visible' => true,
+                    'label' => 'BREAKING',
+                    'items' => "Map 2 starting now\nGrand Finals at 19:00 UTC",
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('collection.runtime_state.lower_third.badge', 'ANALYST')
+            ->assertJsonPath('collection.runtime_state.lower_third.title', 'Jordan Lee')
+            ->assertJsonPath('collection.runtime_state.ticker.label', 'BREAKING')
+            ->assertJsonPath('collection.runtime_state.ticker.items.0', 'Map 2 starting now')
+            ->assertJsonPath('collection.runtime_state.ticker.items.1', 'Grand Finals at 19:00 UTC');
+
+        // Builder route honors ?view=<id> for owned view and renders Undo/Redo, Delete key, Fonts, Outline Direction & Live Content editors
+        $this->actingAs($user)
+            ->get(route('studio.collections.builder', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+                'view' => $viewB->id,
+            ]))
+            ->assertOk()
+            ->assertViewHas('initialViewId', $viewB->id)
+            ->assertSee('id="col-font-family"', false)
+            ->assertSee('id="btn-undo-canvas"', false)
+            ->assertSee('id="btn-redo-canvas"', false)
+            ->assertSee('performUndo', false)
+            ->assertSee('performRedo', false)
+            ->assertSee('requestDeleteSelectedLayer', false)
+            ->assertSee('Outline Direction', false)
+            ->assertSee('applyStrokeStyle', false)
+            ->assertSee('Live Ticker Content', false)
+            ->assertSee('Live Scoreboard Content', false)
+            ->assertSee('Live Lower Third Content', false)
+            ->assertSee('Live Timer Content', false);
+
+        // Builder route ignores ?view=<id> belonging to another collection
+        $otherCollection = ScreenCollection::factory()->for($user)->create(['obs_studio_id' => $studio->id]);
+        $foreignView = ScreenView::factory()->create(['screen_collection_id' => $otherCollection->id]);
+        $this->actingAs($user)
+            ->get(route('studio.collections.builder', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+                'view' => $foreignView->id,
+            ]))
+            ->assertOk()
+            ->assertViewHas('initialViewId', null);
+
+        // Studio Control Center renders pencil edit button on screen view tiles and Lower Third Badge + Ticker editors
+        $this->actingAs($user)
+            ->get(route('studio.show', ['studio' => $studio->slug]))
+            ->assertOk()
+            ->assertSee('view-pad-edit-btn', false)
+            ->assertSee('?view=', false)
+            ->assertSee('id="uni-l3-badge"', false)
+            ->assertSee('id="uni-ticker-label"', false)
+            ->assertSee('id="uni-ticker-items"', false)
+            ->assertSee('id="uni-ticker-save"', false);
+
+        // Stage Player renders stroke direction & font stack helpers
+        $this->get(route('obs.collection.show', ['token' => $collection->public_token]))
+            ->assertOk()
+            ->assertSee('applyStrokeStyle', false)
+            ->assertSee('formatFontStack', false)
+            ->assertSee('bebas-neue', false);
+    }
 }

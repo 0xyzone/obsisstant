@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.16.0] - 2026-11-26 | type: minor
+
+> Added broadcast font family controls, Canvas Builder Undo/Redo history and Delete-key layer removal, outline direction options (Inside / Outside / Center), inline Live View content editors in Canvas Builder and Studio Control Center, and direct pencil edit links on Studio Screen View tiles.
+
+### Added
+- Added 15 curated broadcast-ready font family options (with Bunny Fonts loaded in both Canvas Builder and Stage Player) for Collection Theme defaults and all text-bearing layers (`text`, `timer`, `scoreboard`, `lower_third`, `ticker`).
+- Added per-view Undo / Redo history (`Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, `Ctrl+Y`, and Canvas toolbar buttons) plus `Delete` / `Backspace` keyboard removal of the selected layer with confirmation dialog in Canvas Builder.
+- Added Outline Direction (`Inside Shape`, `Outside Shape`, `Center (Half In / Out)`) across outline-capable layers and `camera_cutout`, rendered identically in Canvas Builder and Stage Player via `applyStrokeStyle`.
+- Added inline Live Content editors inside Canvas Builder (`Scoreboard`, `Lower Third`, `Ticker`, and `Timer`) with live canvas preview, instant `Push Live` actions, and automatic flush on `Save View`, plus Lower Third Badge and Ticker Badge/Headlines editors in Studio Control Center.
+- Added a direct pencil edit button on every Screen View tile in Studio Control Center linking to Canvas Builder with `?view=<id>` pre-selected.
+
 ## [v1.15.1] - 2026-11-26 | type: macro
 
 > Added opacity/alpha controls (interactive slider, exact % input, live checkerboard swatch, and RGBA/Hex8 parsing) to every color picker in Canvas Builder and Filament Forms.

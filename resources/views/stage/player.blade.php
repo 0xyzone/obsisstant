@@ -6,7 +6,7 @@
         <title>{{ $collection->name }} · Unified Broadcast Stage</title>
         <x-app-favicon />
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700,800|jetbrains-mono:500,600,700|poppins:400,500,600,700,800&display=swap" rel="stylesheet">
+        <link href="https://fonts.bunny.net/css?family=barlow-condensed:500,600,700,800|bebas-neue:400|fira-code:400,500,600,700|instrument-sans:400,500,600,700,800|inter:400,500,600,700,800|jetbrains-mono:400,500,600,700|montserrat:400,500,600,700,800|oswald:400,500,600,700|playfair-display:500,600,700,800|poppins:400,500,600,700,800|space-grotesk:400,500,600,700|syne:500,600,700,800&display=swap" rel="stylesheet">
         <style>
             :root {
                 --stage-w: {{ (int) ($stagePayload['width'] ?? 1920) }};
@@ -16,6 +16,7 @@
                 --surface: {{ $stagePayload['theme']['surface_color'] ?? '#0B0A08' }};
                 --text: {{ $stagePayload['theme']['text_color'] ?? '#FAF7EE' }};
                 --muted: {{ $stagePayload['theme']['muted_color'] ?? '#ABA291' }};
+                --font-family: {{ $stagePayload['theme']['font_family'] ?? 'Instrument Sans' }};
                 --blur: {{ (int) ($stagePayload['theme']['backdrop_blur'] ?? 18) }}px;
                 --radius: {{ (int) ($stagePayload['theme']['border_radius'] ?? 20) }}px;
                 --opacity: {{ (float) ($stagePayload['theme']['glass_opacity'] ?? 0.82) }};
@@ -33,7 +34,7 @@
                 overflow: hidden;
                 background: transparent;
                 color: var(--text);
-                font-family: 'Instrument Sans', 'Poppins', ui-sans-serif, system-ui, sans-serif;
+                font-family: var(--font-family), 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
                 -webkit-font-smoothing: antialiased;
             }
 
@@ -530,19 +531,56 @@
                     }
                 };
 
+                const formatFontStack = (family, fallbackStack = "'Instrument Sans', ui-sans-serif, system-ui, sans-serif") => {
+                    const clean = String(family || '').trim();
+                    if (!clean) return fallbackStack;
+                    if (['system-ui', 'serif', 'sans-serif', 'monospace'].includes(clean.toLowerCase())) {
+                        return clean;
+                    }
+                    return `'${clean.replace(/'/g, '')}', ${fallbackStack}`;
+                };
+
+                const applyStrokeStyle = (node, { width = 0, style = 'solid', color = '', position = 'inside', fallbackBorder = null } = {}) => {
+                    const bw = Math.max(0, Number(width || 0));
+                    const bs = style || 'solid';
+                    const pos = position || 'inside';
+                    node.style.outline = 'none';
+                    node.style.outlineOffset = '0px';
+                    if (bw > 0 && color) {
+                        if (pos === 'outside') {
+                            node.style.border = 'none';
+                            node.style.outline = `${bw}px ${bs} ${color}`;
+                            node.style.outlineOffset = '0px';
+                        } else if (pos === 'center') {
+                            node.style.border = 'none';
+                            node.style.outline = `${bw}px ${bs} ${color}`;
+                            node.style.outlineOffset = `${-(bw / 2)}px`;
+                        } else {
+                            node.style.border = `${bw}px ${bs} ${color}`;
+                        }
+                    } else if (fallbackBorder) {
+                        node.style.border = fallbackBorder;
+                    } else {
+                        node.style.border = 'none';
+                    }
+                };
+
                 const applyRootThemeVars = (theme) => {
                     const t = theme || {};
                     const accent = t.accent_color || '#CDAD69';
                     const secondary = t.secondary_color && t.secondary_color !== '#F4E185'
                         ? t.secondary_color
                         : (accent === '#CDAD69' ? '#F4E185' : accent);
+                    const fontStack = formatFontStack(t.font_family || 'Instrument Sans');
                     document.documentElement.style.setProperty('--accent', accent);
                     document.documentElement.style.setProperty('--secondary', secondary);
                     document.documentElement.style.setProperty('--surface', t.surface_color || '#0B0A08');
                     document.documentElement.style.setProperty('--text', t.text_color || '#FAF7EE');
                     document.documentElement.style.setProperty('--muted', t.muted_color || '#ABA291');
+                    document.documentElement.style.setProperty('--font-family', fontStack);
                     document.documentElement.style.setProperty('--blur', `${Number(t.backdrop_blur ?? 18)}px`);
                     document.documentElement.style.setProperty('--opacity', String(t.glass_opacity ?? 0.82));
+                    document.body.style.fontFamily = fontStack;
                 };
 
                 const applyViewThemeVars = (slot, view) => {
@@ -553,14 +591,17 @@
                     const secondary = merged.secondary_color && merged.secondary_color !== '#F4E185'
                         ? merged.secondary_color
                         : (accent === '#CDAD69' ? '#F4E185' : accent);
+                    const fontStack = formatFontStack(merged.font_family || 'Instrument Sans');
                     slot.style.setProperty('--v-accent', accent);
                     slot.style.setProperty('--v-secondary', secondary);
                     slot.style.setProperty('--v-surface', merged.surface_color || '#0B0A08');
                     slot.style.setProperty('--v-text', merged.text_color || '#FAF7EE');
                     slot.style.setProperty('--v-muted', merged.muted_color || '#ABA291');
+                    slot.style.setProperty('--v-font-family', fontStack);
                     slot.style.setProperty('--v-blur', `${Number(merged.backdrop_blur ?? 18)}px`);
                     slot.style.setProperty('--v-opacity', String(merged.glass_opacity ?? 0.82));
                     slot.style.color = merged.text_color || '#FAF7EE';
+                    slot.style.fontFamily = fontStack;
                     return merged;
                 };
 
@@ -703,14 +744,24 @@
                         const applyLayerOutline = (node) => {
                             const bw = Number(p.border_width ?? 0);
                             const bs = p.border_style || 'solid';
+                            const pos = p.border_position || 'inside';
                             if (p.border_width !== undefined && p.border_width !== '' && bw > 0) {
-                                node.style.border = `${bw}px ${bs} ${p.border_color || theme.accent_color || '#CDAD69'}`;
+                                applyStrokeStyle(node, {
+                                    width: bw,
+                                    style: bs,
+                                    color: p.border_color || theme.accent_color || '#CDAD69',
+                                    position: pos,
+                                });
                             } else if (p.border_width === 0 || p.border_width === '0') {
                                 node.style.border = 'none';
+                                node.style.outline = 'none';
                             } else if (p.border_color) {
-                                node.style.borderColor = p.border_color;
-                                node.style.borderStyle = bs;
-                                if (!node.style.borderWidth) node.style.borderWidth = '2px';
+                                applyStrokeStyle(node, {
+                                    width: 2,
+                                    style: bs,
+                                    color: p.border_color,
+                                    position: pos,
+                                });
                             }
                         };
 
@@ -720,7 +771,12 @@
                             const bw = Number(p.border_width ?? 3);
                             const bc = p.border_color || theme.accent_color || '#CDAD69';
                             frame.style.borderRadius = radiusCss;
-                            if (bw > 0) frame.style.border = `${bw}px solid ${bc}`;
+                            applyStrokeStyle(frame, {
+                                width: bw,
+                                style: p.border_style || 'solid',
+                                color: bc,
+                                position: p.border_position || 'inside',
+                            });
                             if (p.glow) frame.style.boxShadow = `inset 0 0 0 1px rgba(255,236,179,0.22), 0 0 36px -14px ${bc}`;
                             el.appendChild(frame);
                         } else if (layer.type === 'color_box') {
@@ -740,7 +796,12 @@
                             } else {
                                 box.style.background = fillColor;
                             }
-                            if (bw > 0) box.style.border = `${bw}px ${bs} ${bc}`;
+                            applyStrokeStyle(box, {
+                                width: bw,
+                                style: bs,
+                                color: bc,
+                                position: p.border_position || 'inside',
+                            });
                             if (p.shadow) box.style.boxShadow = '0 22px 48px -12px rgba(0, 0, 0, 0.72)';
                             el.appendChild(box);
                         } else if (layer.type === 'shape') {
@@ -788,7 +849,7 @@
                             span.className = 'live-text-content';
                             span.textContent = p.text || '';
                             span.style.cssText = `font-size:${Number(p.font_size || 48)}px;font-weight:${Number(p.font_weight || 700)};line-height:1.12;letter-spacing:${Number(p.letter_spacing || 0)}px;color:${p.text_color || 'var(--v-text)'};white-space:pre-wrap;`;
-                            if (p.font_family) span.style.fontFamily = `'${p.font_family}', ui-sans-serif, system-ui, sans-serif`;
+                            if (p.font_family) span.style.fontFamily = formatFontStack(p.font_family);
                             if (p.text_shadow) span.style.textShadow = '0 4px 18px rgba(0,0,0,0.75)';
                             box.appendChild(span);
                             el.appendChild(box);
@@ -798,6 +859,7 @@
                             box.style.borderRadius = radiusCss;
                             if (p.show_bg === false) box.style.background = 'transparent';
                             else if (p.bg_color) box.style.background = p.bg_color;
+                            if (p.font_family) box.style.fontFamily = formatFontStack(p.font_family);
                             applyLayerOutline(box);
                             const lbl = document.createElement('div');
                             lbl.className = 'timer-label live-timer-label';
@@ -810,6 +872,7 @@
                             digits.dataset.timerMode = String(p.mode || 'countdown');
                             digits.dataset.showHours = p.show_hours ? '1' : '0';
                             digits.style.fontSize = `${Number(p.font_size || 72)}px`;
+                            if (p.font_family) digits.style.fontFamily = formatFontStack(p.font_family);
                             if (p.text_color) digits.style.color = p.text_color;
                             box.append(lbl, digits);
                             el.appendChild(box);
@@ -820,6 +883,7 @@
                             if (p.bg_color) sb.style.background = p.bg_color;
                             if (p.text_color) sb.style.color = p.text_color;
                             if (p.accent_color) sb.style.setProperty('--v-accent', p.accent_color);
+                            if (p.font_family) sb.style.fontFamily = formatFontStack(p.font_family);
                             applyLayerOutline(sb);
                             sb.innerHTML = `
                                 <div class="sb-team">
@@ -843,6 +907,7 @@
                             if (p.bg_color) l3.style.background = p.bg_color;
                             if (p.text_color) l3.style.color = p.text_color;
                             if (p.accent_color) l3.style.setProperty('--v-accent', p.accent_color);
+                            if (p.font_family) l3.style.fontFamily = formatFontStack(p.font_family);
                             applyLayerOutline(l3);
                             l3.style.borderInlineStart = `5px solid ${p.accent_color || 'var(--v-accent, var(--accent))'}`;
                             l3.innerHTML = `
@@ -861,6 +926,7 @@
                             if (p.bg_color) tk.style.background = p.bg_color;
                             if (p.text_color) tk.style.color = p.text_color;
                             if (p.accent_color) tk.style.setProperty('--v-accent', p.accent_color);
+                            if (p.font_family) tk.style.fontFamily = formatFontStack(p.font_family);
                             applyLayerOutline(tk);
                             tk.innerHTML = `
                                 <span class="ticker-pill live-ticker-label"></span>

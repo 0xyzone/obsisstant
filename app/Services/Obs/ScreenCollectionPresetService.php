@@ -46,6 +46,32 @@ class ScreenCollectionPresetService
     }
 
     /**
+     * Curated broadcast-ready font families available in Canvas Builder and Stage Player.
+     *
+     * @return array<string, string>
+     */
+    public static function fontFamilyOptions(): array
+    {
+        return [
+            'Instrument Sans' => 'Instrument Sans (Clean Broadcast)',
+            'Poppins' => 'Poppins (Geometric Modern)',
+            'Inter' => 'Inter (Crisp UI Sans)',
+            'Montserrat' => 'Montserrat (Bold Display)',
+            'Oswald' => 'Oswald (Condensed Sports)',
+            'Bebas Neue' => 'Bebas Neue (All-Caps Impact)',
+            'Space Grotesk' => 'Space Grotesk (Tech Esports)',
+            'Syne' => 'Syne (Avant-Garde Headline)',
+            'Barlow Condensed' => 'Barlow Condensed (Scoreboard Pro)',
+            'Playfair Display' => 'Playfair Display (Editorial Serif)',
+            'JetBrains Mono' => 'JetBrains Mono (Broadcast Monospace)',
+            'Fira Code' => 'Fira Code (Tech Monospace)',
+            'system-ui' => 'System Sans-Serif',
+            'Georgia' => 'Classic Serif (Georgia)',
+            'monospace' => 'System Monospace',
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function defaultTheme(): array
@@ -53,6 +79,7 @@ class ScreenCollectionPresetService
         return [
             'accent_color' => '#CDAD69',
             'secondary_color' => '#F4E185',
+            'font_family' => 'Instrument Sans',
             'surface_color' => '#0B0A08',
             'text_color' => '#FAF7EE',
             'muted_color' => '#ABA291',

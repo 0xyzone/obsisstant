@@ -964,9 +964,15 @@
                 gap: 0.7rem;
             }
 
+            .view-pad-card {
+                position: relative;
+                display: grid;
+            }
+
             .view-pad-btn {
                 display: grid;
                 gap: 0.5rem;
+                inline-size: 100%;
                 text-align: start;
                 padding: 0.5rem;
                 border-radius: 0.75rem;
@@ -986,6 +992,36 @@
             .view-pad-btn.is-active {
                 border-color: var(--positive);
                 background: rgba(76, 195, 138, 0.08);
+            }
+
+            .view-pad-edit-btn {
+                position: absolute;
+                inset-block-end: 0.55rem;
+                inset-inline-end: 0.55rem;
+                z-index: 4;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                inline-size: 1.85rem;
+                block-size: 1.85rem;
+                border-radius: 0.45rem;
+                border: 1px solid var(--hairline);
+                background: rgba(18, 18, 16, 0.92);
+                color: var(--ink-secondary);
+                text-decoration: none;
+                transition: border-color 120ms var(--ease-out), color 120ms var(--ease-out), background-color 120ms var(--ease-out);
+            }
+
+            .view-pad-edit-btn:hover,
+            .view-pad-edit-btn:focus-visible {
+                border-color: var(--gold-accent);
+                background: rgba(205, 173, 105, 0.16);
+                color: var(--gold-light);
+                outline: none;
+            }
+
+            .view-pad-edit-btn:focus-visible {
+                box-shadow: 0 0 0 2px var(--gold-light);
             }
 
             .view-pad-thumb {
@@ -1648,6 +1684,10 @@
                                             <span id="uni-l3-status" class="dock-subtitle">Visible</span>
                                         </div>
                                         <label class="field-stack">
+                                            <span class="field-label">Badge Label</span>
+                                            <input type="text" id="uni-l3-badge" class="s-input" placeholder="LIVE">
+                                        </label>
+                                        <label class="field-stack">
                                             <span class="field-label">Speaker / Headline</span>
                                             <input type="text" id="uni-l3-title" class="s-input" placeholder="Broadcast Host">
                                         </label>
@@ -1666,6 +1706,16 @@
                                             <strong style="font-size: 0.8125rem;">Pop-Up Alert &amp; Ticker</strong>
                                             <button type="button" id="uni-ticker-toggle" class="s-btn s-btn-xs">Ticker: On</button>
                                         </div>
+                                        <label class="field-stack">
+                                            <span class="field-label">Ticker Badge</span>
+                                            <input type="text" id="uni-ticker-label" class="s-input" placeholder="LIVE">
+                                        </label>
+                                        <label class="field-stack">
+                                            <span class="field-label">Ticker Headlines (one per line)</span>
+                                            <textarea id="uni-ticker-items" class="s-textarea" rows="2" placeholder="Welcome to the live broadcast!&#10;Follow for updates"></textarea>
+                                        </label>
+                                        <button type="button" id="uni-ticker-save" class="s-btn s-btn-xs">Update Ticker Content</button>
+                                        <hr style="border: 0; border-block-start: 1px solid var(--hairline); margin: 0.15rem 0;">
                                         <label class="field-stack">
                                             <span class="field-label">Alert Headline</span>
                                             <input type="text" id="uni-alert-title" class="s-input" placeholder="Live Update">
@@ -4649,8 +4699,11 @@
                                 thumb.appendChild(pill);
                             }
 
+                            const card = document.createElement('div');
+                            card.className = 'view-pad-card';
+
                             const info = document.createElement('div');
-                            info.style.cssText = 'display:grid;gap:0.125rem;min-inline-size:0;';
+                            info.style.cssText = 'display:grid;gap:0.125rem;min-inline-size:0;padding-inline-end:2.2rem;';
 
                             const title = document.createElement('strong');
                             title.style.cssText = 'font-size:0.8125rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
@@ -4679,7 +4732,16 @@
                                 renderUnifiedWorkspace();
                                 showToast(`Live View: ${view.name}`, 'success');
                             });
-                            grid.appendChild(btn);
+
+                            const editLink = document.createElement('a');
+                            editLink.className = 'view-pad-edit-btn';
+                            editLink.href = `${builderHref}?view=${encodeURIComponent(view.id)}`;
+                            editLink.title = `Edit "${view.name}" in Canvas Builder`;
+                            editLink.setAttribute('aria-label', `Edit ${view.name} in Canvas Builder`);
+                            editLink.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+
+                            card.append(btn, editLink);
+                            grid.appendChild(card);
                         });
                     }
 
@@ -4711,6 +4773,7 @@
                     document.getElementById('uni-sb-b-score').textContent = String(sb.team_b_score ?? 0);
 
                     const l3 = col.runtime_state?.lower_third || {};
+                    setIfIdle('uni-l3-badge', l3.badge || 'LIVE');
                     setIfIdle('uni-l3-title', l3.title || '');
                     setIfIdle('uni-l3-sub', l3.subtitle || '');
                     const l3Status = document.getElementById('uni-l3-status');
@@ -4723,9 +4786,12 @@
                     setIfIdle('uni-alert-title', alertState.title || '');
                     setIfIdle('uni-alert-msg', alertState.message || '');
 
+                    const tkState = col.runtime_state?.ticker || {};
+                    setIfIdle('uni-ticker-label', tkState.label || 'LIVE');
+                    setIfIdle('uni-ticker-items', Array.isArray(tkState.items) ? tkState.items.join('\n') : '');
                     const tickerBtn = document.getElementById('uni-ticker-toggle');
                     if (tickerBtn) {
-                        const tickerOn = col.runtime_state?.ticker?.visible !== false;
+                        const tickerOn = tkState.visible !== false;
                         tickerBtn.textContent = tickerOn ? 'Ticker: On' : 'Ticker: Off';
                         tickerBtn.classList.toggle('is-active', tickerOn);
                     }
@@ -4902,6 +4968,7 @@
                 document.getElementById('uni-l3-show')?.addEventListener('click', () => sendUnifiedRuntime({
                     lower_third: {
                         visible: true,
+                        badge: document.getElementById('uni-l3-badge')?.value?.trim() || 'LIVE',
                         title: document.getElementById('uni-l3-title')?.value || '',
                         subtitle: document.getElementById('uni-l3-sub')?.value || '',
                     },
@@ -4911,6 +4978,12 @@
                     const col = getActiveCollection();
                     const currentlyOn = col?.runtime_state?.ticker?.visible !== false;
                     sendUnifiedRuntime({ ticker: { visible: !currentlyOn } });
+                });
+                document.getElementById('uni-ticker-save')?.addEventListener('click', async () => {
+                    const label = document.getElementById('uni-ticker-label')?.value?.trim() || 'LIVE';
+                    const items = document.getElementById('uni-ticker-items')?.value || '';
+                    await sendUnifiedRuntime({ ticker: { label, items } });
+                    showToast('Ticker headlines updated live', 'success');
                 });
                 document.getElementById('uni-alert-show')?.addEventListener('click', () => sendUnifiedRuntime({
                     alert: {

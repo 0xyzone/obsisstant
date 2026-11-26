@@ -148,13 +148,20 @@ class ScreenCollectionController extends Controller
         $user = $this->authorizeStudio($request, $studio);
         $this->authorizeCollection($user, $collection);
 
+        $requestedViewId = $request->integer('view') ?: null;
+        $initialViewId = $requestedViewId !== null && $collection->views()->whereKey($requestedViewId)->exists()
+            ? $requestedViewId
+            : null;
+
         return view('studio.collection-builder', [
             'currentVersion' => ChangelogService::getCurrentVersion(),
             'studio' => $studio,
             'collection' => $collection,
             'collectionPayload' => ScreenCollectionService::buildStagePayload($collection),
+            'initialViewId' => $initialViewId,
             'layerTypes' => ScreenCollectionPresetService::layerTypeOptions(),
             'transitionTypes' => ScreenCollectionPresetService::transitionOptions(),
+            'fontFamilies' => ScreenCollectionPresetService::fontFamilyOptions(),
             'echoConfig' => ReverbStatusService::clientEchoConfig(),
         ]);
     }
