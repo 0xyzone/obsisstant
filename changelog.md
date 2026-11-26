@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.15.1] - 2026-11-26 | type: macro
+
+> Added opacity/alpha controls (interactive slider, exact % input, live checkerboard swatch, and RGBA/Hex8 parsing) to every color picker in Canvas Builder and Filament Forms.
+
+### Added
+- Added paired Opacity (0-100%) slider, numeric percentage input, checkerboard alpha preview swatch, and bidirectional #hex/#hex8/rgba() parsing to all Canvas Builder layer, Collection Theme, Default Background, and View Override color controls.
+- Enabled RGBA alpha selection on Filament ColorPicker inputs in Screen Collection and Overlay Screen forms.
+
 ## [v1.15.0] - 2026-11-26 | type: minor
 
 > Fixed excessive OBS WebSocket traffic and frequent disconnections, added confirmation dialogs to every delete/remove action, added automatic server file deletion on delete/replace plus a bulk unused & orphaned media cleaner, restricted Reverb status exclusively to Filament Admin Panel, and reorganized Filament navigation into clean grouped categories.

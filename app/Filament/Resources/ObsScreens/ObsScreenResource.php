@@ -186,12 +186,15 @@ class ObsScreenResource extends Resource
                     ->schema([
                         ColorPicker::make('theme.accent_color')
                             ->label('Accent Color')
+                            ->rgba()
                             ->default('#E5B94C'),
                         ColorPicker::make('theme.surface_color')
                             ->label('Surface Color')
+                            ->rgba()
                             ->default('#0B0A08'),
                         ColorPicker::make('theme.text_color')
                             ->label('Text Color')
+                            ->rgba()
                             ->default('#F7F3E9'),
                         TextInput::make('theme.backdrop_blur')
                             ->label('Backdrop Blur (px)')

@@ -66,12 +66,15 @@ class ScreenCollectionForm
                     ->schema([
                         ColorPicker::make('theme.accent_color')
                             ->label('Accent Color')
+                            ->rgba()
                             ->default('#CDAD69'),
                         ColorPicker::make('theme.surface_color')
                             ->label('Surface Color')
+                            ->rgba()
                             ->default('#0B0A08'),
                         ColorPicker::make('theme.text_color')
                             ->label('Text Color')
+                            ->rgba()
                             ->default('#FAF7EE'),
                         Select::make('default_transition.type')
                             ->label('Default Transition')

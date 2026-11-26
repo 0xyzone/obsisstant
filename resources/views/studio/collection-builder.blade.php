@@ -358,17 +358,131 @@
             .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
             .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
 
+            .color-field-stack {
+                display: grid;
+                gap: 0.3rem;
+            }
             .color-field-row {
                 display: grid;
                 grid-template-columns: 2.25rem minmax(0, 1fr) auto;
                 gap: 0.3rem;
                 align-items: center;
             }
-            .color-swatch-input {
+            .color-field-row--no-clear {
+                grid-template-columns: 2.25rem minmax(0, 1fr);
+            }
+            .color-swatch-box {
+                position: relative;
                 inline-size: 2.25rem;
-                min-block-size: 2rem;
-                padding: 0.12rem;
+                block-size: 2rem;
+                border-radius: 0.45rem;
+                border: 1px solid var(--hairline-strong);
+                overflow: hidden;
+                background-image:
+                    linear-gradient(45deg, rgba(255, 255, 255, 0.16) 25%, transparent 25%),
+                    linear-gradient(-45deg, rgba(255, 255, 255, 0.16) 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.16) 75%),
+                    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.16) 75%);
+                background-size: 10px 10px;
+                background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+                background-color: #161512;
+                forced-color-adjust: none;
+            }
+            .color-swatch-preview {
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                forced-color-adjust: none;
+            }
+            .color-swatch-input {
+                position: absolute;
+                inset: 0;
+                inline-size: 100%;
+                block-size: 100%;
+                opacity: 0;
+                padding: 0;
+                margin: 0;
+                border: 0;
                 cursor: pointer;
+            }
+            .color-swatch-box:has(.color-swatch-input:focus-visible) {
+                outline: 2px solid var(--gold-light);
+                outline-offset: 2px;
+            }
+            .color-alpha-row {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr) 3.6rem auto;
+                gap: 0.35rem;
+                align-items: center;
+            }
+            .color-alpha-label {
+                font-size: 0.65rem;
+                color: var(--ink-muted);
+                white-space: nowrap;
+            }
+            .color-alpha-pct {
+                padding: 0.2rem 0.32rem !important;
+                font-size: 0.72rem !important;
+                text-align: end;
+                font-variant-numeric: tabular-nums;
+            }
+            .alpha-slider {
+                --slider-track-size: 0.5rem;
+                --slider-thumb-size: 0.95rem;
+                --alpha-hex: #CDAD69;
+                --control-value: 100;
+                appearance: none;
+                -webkit-appearance: none;
+                inline-size: 100%;
+                block-size: 1.45rem;
+                margin: 0;
+                padding: 0;
+                border: 0;
+                background: transparent;
+                cursor: pointer;
+                forced-color-adjust: none;
+            }
+            .alpha-slider::-webkit-slider-runnable-track {
+                block-size: var(--slider-track-size);
+                border-radius: 999px;
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                background:
+                    linear-gradient(to right, transparent 0%, var(--alpha-hex) 100%),
+                    linear-gradient(45deg, rgba(255, 255, 255, 0.16) 25%, transparent 25%) 0 0 / 8px 8px,
+                    linear-gradient(-45deg, rgba(255, 255, 255, 0.16) 25%, transparent 25%) 0 4px / 8px 8px,
+                    #161512;
+            }
+            .alpha-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                inline-size: var(--slider-thumb-size);
+                block-size: var(--slider-thumb-size);
+                margin-block-start: calc((var(--slider-track-size) - var(--slider-thumb-size)) / 2 - 1px);
+                border-radius: 50%;
+                border: 2px solid #0B0A08;
+                background: #FAF7EE;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
+            }
+            .alpha-slider::-moz-range-track {
+                block-size: var(--slider-track-size);
+                border-radius: 999px;
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                background:
+                    linear-gradient(to right, transparent 0%, var(--alpha-hex) 100%),
+                    #161512;
+            }
+            .alpha-slider::-moz-range-thumb {
+                inline-size: var(--slider-thumb-size);
+                block-size: var(--slider-thumb-size);
+                border-radius: 50%;
+                border: 2px solid #0B0A08;
+                background: #FAF7EE;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
+            }
+            .alpha-slider:focus-visible {
+                outline: 2px solid var(--gold-light);
+                outline-offset: 2px;
+                border-radius: 0.25rem;
             }
             .toggle-row {
                 display: flex;
@@ -528,23 +642,23 @@
                     <div class="panel-head">
                         <h2 class="panel-title">Collection Theme &amp; Transition</h2>
                     </div>
-                    <div class="grid-2">
-                        <label class="stack">
+                    <div class="stack">
+                        <div class="stack">
                             <span class="sub-label">Accent Color</span>
-                            <input type="color" id="col-accent-color" class="s-input" style="padding: 0.15rem;">
-                        </label>
-                        <label class="stack">
+                            <input type="text" id="col-accent-color" class="s-input" data-color-picker data-fallback="#CDAD69" aria-label="Accent Color">
+                        </div>
+                        <div class="stack">
                             <span class="sub-label">Surface Color</span>
-                            <input type="color" id="col-surface-color" class="s-input" style="padding: 0.15rem;">
-                        </label>
-                        <label class="stack">
+                            <input type="text" id="col-surface-color" class="s-input" data-color-picker data-fallback="#0B0A08" aria-label="Surface Color">
+                        </div>
+                        <div class="stack">
                             <span class="sub-label">Text Color</span>
-                            <input type="color" id="col-text-color" class="s-input" style="padding: 0.15rem;">
-                        </label>
-                        <label class="stack">
+                            <input type="text" id="col-text-color" class="s-input" data-color-picker data-fallback="#FAF7EE" aria-label="Text Color">
+                        </div>
+                        <div class="stack">
                             <span class="sub-label">Sweep Color</span>
-                            <input type="color" id="col-sweep-color" class="s-input" style="padding: 0.15rem;">
-                        </label>
+                            <input type="text" id="col-sweep-color" class="s-input" data-color-picker data-fallback="#CDAD69" aria-label="Sweep Color">
+                        </div>
                     </div>
 
                     <div class="stack" style="padding: 0.55rem; border-radius: 0.5rem; background: var(--bg-chrome); border: 1px solid var(--hairline);">
@@ -558,10 +672,10 @@
                             </select>
                         </label>
 
-                        <label class="stack" id="col-bg-color-wrap" hidden>
+                        <div class="stack" id="col-bg-color-wrap" hidden>
                             <span class="sub-label">Default Background Color</span>
-                            <input type="color" id="col-bg-color" class="s-input" style="padding: 0.15rem;">
-                        </label>
+                            <input type="text" id="col-bg-color" class="s-input" data-color-picker data-fallback="#0B0A08" aria-label="Default Background Color">
+                        </div>
 
                         <div class="stack" id="col-bg-asset-wrap" hidden>
                             <label class="stack">
@@ -746,10 +860,10 @@
                             <option value="asset">Animated Video / Image Backdrop</option>
                         </select>
                     </label>
-                    <label class="stack" id="vp-bg-color-wrap" hidden>
+                    <div class="stack" id="vp-bg-color-wrap" hidden>
                         <span class="sub-label">Solid Bg Color</span>
-                        <input type="color" id="vp-bg-color" class="s-input" style="padding: 0.15rem;">
-                    </label>
+                        <input type="text" id="vp-bg-color" class="s-input" data-color-picker data-fallback="#0B0A08" aria-label="View Solid Background Color">
+                    </div>
                     <div class="stack" id="vp-bg-asset-wrap" hidden>
                         <label class="stack">
                             <span class="sub-label">Bg Media Asset</span>
@@ -763,15 +877,15 @@
                         </label>
                     </div>
 
-                    <div class="grid-2">
-                        <label class="stack">
+                    <div class="stack">
+                        <div class="stack">
                             <span class="sub-label">View Accent Override</span>
-                            <input type="text" id="vp-theme-accent" class="s-input" placeholder="Inherit Collection">
-                        </label>
-                        <label class="stack">
+                            <input type="text" id="vp-theme-accent" class="s-input" data-color-picker data-fallback="#CDAD69" data-allow-clear="1" placeholder="Inherit Collection" aria-label="View Accent Override">
+                        </div>
+                        <div class="stack">
                             <span class="sub-label">View Surface Override</span>
-                            <input type="text" id="vp-theme-surface" class="s-input" placeholder="Inherit Collection">
-                        </label>
+                            <input type="text" id="vp-theme-surface" class="s-input" data-color-picker data-fallback="#0B0A08" data-allow-clear="1" placeholder="Inherit Collection" aria-label="View Surface Override">
+                        </div>
                     </div>
 
                     <div class="grid-2">
@@ -923,6 +1037,255 @@
                 };
 
                 const getCurrentView = () => (colData.views || []).find((v) => Number(v.id) === Number(selectedViewId)) || colData.views?.[0] || null;
+
+                // Universal CSS Color + Opacity (Alpha) parser, formatter & widget builder
+                const clampNum = (n, min, max) => Math.min(max, Math.max(min, Number.isFinite(n) ? n : min));
+
+                const hexToRgb = (hex6) => {
+                    const clean = String(hex6 || '#CDAD69').replace('#', '');
+                    return {
+                        r: parseInt(clean.slice(0, 2), 16) || 0,
+                        g: parseInt(clean.slice(2, 4), 16) || 0,
+                        b: parseInt(clean.slice(4, 6), 16) || 0,
+                    };
+                };
+
+                const rgbToHex6 = (r, g, b) => '#' + [r, g, b]
+                    .map((v) => clampNum(Math.round(Number(v) || 0), 0, 255).toString(16).padStart(2, '0'))
+                    .join('')
+                    .toUpperCase();
+
+                const parseCssColor = (raw, fallbackHex = '#CDAD69') => {
+                    const fb = /^#[0-9a-f]{6}$/i.test(String(fallbackHex || '').trim())
+                        ? String(fallbackHex).trim().toUpperCase()
+                        : '#CDAD69';
+                    const str = String(raw || '').trim();
+                    if (!str) {
+                        return { hex6: fb, alpha: 100, empty: true };
+                    }
+                    if (str.toLowerCase() === 'transparent') {
+                        return { hex6: fb, alpha: 0, empty: false };
+                    }
+                    const shortHex = str.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])([0-9a-f])?$/i);
+                    if (shortHex) {
+                        const hex6 = `#${shortHex[1]}${shortHex[1]}${shortHex[2]}${shortHex[2]}${shortHex[3]}${shortHex[3]}`.toUpperCase();
+                        const alpha = shortHex[4] !== undefined
+                            ? Math.round((parseInt(shortHex[4] + shortHex[4], 16) / 255) * 100)
+                            : 100;
+                        return { hex6, alpha, empty: false };
+                    }
+                    const longHex = str.match(/^#([0-9a-f]{6})([0-9a-f]{2})?$/i);
+                    if (longHex) {
+                        const hex6 = `#${longHex[1]}`.toUpperCase();
+                        const alpha = longHex[2] !== undefined
+                            ? Math.round((parseInt(longHex[2], 16) / 255) * 100)
+                            : 100;
+                        return { hex6, alpha, empty: false };
+                    }
+                    const rgbaMatch = str.match(/^rgba?\(\s*([0-9.]+)\s*[,\s]\s*([0-9.]+)\s*[,\s]\s*([0-9.]+)(?:\s*[,/]\s*([0-9.]+%?))?\s*\)$/i);
+                    if (rgbaMatch) {
+                        const hex6 = rgbToHex6(rgbaMatch[1], rgbaMatch[2], rgbaMatch[3]);
+                        let alpha = 100;
+                        if (rgbaMatch[4] !== undefined) {
+                            const rawA = rgbaMatch[4].trim();
+                            alpha = rawA.endsWith('%')
+                                ? clampNum(Math.round(parseFloat(rawA)), 0, 100)
+                                : clampNum(Math.round(parseFloat(rawA) * 100), 0, 100);
+                        }
+                        return { hex6, alpha, empty: false };
+                    }
+                    return { hex6: fb, alpha: 100, empty: false, passthrough: true };
+                };
+
+                const formatCssColor = (hex6, alphaPct = 100) => {
+                    const cleanHex = /^#[0-9a-f]{6}$/i.test(String(hex6 || '').trim())
+                        ? String(hex6).trim().toUpperCase()
+                        : '#CDAD69';
+                    const pct = clampNum(Math.round(Number(alphaPct)), 0, 100);
+                    if (pct >= 100) {
+                        return cleanHex;
+                    }
+                    const { r, g, b } = hexToRgb(cleanHex);
+                    const a = Number((pct / 100).toFixed(2));
+                    return `rgba(${r}, ${g}, ${b}, ${a})`;
+                };
+
+                const createColorOpacityWidget = ({
+                    initialValue = '',
+                    fallbackHex = '#CDAD69',
+                    placeholder = 'Inherit',
+                    allowClear = true,
+                    existingTextInput = null,
+                    labelForAria = 'Color',
+                    onChange = () => {},
+                }) => {
+                    const stack = document.createElement('div');
+                    stack.className = 'color-field-stack';
+
+                    const topRow = document.createElement('div');
+                    topRow.className = allowClear ? 'color-field-row' : 'color-field-row color-field-row--no-clear';
+
+                    const swatchBox = document.createElement('div');
+                    swatchBox.className = 'color-swatch-box';
+
+                    const preview = document.createElement('div');
+                    preview.className = 'color-swatch-preview';
+
+                    const swatch = document.createElement('input');
+                    swatch.type = 'color';
+                    swatch.className = 'color-swatch-input';
+                    swatch.setAttribute('aria-label', `${labelForAria} picker`);
+
+                    swatchBox.append(preview, swatch);
+
+                    const txt = existingTextInput || document.createElement('input');
+                    if (!existingTextInput) {
+                        txt.type = 'text';
+                        txt.className = 's-input';
+                        txt.placeholder = placeholder || 'Inherit';
+                        txt.setAttribute('aria-label', `${labelForAria} value`);
+                    }
+
+                    const alphaRow = document.createElement('div');
+                    alphaRow.className = 'color-alpha-row';
+
+                    const alphaLbl = document.createElement('span');
+                    alphaLbl.className = 'color-alpha-label';
+                    alphaLbl.textContent = 'Opacity';
+
+                    const slider = document.createElement('input');
+                    slider.type = 'range';
+                    slider.className = 'alpha-slider';
+                    slider.min = '0';
+                    slider.max = '100';
+                    slider.step = '1';
+                    slider.setAttribute('aria-label', `${labelForAria} opacity`);
+
+                    const pctInput = document.createElement('input');
+                    pctInput.type = 'number';
+                    pctInput.className = 's-input color-alpha-pct';
+                    pctInput.min = '0';
+                    pctInput.max = '100';
+                    pctInput.step = '1';
+                    pctInput.setAttribute('aria-label', `${labelForAria} opacity percentage`);
+
+                    const pctSuffix = document.createElement('span');
+                    pctSuffix.className = 'color-alpha-label';
+                    pctSuffix.textContent = '%';
+
+                    alphaRow.append(alphaLbl, slider, pctInput, pctSuffix);
+
+                    const syncVisuals = (rawVal, updateText = true) => {
+                        const parsed = parseCssColor(rawVal, fallbackHex);
+                        swatch.value = parsed.hex6;
+                        slider.value = String(parsed.alpha);
+                        slider.style.setProperty('--alpha-hex', parsed.hex6);
+                        slider.style.setProperty('--control-value', String(parsed.alpha));
+                        slider.setAttribute('aria-valuetext', `${parsed.alpha}%`);
+                        pctInput.value = String(parsed.alpha);
+                        const displayColor = parsed.empty
+                            ? formatCssColor(parsed.hex6, 100)
+                            : (parsed.passthrough ? String(rawVal || '').trim() : formatCssColor(parsed.hex6, parsed.alpha));
+                        preview.style.background = displayColor;
+                        if (updateText) {
+                            txt.value = parsed.empty ? '' : String(rawVal || '').trim();
+                        }
+                    };
+
+                    const commitFromParts = (hex6, alphaPct) => {
+                        const formatted = formatCssColor(hex6, alphaPct);
+                        syncVisuals(formatted, true);
+                        onChange(formatted);
+                    };
+
+                    swatch.addEventListener('input', () => {
+                        commitFromParts(swatch.value, Number(slider.value));
+                    });
+
+                    slider.addEventListener('input', () => {
+                        const pct = clampNum(Number(slider.value), 0, 100);
+                        commitFromParts(swatch.value, pct);
+                    });
+
+                    pctInput.addEventListener('input', () => {
+                        if (pctInput.value === '') return;
+                        const pct = clampNum(Number(pctInput.value), 0, 100);
+                        commitFromParts(swatch.value, pct);
+                    });
+                    pctInput.addEventListener('blur', () => {
+                        const pct = clampNum(Number(pctInput.value === '' ? slider.value : pctInput.value), 0, 100);
+                        commitFromParts(swatch.value, pct);
+                    });
+
+                    txt.addEventListener('input', () => {
+                        const cleaned = txt.value.trim();
+                        syncVisuals(cleaned, false);
+                        onChange(cleaned);
+                    });
+
+                    topRow.append(swatchBox, txt);
+
+                    if (allowClear) {
+                        const clr = document.createElement('button');
+                        clr.type = 'button';
+                        clr.className = 's-btn s-btn-xs';
+                        clr.textContent = '×';
+                        clr.title = 'Reset / Clear color';
+                        clr.addEventListener('click', () => {
+                            syncVisuals('', true);
+                            onChange('');
+                        });
+                        topRow.appendChild(clr);
+                    }
+
+                    stack.append(topRow, alphaRow);
+                    syncVisuals(initialValue, true);
+
+                    return { element: stack, sync: (val) => syncVisuals(val, true) };
+                };
+
+                const staticColorWidgets = new Map();
+                const mountStaticColorPickers = () => {
+                    document.querySelectorAll('input[data-color-picker]').forEach((inp) => {
+                        if (staticColorWidgets.has(inp.id)) return;
+                        const parent = inp.parentNode;
+                        if (!parent) return;
+                        const fallbackHex = inp.dataset.fallback || '#CDAD69';
+                        const allowClear = inp.dataset.allowClear === '1';
+                        const labelText = inp.getAttribute('aria-label') || 'Color';
+                        const placeholderEl = document.createComment(`color-host-${inp.id}`);
+                        parent.replaceChild(placeholderEl, inp);
+
+                        const widget = createColorOpacityWidget({
+                            initialValue: inp.value,
+                            fallbackHex,
+                            placeholder: inp.placeholder || '',
+                            allowClear,
+                            existingTextInput: inp,
+                            labelForAria: labelText,
+                            onChange: () => {
+                                if (inp.id.startsWith('col-')) {
+                                    applyLiveThemeFromInputs();
+                                } else if (inp.id.startsWith('vp-')) {
+                                    applyLiveViewSettingsFromInputs();
+                                }
+                            },
+                        });
+
+                        parent.replaceChild(widget.element, placeholderEl);
+                        staticColorWidgets.set(inp.id, widget);
+                    });
+                };
+
+                const setStaticColorValue = (id, value) => {
+                    const widget = staticColorWidgets.get(id);
+                    if (widget) {
+                        widget.sync(value ?? '');
+                    } else {
+                        const el = document.getElementById(id);
+                        if (el) el.value = value ?? '';
+                    }
+                };
 
                 const updateCanvasScale = () => {
                     const wrap = document.getElementById('canvas-stage-wrap');
@@ -1671,51 +2034,20 @@
                         return g;
                     };
 
-                    const isValidHex6 = (val) => /^#[0-9a-f]{6}$/i.test(String(val || '').trim());
-
-                    const makeColorField = (currentVal, fallbackHex, placeholder, onChange) => {
-                        const row = document.createElement('div');
-                        row.className = 'color-field-row';
-                        const swatch = document.createElement('input');
-                        swatch.type = 'color';
-                        swatch.className = 's-input color-swatch-input';
-                        swatch.value = isValidHex6(currentVal) ? currentVal : (isValidHex6(fallbackHex) ? fallbackHex : '#CDAD69');
-
-                        const txt = document.createElement('input');
-                        txt.type = 'text';
-                        txt.className = 's-input';
-                        txt.placeholder = placeholder || 'Inherit';
-                        txt.value = currentVal || '';
-
-                        const clr = document.createElement('button');
-                        clr.type = 'button';
-                        clr.className = 's-btn s-btn-xs';
-                        clr.textContent = '×';
-                        clr.title = 'Reset / Clear color';
-
-                        swatch.oninput = () => {
-                            txt.value = swatch.value;
-                            onChange(swatch.value);
-                            setDirty(true);
-                            renderCanvas();
-                        };
-                        txt.oninput = () => {
-                            const cleaned = txt.value.trim();
-                            if (isValidHex6(cleaned)) swatch.value = cleaned;
-                            onChange(cleaned);
-                            setDirty(true);
-                            renderCanvas();
-                        };
-                        clr.onclick = () => {
-                            txt.value = '';
-                            swatch.value = isValidHex6(fallbackHex) ? fallbackHex : '#CDAD69';
-                            onChange('');
-                            setDirty(true);
-                            renderCanvas();
-                        };
-
-                        row.append(swatch, txt, clr);
-                        return row;
+                    const makeColorField = (currentVal, fallbackHex, placeholder, onChange, labelForAria = 'Color') => {
+                        const widget = createColorOpacityWidget({
+                            initialValue: currentVal || '',
+                            fallbackHex: fallbackHex || '#CDAD69',
+                            placeholder: placeholder || 'Inherit',
+                            allowClear: true,
+                            labelForAria,
+                            onChange: (val) => {
+                                onChange(val);
+                                setDirty(true);
+                                renderCanvas();
+                            },
+                        });
+                        return widget.element;
                     };
 
                     const makeNumberField = (val, { min = 0, max = 500, step = 1, fallback = 0 } = {}, onChange) => {
@@ -2014,10 +2346,10 @@
                     if (!view) return;
                     document.getElementById('vp-name').value = view.name || '';
                     document.getElementById('vp-bg-mode').value = view.background_mode || 'theme';
-                    document.getElementById('vp-bg-color').value = view.background_color || '#0B0A08';
+                    setStaticColorValue('vp-bg-color', view.background_color || '#0B0A08');
                     document.getElementById('vp-bg-asset').value = String(view.background_asset_id || '');
-                    document.getElementById('vp-theme-accent').value = view.theme_override?.accent_color || '';
-                    document.getElementById('vp-theme-surface').value = view.theme_override?.surface_color || '';
+                    setStaticColorValue('vp-theme-accent', view.theme_override?.accent_color || '');
+                    setStaticColorValue('vp-theme-surface', view.theme_override?.surface_color || '');
                     document.getElementById('vp-tx-type').value = view.transition_override?.type || '';
                     document.getElementById('vp-tx-dur').value = view.transition_override?.duration_ms ?? '';
                     document.getElementById('vp-logic-action').value = view.logic_rules?.on_timer_end_action || 'none';
@@ -2028,12 +2360,12 @@
                 const populateCollectionSettings = () => {
                     const th = colData.theme || {};
                     const tx = colData.default_transition || {};
-                    document.getElementById('col-accent-color').value = th.accent_color || '#CDAD69';
-                    document.getElementById('col-surface-color').value = th.surface_color || '#0B0A08';
-                    document.getElementById('col-text-color').value = th.text_color || '#FAF7EE';
-                    document.getElementById('col-sweep-color').value = tx.sweep_color || th.accent_color || '#CDAD69';
+                    setStaticColorValue('col-accent-color', th.accent_color || '#CDAD69');
+                    setStaticColorValue('col-surface-color', th.surface_color || '#0B0A08');
+                    setStaticColorValue('col-text-color', th.text_color || '#FAF7EE');
+                    setStaticColorValue('col-sweep-color', tx.sweep_color || th.accent_color || '#CDAD69');
                     document.getElementById('col-bg-mode').value = th.background_mode || 'gradient';
-                    document.getElementById('col-bg-color').value = th.background_color || th.surface_color || '#0B0A08';
+                    setStaticColorValue('col-bg-color', th.background_color || th.surface_color || '#0B0A08');
                     document.getElementById('col-bg-asset').value = String(th.background_asset_id || '');
                     document.getElementById('col-default-tx').value = tx.type || 'fade';
                     document.getElementById('col-tx-duration').value = String(Math.min(3000, Number(tx.duration_ms ?? 450)));
@@ -2366,7 +2698,7 @@
                     renderCanvas();
                 };
 
-                ['col-accent-color', 'col-surface-color', 'col-text-color', 'col-sweep-color', 'col-bg-mode', 'col-bg-color', 'col-bg-asset'].forEach((id) => {
+                ['col-bg-mode', 'col-bg-asset'].forEach((id) => {
                     const el = document.getElementById(id);
                     if (!el) return;
                     el.addEventListener('input', applyLiveThemeFromInputs);
@@ -2382,7 +2714,7 @@
                     });
                 });
 
-                ['vp-name', 'vp-bg-mode', 'vp-bg-color', 'vp-bg-asset', 'vp-theme-accent', 'vp-theme-surface'].forEach((id) => {
+                ['vp-name', 'vp-bg-mode', 'vp-bg-asset'].forEach((id) => {
                     const el = document.getElementById(id);
                     if (!el) return;
                     el.addEventListener('input', applyLiveViewSettingsFromInputs);
@@ -2458,6 +2790,7 @@
                     showToast('Pushing unified single scene to OBS Studio');
                 });
 
+                mountStaticColorPickers();
                 renderAll();
             })();
         </script>

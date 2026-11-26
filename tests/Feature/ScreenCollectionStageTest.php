@@ -743,8 +743,8 @@ class ScreenCollectionStageTest extends TestCase
             'font_weight' => 800,
             'font_family' => 'Poppins',
             'align' => 'left',
-            'text_color' => '#FFE082',
-            'bg_color' => '#1A1426',
+            'text_color' => 'rgba(255, 224, 130, 0.9)',
+            'bg_color' => 'rgba(26, 20, 38, 0.65)',
             'border_color' => '#E05297',
             'border_width' => 3,
             'border_style' => 'solid',
@@ -757,11 +757,28 @@ class ScreenCollectionStageTest extends TestCase
             'label_font_size' => 24,
             'text_color' => '#4CC38A',
             'label_color' => '#FAF7EE',
-            'bg_color' => '#11161C',
+            'bg_color' => 'rgba(17, 22, 28, 0.72)',
             'border_color' => '#4CC38A',
             'border_width' => 2,
             'show_bg' => true,
         ], 3);
+
+        // Theme and view background also persist RGBA colors with alpha opacity
+        $this->actingAs($user)
+            ->putJson(route('studio.collections.update', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+            ]), [
+                'theme' => [
+                    'accent_color' => 'rgba(205, 173, 105, 0.85)',
+                    'surface_color' => 'rgba(11, 10, 8, 0.6)',
+                    'background_mode' => 'solid',
+                    'background_color' => 'rgba(11, 10, 8, 0.45)',
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('collection.theme.accent_color', 'rgba(205, 173, 105, 0.85)')
+            ->assertJsonPath('collection.theme.background_color', 'rgba(11, 10, 8, 0.45)');
 
         $saveRes = $this->actingAs($user)
             ->putJson(route('studio.collections.views.update', [
@@ -770,18 +787,20 @@ class ScreenCollectionStageTest extends TestCase
                 'view' => $view->id,
             ]), [
                 'name' => 'Styled View',
-                'background_mode' => 'transparent',
+                'background_mode' => 'solid',
+                'background_color' => 'rgba(20, 17, 24, 0.5)',
                 'layers' => [$defaultBox, $styledText, $styledTimer],
             ])
             ->assertOk();
 
+        $saveRes->assertJsonPath('collection.views.0.background_color', 'rgba(20, 17, 24, 0.5)');
         $saveRes->assertJsonPath('collection.views.0.layers.0.type', 'color_box');
         $saveRes->assertJsonPath('collection.views.0.layers.0.props.shape_preset', 'circle');
         $saveRes->assertJsonPath('collection.views.0.layers.0.props.border_width', 6);
-        $saveRes->assertJsonPath('collection.views.0.layers.1.props.text_color', '#FFE082');
-        $saveRes->assertJsonPath('collection.views.0.layers.1.props.bg_color', '#1A1426');
+        $saveRes->assertJsonPath('collection.views.0.layers.1.props.text_color', 'rgba(255, 224, 130, 0.9)');
+        $saveRes->assertJsonPath('collection.views.0.layers.1.props.bg_color', 'rgba(26, 20, 38, 0.65)');
         $saveRes->assertJsonPath('collection.views.0.layers.2.props.label_color', '#FAF7EE');
-        $saveRes->assertJsonPath('collection.views.0.layers.2.props.border_color', '#4CC38A');
+        $saveRes->assertJsonPath('collection.views.0.layers.2.props.bg_color', 'rgba(17, 22, 28, 0.72)');
 
         $this->actingAs($user)
             ->get(route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => $collection->id]))
@@ -790,7 +809,10 @@ class ScreenCollectionStageTest extends TestCase
             ->assertSee('Box Shape', false)
             ->assertSee('Outline Thickness (px)', false)
             ->assertSee('Font Color', false)
-            ->assertSee('Digit Font Color', false);
+            ->assertSee('Digit Font Color', false)
+            ->assertSee('createColorOpacityWidget', false)
+            ->assertSee('alpha-slider', false)
+            ->assertSee('data-color-picker', false);
 
         $this->get(route('obs.collection.show', ['token' => $collection->public_token]))
             ->assertOk()
