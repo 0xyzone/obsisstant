@@ -4,7 +4,7 @@ import { RoomEnvironment } from 'https://esm.sh/three@0.186.0/examples/jsm/envir
 const REACTIONS = ['wave', 'spin', 'cheer', 'dance', 'peek'];
 
 const REACTION_LINES = {
-    wave: 'Hey! Tap me anytime!',
+    wave: 'Hey! Drag me anywhere or tap me!',
     spin: 'Wheee! Everything stays synced live.',
     cheer: 'Looking sharp! Ready to go live.',
     dance: 'Vibing with your stream setup!',
@@ -38,16 +38,16 @@ function createMascotInstance(canvas, options = {}) {
     scene.environment = envTex;
     scene.environmentIntensity = 1.25;
 
-    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
-    camera.position.set(0, 0.15, 4.45);
+    // Generous camera distance so antenna, sparkles & bounce never clip
+    const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 40);
+    camera.position.set(0, 0.1, 5.75);
 
-    // Studio lighting for glossy obsidian black + shiny metallic gold
     const hemi = new THREE.HemisphereLight(0xfff6dc, 0x16130f, 1.0);
     const keyLight = new THREE.DirectionalLight(0xfff0c8, 2.7);
     keyLight.position.set(2.5, 4.0, 4.5);
-    const rimLight = new THREE.PointLight(0xf4e185, 9, 12, 2);
+    const rimLight = new THREE.PointLight(0xf4e185, 9, 14, 2);
     rimLight.position.set(-2.4, 1.8, -1.6);
-    const fillLight = new THREE.PointLight(0xcdad69, 4.5, 10, 2);
+    const fillLight = new THREE.PointLight(0xcdad69, 4.5, 12, 2);
     fillLight.position.set(2.4, -1.0, 2.6);
     scene.add(hemi, keyLight, rimLight, fillLight);
 
@@ -101,107 +101,104 @@ function createMascotInstance(canvas, options = {}) {
 
     // 1. Oversized Chubby Teardrop / Onion Head
     const headGroup = new THREE.Group();
-    headGroup.position.set(0, 0.3, 0);
+    headGroup.position.set(0, 0.28, 0);
     floatGroup.add(headGroup);
 
-    const headMain = new THREE.Mesh(new THREE.SphereGeometry(0.78, 40, 32), obsidianShellMat);
+    const headMain = new THREE.Mesh(new THREE.SphereGeometry(0.76, 40, 32), obsidianShellMat);
     headMain.scale.set(1.16, 0.88, 0.96);
     headGroup.add(headMain);
 
-    const headCrown = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.42, 32), obsidianShellMat);
-    headCrown.position.set(0, 0.63, 0);
+    const headCrown = new THREE.Mesh(new THREE.ConeGeometry(0.41, 0.4, 32), obsidianShellMat);
+    headCrown.position.set(0, 0.61, 0);
     headGroup.add(headCrown);
 
-    // Large soft oval pearl-cream face
-    const faceOval = new THREE.Mesh(new THREE.SphereGeometry(0.62, 36, 28), pearlFaceMat);
+    const faceOval = new THREE.Mesh(new THREE.SphereGeometry(0.6, 36, 28), pearlFaceMat);
     faceOval.scale.set(1.14, 0.78, 0.46);
-    faceOval.position.set(0, -0.02, 0.49);
+    faceOval.position.set(0, -0.02, 0.48);
     headGroup.add(faceOval);
 
-    // Shiny metallic gold rim framing the face
-    const faceGoldRim = new THREE.Mesh(new THREE.TorusGeometry(0.61, 0.026, 16, 56), goldMetalMat);
+    const faceGoldRim = new THREE.Mesh(new THREE.TorusGeometry(0.59, 0.025, 16, 56), goldMetalMat);
     faceGoldRim.scale.set(1.14, 0.78, 1);
-    faceGoldRim.position.set(0, -0.02, 0.57);
+    faceGoldRim.position.set(0, -0.02, 0.56);
     headGroup.add(faceGoldRim);
 
-    // Big glossy black button eyes + tiny white specular catchlights + cute curved smile
     const faceFeatures = new THREE.Group();
-    faceFeatures.position.set(0, -0.02, 0.76);
+    faceFeatures.position.set(0, -0.02, 0.74);
     headGroup.add(faceFeatures);
 
-    const eyeGeo = new THREE.SphereGeometry(0.115, 24, 20);
-    const catchGeo = new THREE.SphereGeometry(0.032, 12, 10);
+    const eyeGeo = new THREE.SphereGeometry(0.112, 24, 20);
+    const catchGeo = new THREE.SphereGeometry(0.031, 12, 10);
     const catchMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
     const leftEyeGroup = new THREE.Group();
-    leftEyeGroup.position.set(-0.24, 0.04, 0);
+    leftEyeGroup.position.set(-0.23, 0.04, 0);
     const leftEye = new THREE.Mesh(eyeGeo, glossyBlackEyeMat);
     leftEye.scale.set(0.95, 1.08, 0.65);
     const leftCatch = new THREE.Mesh(catchGeo, catchMat);
-    leftCatch.position.set(0.036, 0.045, 0.068);
+    leftCatch.position.set(0.035, 0.044, 0.066);
     leftEyeGroup.add(leftEye, leftCatch);
 
     const rightEyeGroup = new THREE.Group();
-    rightEyeGroup.position.set(0.24, 0.04, 0);
+    rightEyeGroup.position.set(0.23, 0.04, 0);
     const rightEye = new THREE.Mesh(eyeGeo, glossyBlackEyeMat);
     rightEye.scale.set(0.95, 1.08, 0.65);
     const rightCatch = new THREE.Mesh(catchGeo, catchMat);
-    rightCatch.position.set(0.036, 0.045, 0.068);
+    rightCatch.position.set(0.035, 0.044, 0.066);
     rightEyeGroup.add(rightEye, rightCatch);
 
     faceFeatures.add(leftEyeGroup, rightEyeGroup);
 
-    const smileGeo = new THREE.TorusGeometry(0.085, 0.017, 12, 24, Math.PI * 0.72);
+    const smileGeo = new THREE.TorusGeometry(0.082, 0.017, 12, 24, Math.PI * 0.72);
     const smile = new THREE.Mesh(smileGeo, glossyBlackEyeMat);
     smile.rotation.z = Math.PI * 1.14;
     smile.position.set(0, -0.08, 0.02);
     faceFeatures.add(smile);
 
-    const cheekGeo = new THREE.SphereGeometry(0.068, 16, 12);
+    const cheekGeo = new THREE.SphereGeometry(0.066, 16, 12);
     const leftCheek = new THREE.Mesh(cheekGeo, blushMat);
     leftCheek.scale.set(1.3, 0.75, 0.35);
-    leftCheek.position.set(-0.37, -0.07, -0.02);
+    leftCheek.position.set(-0.36, -0.07, -0.02);
     const rightCheek = new THREE.Mesh(cheekGeo, blushMat);
     rightCheek.scale.set(1.3, 0.75, 0.35);
-    rightCheek.position.set(0.37, -0.07, -0.02);
+    rightCheek.position.set(0.36, -0.07, -0.02);
     faceFeatures.add(leftCheek, rightCheek);
 
     // 2. Top Antenna with Floating Gold Halo Ring & Glossy Gold Bobble
     const antennaGroup = new THREE.Group();
-    antennaGroup.position.set(0, 0.79, 0);
+    antennaGroup.position.set(0, 0.76, 0);
     headGroup.add(antennaGroup);
 
-    const antennaStem = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.022, 0.24, 12), goldMetalMat);
-    antennaStem.position.y = 0.12;
+    const antennaStem = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.022, 0.22, 12), goldMetalMat);
+    antennaStem.position.y = 0.11;
     antennaGroup.add(antennaStem);
 
-    const antennaHalo = new THREE.Mesh(new THREE.TorusGeometry(0.115, 0.022, 14, 36), goldMetalMat);
+    const antennaHalo = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.021, 14, 36), goldMetalMat);
     antennaHalo.rotation.x = Math.PI / 2 - 0.18;
-    antennaHalo.position.y = 0.22;
+    antennaHalo.position.y = 0.21;
     antennaGroup.add(antennaHalo);
 
-    const antennaBobble = new THREE.Mesh(new THREE.SphereGeometry(0.135, 24, 20), goldMetalMat);
-    antennaBobble.position.y = 0.34;
+    const antennaBobble = new THREE.Mesh(new THREE.SphereGeometry(0.13, 24, 20), goldMetalMat);
+    antennaBobble.position.y = 0.32;
     antennaGroup.add(antennaBobble);
 
     // 3. Cute Detached Floating Pear-Shaped Body + Gold Chest Button
     const bodyGroup = new THREE.Group();
-    bodyGroup.position.set(0, -0.78, 0);
+    bodyGroup.position.set(0, -0.76, 0);
     floatGroup.add(bodyGroup);
 
-    const miniBody = new THREE.Mesh(new THREE.SphereGeometry(0.34, 28, 24), obsidianShellMat);
+    const miniBody = new THREE.Mesh(new THREE.SphereGeometry(0.33, 28, 24), obsidianShellMat);
     miniBody.scale.set(1.06, 1.0, 0.94);
     bodyGroup.add(miniBody);
 
-    const chestButton = new THREE.Mesh(new THREE.SphereGeometry(0.095, 20, 16), goldMetalMat);
+    const chestButton = new THREE.Mesh(new THREE.SphereGeometry(0.09, 20, 16), goldMetalMat);
     chestButton.scale.set(1, 1, 0.55);
-    chestButton.position.set(0, 0.03, 0.3);
+    chestButton.position.set(0, 0.03, 0.29);
     bodyGroup.add(chestButton);
 
     // 4. Two Cute Detached Floating Teardrop Arms/Flippers
-    const armGeo = new THREE.SphereGeometry(0.145, 20, 16);
+    const armGeo = new THREE.SphereGeometry(0.14, 20, 16);
     const leftArmGroup = new THREE.Group();
-    leftArmGroup.position.set(-0.52, -0.68, 0.08);
+    leftArmGroup.position.set(-0.5, -0.66, 0.08);
     const leftArm = new THREE.Mesh(armGeo, obsidianShellMat);
     leftArm.scale.set(0.78, 1.35, 0.78);
     leftArm.rotation.z = 0.55;
@@ -209,7 +206,7 @@ function createMascotInstance(canvas, options = {}) {
     floatGroup.add(leftArmGroup);
 
     const rightArmGroup = new THREE.Group();
-    rightArmGroup.position.set(0.52, -0.68, 0.08);
+    rightArmGroup.position.set(0.5, -0.66, 0.08);
     const rightArm = new THREE.Mesh(armGeo, obsidianShellMat);
     rightArm.scale.set(0.78, 1.35, 0.78);
     rightArm.rotation.z = -0.55;
@@ -220,20 +217,19 @@ function createMascotInstance(canvas, options = {}) {
     const sparklesGroup = new THREE.Group();
     root.add(sparklesGroup);
     const sparkleMeshes = [];
-    const sparkleGeo = new THREE.OctahedronGeometry(0.045, 0);
+    const sparkleGeo = new THREE.OctahedronGeometry(0.042, 0);
     for (let i = 0; i < 5; i++) {
         const sp = new THREE.Mesh(sparkleGeo, goldMetalMat);
         sp.userData = {
             angle: (i / 5) * Math.PI * 2,
-            radius: 1.15 + (i % 2) * 0.18,
+            radius: 1.12 + (i % 2) * 0.16,
             speed: 0.65 + (i % 3) * 0.22,
-            yOffset: (i - 2) * 0.2,
+            yOffset: (i - 2) * 0.18,
         };
         sparklesGroup.add(sp);
         sparkleMeshes.push(sp);
     }
 
-    // Interaction & animation state
     const pointerTarget = new THREE.Vector2(0, 0);
     const pointerCurrent = new THREE.Vector2(0, 0);
     let activeReaction = null;
@@ -245,6 +241,7 @@ function createMascotInstance(canvas, options = {}) {
     let pointDirection = 0;
     let flightBankZ = 0;
     let onSpeechCallback = typeof options.onSpeech === 'function' ? options.onSpeech : null;
+    let onFrameCallback = typeof options.onFrame === 'function' ? options.onFrame : null;
 
     const triggerReaction = (name = null, customLine = null) => {
         const chosen = name || REACTIONS[reactionIndex % REACTIONS.length];
@@ -259,7 +256,7 @@ function createMascotInstance(canvas, options = {}) {
 
     const setPointDirection = (dir, bank = 0) => {
         pointDirection = Math.max(-1, Math.min(1, Number(dir || 0)));
-        flightBankZ = Math.max(-0.3, Math.min(0.3, Number(bank || 0)));
+        flightBankZ = Math.max(-0.35, Math.min(0.35, Number(bank || 0)));
     };
 
     const handlePointerMove = (ev) => {
@@ -273,7 +270,9 @@ function createMascotInstance(canvas, options = {}) {
     };
 
     window.addEventListener('pointermove', handlePointerMove, { passive: true });
-    canvas.addEventListener('pointerdown', () => triggerReaction());
+    if (!options.disableAutoTap) {
+        canvas.addEventListener('pointerdown', () => triggerReaction());
+    }
 
     const resize = () => {
         const rect = canvas.getBoundingClientRect();
@@ -296,31 +295,34 @@ function createMascotInstance(canvas, options = {}) {
         const delta = Math.min(0.05, timer.getDelta());
         const elapsed = timer.getElapsed();
 
+        if (onFrameCallback) {
+            onFrameCallback(delta, elapsed);
+        }
+
         pointerCurrent.lerp(pointerTarget, Math.min(1, delta * 7));
 
-        let bobY = reducedMotion ? 0 : Math.sin(elapsed * 2.4) * 0.085;
+        let bobY = reducedMotion ? 0 : Math.sin(elapsed * 2.4) * 0.08;
         let rotY = pointerCurrent.x * 0.34;
         let rotX = -pointerCurrent.y * 0.14;
         let rotZ = flightBankZ;
         let headTiltZ = -pointerCurrent.x * 0.1;
-        let lArmY = -0.68 + (reducedMotion ? 0 : Math.sin(elapsed * 2.4 + 0.5) * 0.05);
-        let rArmY = -0.68 + (reducedMotion ? 0 : Math.sin(elapsed * 2.4 + 0.5) * 0.05);
+        let lArmY = -0.66 + (reducedMotion ? 0 : Math.sin(elapsed * 2.4 + 0.5) * 0.05);
+        let rArmY = -0.66 + (reducedMotion ? 0 : Math.sin(elapsed * 2.4 + 0.5) * 0.05);
         let lArmZ = 0;
         let rArmZ = 0;
         let eyeScaleY = 1;
         let sparkleBoost = 1;
 
         if (pointDirection < -0.2) {
-            lArmY = -0.45;
+            lArmY = -0.44;
             lArmZ = 0.85;
             rotY -= 0.25;
         } else if (pointDirection > 0.2) {
-            rArmY = -0.45;
+            rArmY = -0.44;
             rArmZ = -0.85;
             rotY += 0.25;
         }
 
-        // Natural blinking
         blinkTimer -= delta;
         if (blinkTimer <= 0 && blinkProgress < 0) {
             blinkProgress = 0;
@@ -338,33 +340,33 @@ function createMascotInstance(canvas, options = {}) {
             const env = Math.sin(t * Math.PI);
 
             if (activeReaction === 'wave') {
-                rArmY = -0.36;
+                rArmY = -0.35;
                 rArmZ = -1.25 + Math.sin(elapsed * 18) * 0.35;
                 headTiltZ = 0.18 * env;
                 eyeScaleY = 0.45 + 0.55 * (1 - env);
                 blushMat.opacity = 0.32 + 0.45 * env;
             } else if (activeReaction === 'spin') {
                 rotY += t * Math.PI * 2;
-                bobY += Math.sin(t * Math.PI) * 0.34;
+                bobY += Math.sin(t * Math.PI) * 0.32;
                 sparkleBoost = 3.0;
             } else if (activeReaction === 'cheer') {
-                lArmY = -0.35;
-                rArmY = -0.35;
+                lArmY = -0.34;
+                rArmY = -0.34;
                 lArmZ = 1.3 * env;
                 rArmZ = -1.3 * env;
-                bobY += Math.abs(Math.sin(t * Math.PI * 3)) * 0.22;
+                bobY += Math.abs(Math.sin(t * Math.PI * 3)) * 0.2;
                 eyeScaleY = 0.36;
                 blushMat.opacity = 0.78;
                 sparkleBoost = 2.4;
             } else if (activeReaction === 'dance') {
                 rotZ += Math.sin(elapsed * 9) * 0.16 * env;
                 rotY += Math.sin(elapsed * 4.5) * 0.35 * env;
-                lArmY = -0.52 + Math.sin(elapsed * 9) * 0.16;
-                rArmY = -0.52 - Math.sin(elapsed * 9) * 0.16;
+                lArmY = -0.5 + Math.sin(elapsed * 9) * 0.16;
+                rArmY = -0.5 - Math.sin(elapsed * 9) * 0.16;
                 sparkleBoost = 2.2;
             } else if (activeReaction === 'peek') {
-                bobY -= 0.26 * env;
-                rotX += 0.25 * env;
+                bobY -= 0.24 * env;
+                rotX += 0.24 * env;
                 headTiltZ = 0.22 * env;
             }
 
@@ -389,7 +391,7 @@ function createMascotInstance(canvas, options = {}) {
         leftEyeGroup.scale.y = eyeScaleY;
         rightEyeGroup.scale.y = eyeScaleY;
 
-        bodyGroup.position.y = -0.78 - bobY * 0.25;
+        bodyGroup.position.y = -0.76 - bobY * 0.25;
         leftArmGroup.position.y = lArmY;
         leftArmGroup.rotation.z = lArmZ;
         rightArmGroup.position.y = rArmY;
@@ -404,7 +406,7 @@ function createMascotInstance(canvas, options = {}) {
             sp.position.set(
                 Math.cos(a) * sp.userData.radius,
                 sp.userData.yOffset + Math.sin(elapsed * 2.5 + idx) * 0.1,
-                Math.sin(a) * sp.userData.radius * 0.6,
+                Math.sin(a) * sp.userData.radius * 0.58,
             );
             sp.rotation.y = elapsed * 2;
             sp.rotation.x = elapsed * 1.4;
@@ -434,11 +436,220 @@ function initMascots() {
         if (host.dataset.mascotReady === '1') return;
         host.dataset.mascotReady = '1';
 
+        const mode = host.dataset.mascotMode || 'badge';
         const canvas = host.querySelector('[data-mascot-canvas]');
         const speechEl = host.querySelector('[data-mascot-speech]');
-        const mode = host.dataset.mascotMode || 'badge';
         if (!canvas) return;
 
+        // Single-instance hero + scroll-flying + mouse-draggable mascot
+        if (mode === 'hero-guide') {
+            const anchorEl = host.querySelector('[data-mascot-anchor]');
+            const flyerEl = host.querySelector('[data-mascot-flyer]');
+            const controlsEl = host.querySelector('[data-mascot-controls]');
+            if (!anchorEl || !flyerEl) return;
+
+            const stops = [
+                { id: 'features', xPct: 0.84, yPct: 0.62, dir: -1, line: 'Taps reach OBS in under a second!', reaction: 'wave' },
+                { id: 'overlays', xPct: 0.12, yPct: 0.56, dir: 1, line: 'Try these live controls right here!', reaction: 'cheer' },
+                { id: 'features-showcase', xPct: 0.86, yPct: 0.42, dir: -1, line: 'Everything built for smooth streams!', reaction: 'dance' },
+                { id: 'faqs', xPct: 0.14, yPct: 0.52, dir: 1, line: 'Got questions? Quick answers here.', reaction: 'peek' },
+                { id: 'closing-heading', xPct: 0.84, yPct: 0.66, dir: -1, line: 'Ready? Open Studio or Mobile Deck!', reaction: 'spin' },
+            ];
+
+            const baseSize = 320;
+            let curX = 0;
+            let curY = 0;
+            let curScale = 1;
+            let targetX = 0;
+            let targetY = 0;
+            let targetScale = 1;
+            let initializedPos = false;
+
+            let isDragging = false;
+            let dragMoved = false;
+            let dragStartX = 0;
+            let dragStartY = 0;
+            let dragOriginX = 0;
+            let dragOriginY = 0;
+            let pinnedUntil = 0;
+            let pinnedX = 0;
+            let pinnedY = 0;
+            let wasPinned = false;
+            let lastStopId = null;
+
+            const showSpeech = (msg) => {
+                if (!speechEl || !msg) return;
+                speechEl.textContent = msg;
+                speechEl.hidden = false;
+            };
+
+            const computeTarget = () => {
+                const anchorRect = anchorEl.getBoundingClientRect();
+                const inHero = anchorRect.bottom > 150 && window.scrollY < 160;
+                const isMobile = window.innerWidth < 1024;
+
+                if (Date.now() < pinnedUntil) {
+                    wasPinned = true;
+                    targetScale = inHero ? Math.min(1, anchorRect.width / baseSize) : (isMobile ? 0.46 : 0.68);
+                    const effSize = baseSize * targetScale;
+                    targetX = Math.max(8, Math.min(window.innerWidth - effSize - 8, pinnedX));
+                    targetY = Math.max(56, Math.min(window.innerHeight - effSize - 8, pinnedY));
+                    flyerEl.dataset.side = targetX < window.innerWidth / 2 ? 'left' : 'right';
+                    return;
+                }
+
+                if (wasPinned) {
+                    wasPinned = false;
+                    showSpeech('Flying back to my spot!');
+                }
+
+                if (inHero) {
+                    const s = Math.min(1.05, Math.max(0.62, anchorRect.width / baseSize));
+                    targetScale = s;
+                    const effSize = baseSize * s;
+                    targetX = anchorRect.left + (anchorRect.width - effSize) / 2;
+                    targetY = anchorRect.top + (anchorRect.height - effSize) / 2;
+                    flyerEl.dataset.side = 'hero';
+                    if (controlsEl) controlsEl.style.opacity = '1';
+                    instance?.setPointDirection(0, 0);
+                    if (lastStopId !== 'hero') {
+                        lastStopId = 'hero';
+                    }
+                    return;
+                }
+
+                if (controlsEl) controlsEl.style.opacity = '0';
+
+                const midY = window.innerHeight * 0.45;
+                let activeStop = stops[0];
+                for (const s of stops) {
+                    const el = document.getElementById(s.id);
+                    if (!el) continue;
+                    if (el.getBoundingClientRect().top <= midY + 140) {
+                        activeStop = s;
+                    }
+                }
+
+                if (isMobile) {
+                    targetScale = 0.44;
+                    const effSize = baseSize * targetScale;
+                    targetX = window.innerWidth - effSize - 10;
+                    targetY = window.innerHeight - effSize - 14;
+                    flyerEl.dataset.side = 'right';
+                    instance?.setPointDirection(-1, 0);
+                } else {
+                    targetScale = 0.66;
+                    const effSize = baseSize * targetScale;
+                    const docMax = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+                    const scrollFrac = Math.max(0, Math.min(1, window.scrollY / docMax));
+                    const swayX = Math.sin(scrollFrac * Math.PI * 4) * 26;
+                    const swayY = Math.cos(scrollFrac * Math.PI * 3) * 24;
+                    targetX = Math.max(12, Math.min(window.innerWidth - effSize - 12, window.innerWidth * activeStop.xPct - effSize / 2 + swayX));
+                    targetY = Math.max(72, Math.min(window.innerHeight - effSize - 18, window.innerHeight * activeStop.yPct - effSize / 2 + swayY));
+                    flyerEl.dataset.side = activeStop.dir > 0 ? 'left' : 'right';
+                    instance?.setPointDirection(activeStop.dir, activeStop.dir * 0.08);
+                }
+
+                if (lastStopId !== activeStop.id) {
+                    lastStopId = activeStop.id;
+                    instance?.triggerReaction(activeStop.reaction, activeStop.line);
+                }
+            };
+
+            const instance = createMascotInstance(canvas, {
+                mode,
+                disableAutoTap: true,
+                onSpeech: showSpeech,
+                onFrame: (delta) => {
+                    computeTarget();
+                    if (!initializedPos) {
+                        curX = targetX;
+                        curY = targetY;
+                        curScale = targetScale;
+                        initializedPos = true;
+                    } else if (!isDragging) {
+                        const k = 1 - Math.exp(-delta * 6.5);
+                        const vx = targetX - curX;
+                        curX += vx * k;
+                        curY += (targetY - curY) * k;
+                        curScale += (targetScale - curScale) * k;
+                        if (Math.abs(vx) > 2) {
+                            instance?.setPointDirection(vx > 0 ? 1 : -1, Math.max(-0.22, Math.min(0.22, -vx * 0.0018)));
+                        }
+                    }
+                    flyerEl.style.transform = `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0) scale(${curScale.toFixed(4)})`;
+                },
+            });
+
+            if (!instance) {
+                const fallback = host.querySelector('[data-mascot-fallback]');
+                if (fallback) fallback.hidden = false;
+                flyerEl.hidden = true;
+                return;
+            }
+
+            // Mouse / touch drag to move anywhere & stay for 5 seconds
+            canvas.addEventListener('pointerdown', (ev) => {
+                isDragging = true;
+                dragMoved = false;
+                dragStartX = ev.clientX;
+                dragStartY = ev.clientY;
+                dragOriginX = curX;
+                dragOriginY = curY;
+                canvas.style.cursor = 'grabbing';
+                canvas.setPointerCapture(ev.pointerId);
+            });
+
+            canvas.addEventListener('pointermove', (ev) => {
+                if (!isDragging) return;
+                const dx = ev.clientX - dragStartX;
+                const dy = ev.clientY - dragStartY;
+                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                    dragMoved = true;
+                }
+                if (dragMoved) {
+                    const effSize = baseSize * curScale;
+                    curX = Math.max(8, Math.min(window.innerWidth - effSize - 8, dragOriginX + dx));
+                    curY = Math.max(56, Math.min(window.innerHeight - effSize - 8, dragOriginY + dy));
+                    pinnedX = curX;
+                    pinnedY = curY;
+                    pinnedUntil = Date.now() + 5000;
+                    instance.setPointDirection(0, Math.max(-0.25, Math.min(0.25, -dx * 0.002)));
+                    flyerEl.style.transform = `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0) scale(${curScale.toFixed(4)})`;
+                }
+            });
+
+            const endDrag = (ev) => {
+                if (!isDragging) return;
+                isDragging = false;
+                canvas.style.cursor = 'grab';
+                if (canvas.hasPointerCapture?.(ev.pointerId)) {
+                    canvas.releasePointerCapture(ev.pointerId);
+                }
+                if (dragMoved) {
+                    pinnedX = curX;
+                    pinnedY = curY;
+                    pinnedUntil = Date.now() + 5000;
+                    showSpeech('Staying right here for 5s!');
+                } else {
+                    instance.triggerReaction();
+                }
+            };
+
+            canvas.addEventListener('pointerup', endDrag);
+            canvas.addEventListener('pointercancel', endDrag);
+
+            host.querySelectorAll('[data-mascot-react]').forEach((btn) => {
+                btn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    instance.triggerReaction(btn.dataset.mascotReact);
+                });
+            });
+
+            return;
+        }
+
+        // Compact badge mascot (Knowledge Base, Changelog, Login)
         const showSpeech = (msg) => {
             if (!speechEl || !msg) return;
             speechEl.textContent = msg;
@@ -454,96 +665,6 @@ function initMascots() {
             const fallback = host.querySelector('[data-mascot-fallback]');
             if (fallback) fallback.hidden = false;
             canvas.hidden = true;
-            return;
-        }
-
-        host.querySelectorAll('[data-mascot-react]').forEach((btn) => {
-            btn.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                instance.triggerReaction(btn.dataset.mascotReact);
-            });
-        });
-
-        // Scroll-guided boxless flying companion on Homepage
-        if (mode === 'hero-guide') {
-            const floatGuide = document.getElementById('mascot-scroll-guide');
-            const floatCanvas = floatGuide?.querySelector('[data-mascot-float-canvas]');
-            const floatSpeech = floatGuide?.querySelector('[data-mascot-float-speech]');
-            let floatInstance = null;
-
-            if (floatGuide && floatCanvas) {
-                floatInstance = createMascotInstance(floatCanvas, {
-                    mode: 'float',
-                    onSpeech: (msg) => {
-                        if (floatSpeech) floatSpeech.textContent = msg;
-                    },
-                });
-            }
-
-            const stops = [
-                { id: 'features', xPct: 84, yPct: 68, dir: -1, line: 'Taps reach OBS in under a second!', reaction: 'wave' },
-                { id: 'overlays', xPct: 12, yPct: 60, dir: 1, line: 'Try these live controls right here!', reaction: 'cheer' },
-                { id: 'features-showcase', xPct: 86, yPct: 42, dir: -1, line: 'Everything built for smooth streams!', reaction: 'dance' },
-                { id: 'faqs', xPct: 14, yPct: 54, dir: 1, line: 'Got questions? Quick answers here.', reaction: 'peek' },
-                { id: 'closing-heading', xPct: 84, yPct: 72, dir: -1, line: 'Ready? Open Studio or Mobile Deck!', reaction: 'spin' },
-            ];
-
-            let lastStopId = null;
-
-            const updateScrollGuide = () => {
-                if (!floatGuide || !floatInstance) return;
-                const heroRect = host.getBoundingClientRect();
-                const shouldFloat = heroRect.bottom < 140;
-                floatGuide.classList.toggle('is-visible', shouldFloat);
-                floatGuide.setAttribute('aria-hidden', shouldFloat ? 'false' : 'true');
-
-                if (!shouldFloat) {
-                    lastStopId = null;
-                    return;
-                }
-
-                const midY = window.innerHeight * 0.45;
-                let activeStop = stops[0];
-                for (const s of stops) {
-                    const el = document.getElementById(s.id);
-                    if (!el) continue;
-                    if (el.getBoundingClientRect().top <= midY + 140) {
-                        activeStop = s;
-                    }
-                }
-
-                const isMobile = window.innerWidth < 1024;
-                const docMax = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-                const scrollFrac = Math.max(0, Math.min(1, window.scrollY / docMax));
-
-                if (isMobile) {
-                    floatGuide.dataset.side = 'right';
-                    floatGuide.style.left = 'auto';
-                    floatGuide.style.right = '0.5rem';
-                    floatGuide.style.top = 'auto';
-                    floatGuide.style.bottom = '0.65rem';
-                    floatInstance.setPointDirection(-1, 0);
-                } else {
-                    const swayX = Math.sin(scrollFrac * Math.PI * 4) * 2.5;
-                    const swayY = Math.cos(scrollFrac * Math.PI * 3) * 4;
-                    floatGuide.dataset.side = activeStop.dir > 0 ? 'left' : 'right';
-                    floatGuide.style.right = 'auto';
-                    floatGuide.style.bottom = 'auto';
-                    floatGuide.style.left = `calc(${activeStop.xPct + swayX}vw - 5.5rem)`;
-                    floatGuide.style.top = `calc(${activeStop.yPct + swayY}vh - 5.5rem)`;
-                    floatInstance.setPointDirection(activeStop.dir, activeStop.dir * 0.08);
-                }
-
-                if (lastStopId !== activeStop.id) {
-                    lastStopId = activeStop.id;
-                    if (floatSpeech) floatSpeech.textContent = activeStop.line;
-                    floatInstance.triggerReaction(activeStop.reaction, activeStop.line);
-                }
-            };
-
-            window.addEventListener('scroll', updateScrollGuide, { passive: true });
-            window.addEventListener('resize', updateScrollGuide, { passive: true });
-            updateScrollGuide();
         }
     });
 }

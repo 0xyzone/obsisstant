@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.20.2] - 2026-11-27 | type: macro
+
+> Unified the homepage 3D mascot into a single non-clipping, GPU-composited floating buddy that flies out of the hero on scroll and can be dragged anywhere (holding for 5 seconds before returning).
+
+### Fixed
+- Pulled the Three.js camera back (`z = 5.75`) so the halo antenna, sparkles, and bounce animations never clip inside the canvas.
+- Replaced the separate scroll-guide canvas with a single unified GPU-composited (`translate3d`) mascot that emerges directly from the hero section on scroll and supports smooth mouse/touch dragging with a 5-second hold before flying back to its scroll-guided position.
+
 ## [v1.20.1] - 2026-11-27 | type: macro
 
 > Fixed Three.js module resolution (`esm.sh`) so the 3D mascot renders cleanly with zero console errors, removed all card/box containers around the mascot, and enabled free scroll-guided flight across the page.

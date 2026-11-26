@@ -1,6 +1,6 @@
 @props([
     'mode' => 'badge',
-    'greeting' => 'Hi! Tap me!',
+    'greeting' => 'Hey! Tap or drag me!',
 ])
 
 @php
@@ -14,13 +14,10 @@
     data-mascot-mode="{{ $mode }}"
 >
     @if ($isHero)
-        <div class="obs-mascot-hero-free">
-            <div class="obs-mascot-bubble" data-mascot-speech>{{ $greeting }}</div>
-
-            <div class="obs-mascot-canvas-free">
-                <canvas data-mascot-canvas aria-label="Interactive 3D broadcast mascot — click or tap to play animations"></canvas>
+        <div class="obs-mascot-hero-stage">
+            <div class="obs-mascot-hero-anchor" data-mascot-anchor>
                 <div class="obs-mascot-fallback" data-mascot-fallback hidden aria-hidden="true">
-                    <svg width="96" height="96" viewBox="0 0 88 88" fill="none">
+                    <svg width="112" height="112" viewBox="0 0 88 88" fill="none">
                         <circle cx="44" cy="44" r="34" fill="#141311" stroke="#CDAD69" stroke-width="2.5"/>
                         <ellipse cx="44" cy="46" rx="22" ry="15" fill="#FAF5E8"/>
                         <circle cx="36" cy="45" r="3.6" fill="#050505"/>
@@ -29,11 +26,19 @@
                 </div>
             </div>
 
-            <div class="obs-mascot-actions" role="group" aria-label="Mascot animations">
+            <div class="obs-mascot-actions" data-mascot-controls role="group" aria-label="Mascot animations">
                 <button type="button" class="obs-mascot-chip" data-mascot-react="wave">Wave</button>
                 <button type="button" class="obs-mascot-chip" data-mascot-react="spin">Spin</button>
                 <button type="button" class="obs-mascot-chip" data-mascot-react="cheer">Cheer</button>
                 <button type="button" class="obs-mascot-chip" data-mascot-react="dance">Dance</button>
+            </div>
+        </div>
+
+        {{-- Single unified boxless 3D mascot that starts in hero and flies smoothly on scroll or drag --}}
+        <div class="obs-mascot-flyer" data-mascot-flyer data-side="hero">
+            <div class="obs-mascot-bubble" data-mascot-speech>{{ $greeting }}</div>
+            <div class="obs-mascot-flyer-canvas">
+                <canvas data-mascot-canvas aria-label="Interactive 3D broadcast mascot — tap to animate or drag to move"></canvas>
             </div>
         </div>
     @else
@@ -54,46 +59,90 @@
 
 @once
     <style>
-        .obs-mascot-hero-free {
+        .obs-mascot-hero-stage {
             position: relative;
             display: grid;
             justify-items: center;
-            gap: 0.6rem;
+            gap: 0.75rem;
             background: transparent;
             border: 0;
         }
 
-        .obs-mascot-bubble {
-            font-size: 0.78rem;
-            color: #FAF7EE;
-            background: rgba(16, 15, 12, 0.72);
-            -webkit-backdrop-filter: blur(14px);
-            backdrop-filter: blur(14px);
-            border: 1px solid rgba(205, 173, 105, 0.34);
-            border-radius: 9999px;
-            padding: 0.35rem 0.9rem;
-            max-inline-size: 100%;
-            box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.16);
-        }
-
-        .obs-mascot-canvas-free {
+        .obs-mascot-hero-anchor {
             position: relative;
-            inline-size: min(100%, 24rem);
-            aspect-ratio: 1 / 1;
-            min-block-size: 16rem;
+            inline-size: min(76vw, 20rem);
+            block-size: min(76vw, 20rem);
             background: transparent;
             border: 0;
-            overflow: visible;
+            pointer-events: none;
         }
 
-        .obs-mascot-canvas-free canvas,
+        .obs-mascot-flyer {
+            position: fixed;
+            inset-inline-start: 0;
+            inset-block-start: 0;
+            inline-size: 20rem;
+            block-size: 20rem;
+            transform-origin: top left;
+            will-change: transform;
+            z-index: 35;
+            pointer-events: none;
+        }
+
+        .obs-mascot-flyer-canvas {
+            inline-size: 100%;
+            block-size: 100%;
+            background: transparent;
+            border: 0;
+        }
+
+        .obs-mascot-flyer-canvas canvas,
         .obs-mascot-badge-free canvas {
             display: block;
             inline-size: 100%;
             block-size: 100%;
             background: transparent;
-            cursor: pointer;
-            touch-action: manipulation;
+            cursor: grab;
+            touch-action: none;
+            pointer-events: auto;
+        }
+
+        .obs-mascot-bubble {
+            position: absolute;
+            inset-block-start: -0.6rem;
+            inset-inline-start: 50%;
+            transform: translateX(-50%);
+            inline-size: max-content;
+            max-inline-size: 15rem;
+            font-size: 0.78rem;
+            line-height: 1.4;
+            color: #FAF7EE;
+            background: rgba(16, 15, 12, 0.78);
+            -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(205, 173, 105, 0.36);
+            border-radius: 9999px;
+            padding: 0.35rem 0.9rem;
+            box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.16), 0 12px 28px -16px rgba(0, 0, 0, 0.85);
+            pointer-events: auto;
+            white-space: nowrap;
+        }
+
+        .obs-mascot-flyer[data-side="left"] .obs-mascot-bubble {
+            inset-inline-start: calc(100% - 1rem);
+            inset-block-start: 28%;
+            transform: none;
+            white-space: normal;
+            border-radius: 1rem;
+        }
+
+        .obs-mascot-flyer[data-side="right"] .obs-mascot-bubble {
+            inset-inline-start: auto;
+            inset-inline-end: calc(100% - 1rem);
+            inset-block-start: 28%;
+            transform: none;
+            white-space: normal;
+            border-radius: 1rem;
         }
 
         .obs-mascot-fallback {
@@ -108,6 +157,7 @@
             flex-wrap: wrap;
             gap: 0.4rem;
             justify-content: center;
+            transition: opacity 220ms ease;
         }
 
         .obs-mascot-chip {
@@ -138,11 +188,16 @@
 
         .obs-mascot-badge-free {
             position: relative;
-            inline-size: 5.5rem;
-            block-size: 5.5rem;
+            inline-size: 6rem;
+            block-size: 6rem;
             background: transparent;
             border: 0;
             flex-shrink: 0;
+        }
+
+        .obs-mascot-badge-free canvas {
+            cursor: pointer;
+            touch-action: manipulation;
         }
 
         .obs-mascot-badge-bubble {
@@ -170,76 +225,6 @@
                 inset-inline-end: 0;
                 inset-block-start: calc(100% + 0.45rem);
                 transform: none;
-            }
-        }
-
-        /* Scroll-guided boxless flying 3D mascot on Homepage */
-        .mascot-scroll-guide {
-            position: fixed;
-            z-index: 35;
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            pointer-events: none;
-            opacity: 0;
-            transform: scale(0.88);
-            transition: opacity 320ms cubic-bezier(0.22, 1, 0.36, 1), transform 520ms cubic-bezier(0.22, 1, 0.36, 1), left 720ms cubic-bezier(0.22, 1, 0.36, 1), top 720ms cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
-        .mascot-scroll-guide.is-visible {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        .mascot-scroll-guide[data-side="left"] {
-            flex-direction: row-reverse;
-        }
-
-        .mascot-float-speech {
-            pointer-events: auto;
-            max-inline-size: 13rem;
-            padding: 0.5rem 0.8rem;
-            border-radius: 1rem;
-            background: rgba(16, 15, 12, 0.82);
-            -webkit-backdrop-filter: blur(16px) saturate(140%);
-            backdrop-filter: blur(16px) saturate(140%);
-            border: 1px solid rgba(205, 173, 105, 0.38);
-            color: #FAF7EE;
-            font-size: 0.76rem;
-            line-height: 1.4;
-            box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.16), 0 14px 28px -16px rgba(0, 0, 0, 0.85);
-        }
-
-        .mascot-float-canvas-box {
-            pointer-events: auto;
-            inline-size: 10.5rem;
-            block-size: 10.5rem;
-            background: transparent;
-            border: 0;
-            flex-shrink: 0;
-        }
-
-        .mascot-float-canvas-box canvas {
-            display: block;
-            inline-size: 100%;
-            block-size: 100%;
-            background: transparent;
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-
-        @media (max-width: 63.99rem) {
-            .mascot-scroll-guide {
-                gap: 0.3rem;
-            }
-            .mascot-float-speech {
-                max-inline-size: 10rem;
-                font-size: 0.68rem;
-                padding: 0.4rem 0.65rem;
-            }
-            .mascot-float-canvas-box {
-                inline-size: 6rem;
-                block-size: 6rem;
             }
         }
     </style>

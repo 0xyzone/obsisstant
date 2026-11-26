@@ -1421,17 +1421,9 @@
                 {{-- Coded Interactive OBS Switcher & Overlay Monitor --}}
                 {{-- Interactive 3D Cute Broadcast Mascot --}}
                 <aside aria-label="Interactive 3D broadcast mascot" data-enter style="--enter-order: 5;">
-                    <x-obs-mascot mode="hero-guide" greeting="Hey! Tap me or scroll to explore." />
+                    <x-obs-mascot mode="hero-guide" greeting="Hey! Tap or drag me!" />
                 </aside>
             </section>
-
-            {{-- Scroll-Guided Flying 3D Mascot --}}
-            <div id="mascot-scroll-guide" class="mascot-scroll-guide" data-side="right" aria-hidden="true">
-                <div class="mascot-float-speech" data-mascot-float-speech>Hey! Scroll to see how it works.</div>
-                <div class="mascot-float-canvas-box">
-                    <canvas data-mascot-float-canvas aria-label="Floating 3D mascot guide — tap for animation"></canvas>
-                </div>
-            </div>
 
             {{-- Asymmetric Architecture Band --}}
             <section id="features" class="band" aria-labelledby="features-heading">
