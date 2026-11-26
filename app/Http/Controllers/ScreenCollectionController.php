@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ObsMacro;
 use App\Models\ObsStudio;
 use App\Models\ScreenAsset;
 use App\Models\ScreenCollection;
@@ -153,6 +154,24 @@ class ScreenCollectionController extends Controller
             ? $requestedViewId
             : null;
 
+        $macrosPayload = ObsMacro::query()
+            ->ownedBy($user)
+            ->where(fn ($query) => $query->where('obs_studio_id', $studio->id)->orWhereNull('obs_studio_id'))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(static fn (ObsMacro $macro): array => [
+                'id' => $macro->id,
+                'name' => $macro->name,
+            ])
+            ->values()
+            ->all();
+
+        $obsScenes = array_values(array_filter(array_map(
+            static fn (mixed $scene): string => is_array($scene) ? trim((string) ($scene['sceneName'] ?? '')) : trim((string) $scene),
+            $studio->getScenes(),
+        ), static fn (string $name): bool => $name !== ''));
+
         return view('studio.collection-builder', [
             'currentVersion' => ChangelogService::getCurrentVersion(),
             'studio' => $studio,
@@ -162,6 +181,9 @@ class ScreenCollectionController extends Controller
             'layerTypes' => ScreenCollectionPresetService::layerTypeOptions(),
             'transitionTypes' => ScreenCollectionPresetService::transitionOptions(),
             'fontFamilies' => ScreenCollectionPresetService::fontFamilyOptions(),
+            'timerEndActionGroups' => ScreenCollectionPresetService::groupedTimerEndActionOptions(),
+            'obsScenes' => $obsScenes,
+            'macrosPayload' => $macrosPayload,
             'echoConfig' => ReverbStatusService::clientEchoConfig(),
         ]);
     }
@@ -473,6 +495,8 @@ class ScreenCollectionController extends Controller
         $previousBgAssetId = (int) ($view->background_asset_id ?? 0);
         $previousLayerAssetIds = $mediaCleaner->extractAssetIdsFromLayers($view->layers);
 
+        $allowedTimerEndActions = implode(',', array_keys(ScreenCollectionPresetService::timerEndActionOptions()));
+
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:120'],
             'background_mode' => ['sometimes', 'string', 'in:theme,solid,transparent,asset'],
@@ -482,7 +506,39 @@ class ScreenCollectionController extends Controller
             'transition_override' => ['nullable', 'array'],
             'layers' => ['sometimes', 'array'],
             'logic_rules' => ['nullable', 'array'],
+            'logic_rules.on_timer_end_action' => ['nullable', 'string', "in:{$allowedTimerEndActions}"],
+            'logic_rules.on_timer_end_target_view_id' => ['nullable', 'integer'],
+            'logic_rules.on_timer_end_alert_title' => ['nullable', 'string', 'max:120'],
+            'logic_rules.on_timer_end_alert_message' => ['nullable', 'string', 'max:280'],
+            'logic_rules.on_timer_end_l3_badge' => ['nullable', 'string', 'max:40'],
+            'logic_rules.on_timer_end_l3_title' => ['nullable', 'string', 'max:120'],
+            'logic_rules.on_timer_end_l3_subtitle' => ['nullable', 'string', 'max:180'],
+            'logic_rules.on_timer_end_obs_scene' => ['nullable', 'string', 'max:180'],
+            'logic_rules.on_timer_end_macro_id' => ['nullable', 'integer'],
         ]);
+
+        if (is_array($validated['logic_rules'] ?? null)) {
+            $rules = $validated['logic_rules'];
+            $targetViewId = ! empty($rules['on_timer_end_target_view_id']) ? (int) $rules['on_timer_end_target_view_id'] : null;
+            if ($targetViewId !== null && ! $collection->views()->whereKey($targetViewId)->exists()) {
+                abort(422, 'Selected timer-end target view does not belong to this collection.');
+            }
+            $macroId = ! empty($rules['on_timer_end_macro_id']) ? (int) $rules['on_timer_end_macro_id'] : null;
+            if ($macroId !== null && ! ObsMacro::query()->ownedBy($user)->whereKey($macroId)->exists()) {
+                abort(403, 'Selected timer-end macro is not accessible.');
+            }
+            $validated['logic_rules'] = [
+                'on_timer_end_action' => (string) ($rules['on_timer_end_action'] ?? 'none'),
+                'on_timer_end_target_view_id' => $targetViewId,
+                'on_timer_end_alert_title' => trim((string) ($rules['on_timer_end_alert_title'] ?? '')),
+                'on_timer_end_alert_message' => trim((string) ($rules['on_timer_end_alert_message'] ?? '')),
+                'on_timer_end_l3_badge' => trim((string) ($rules['on_timer_end_l3_badge'] ?? '')),
+                'on_timer_end_l3_title' => trim((string) ($rules['on_timer_end_l3_title'] ?? '')),
+                'on_timer_end_l3_subtitle' => trim((string) ($rules['on_timer_end_l3_subtitle'] ?? '')),
+                'on_timer_end_obs_scene' => trim((string) ($rules['on_timer_end_obs_scene'] ?? '')),
+                'on_timer_end_macro_id' => $macroId,
+            ];
+        }
 
         if (! empty($validated['background_asset_id'])) {
             ScreenAsset::query()->ownedBy($user)->findOrFail((int) $validated['background_asset_id']);

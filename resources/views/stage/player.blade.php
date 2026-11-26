@@ -494,6 +494,7 @@
                         return {
                             text: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`,
                             remaining: 0,
+                            remainingMs: 0,
                         };
                     }
 
@@ -505,7 +506,7 @@
                             elapsedMs += elapsedLocalMs;
                         }
                         const secs = Math.max(0, Math.floor(elapsedMs / 1000));
-                        return { text: formatClock(secs, showHours), remaining: secs };
+                        return { text: formatClock(secs, showHours), remaining: secs, remainingMs: elapsedMs };
                     }
 
                     let remMs = Number.isFinite(Number(timer.remaining_ms))
@@ -515,7 +516,7 @@
                         remMs = Math.max(0, remMs - elapsedLocalMs);
                     }
                     const rem = Math.max(0, Math.ceil(remMs / 1000));
-                    return { text: formatClock(rem, showHours), remaining: rem };
+                    return { text: formatClock(rem, showHours), remaining: rem, remainingMs: remMs };
                 };
 
                 const shouldShowCondition = (tag, timerInfo) => {
@@ -1183,14 +1184,14 @@
                     const activeView = findView(renderedViewId || stageData?.active_view_id);
                     const action = activeView?.logic_rules?.on_timer_end_action || 'none';
                     if (
-                        timer.mode === 'countdown'
+                        (timer.mode || 'countdown') === 'countdown'
                         && timer.status === 'running'
                         && timer.target_at
                         && action !== 'none'
                     ) {
-                        const rem = Math.ceil((Date.parse(timer.target_at) - Date.now()) / 1000);
+                        const countdownInfo = computeTimerSeconds('countdown');
                         const marker = `${activeView.id}::${timer.target_at}`;
-                        if (rem <= 0 && firedTimerEndMarker !== marker) {
+                        if (countdownInfo.remainingMs <= 0 && firedTimerEndMarker !== marker) {
                             firedTimerEndMarker = marker;
                             fetch(logicTriggerUrl, {
                                 method: 'POST',
@@ -1200,7 +1201,14 @@
                                     view_id: Number(activeView.id),
                                     marker: String(timer.target_at),
                                 }),
-                            }).catch(() => {});
+                            })
+                                .then((r) => (r.ok ? r.json() : null))
+                                .then((res) => {
+                                    if (res?.handled && res?.collection) {
+                                        applyStagePayload(res.collection);
+                                    }
+                                })
+                                .catch(() => {});
                         }
                     }
                 }, 250);

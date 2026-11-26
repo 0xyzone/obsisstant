@@ -82,10 +82,18 @@
             .live-content-box {
                 display: grid;
                 gap: 0.45rem;
+                margin: 0;
                 padding: 0.55rem;
                 border-radius: 0.5rem;
                 border: 1px solid rgba(205, 173, 105, 0.28);
                 background: rgba(205, 173, 105, 0.06);
+            }
+            fieldset.live-content-box > legend {
+                padding: 0 0.25rem;
+                font-size: 0.7rem;
+                font-weight: 700;
+                color: var(--gold-light);
+                letter-spacing: 0.02em;
             }
             .live-content-head {
                 display: flex;
@@ -932,21 +940,15 @@
                         </label>
                     </div>
 
-                    <div class="stack" style="padding: 0.6rem; border-radius: 0.5rem; background: var(--bg-chrome); border: 1px solid var(--hairline);">
-                        <strong style="font-size: 0.75rem; color: var(--gold-light);">Timer Automation Logic</strong>
-                        <label class="stack">
-                            <span class="sub-label">When Countdown Hits 00:00</span>
-                            <select id="vp-logic-action" class="s-select">
-                                <option value="none">Do Nothing</option>
-                                <option value="switch_view">Auto-Switch to Screen View</option>
-                                <option value="show_alert">Trigger Pop-Up Alert Toast</option>
-                            </select>
-                        </label>
-                        <label class="stack" id="vp-logic-target-wrap">
-                            <span class="sub-label">Auto-Switch Target View</span>
-                            <select id="vp-logic-target-view" class="s-select"></select>
-                        </label>
-                    </div>
+                    <fieldset class="live-content-box" id="vp-logic-fieldset">
+                        <legend>When Countdown Timer Ends (00:00)</legend>
+                        <div id="vp-logic-editor-host" class="stack"></div>
+                    </fieldset>
+                    <datalist id="builder-obs-scenes-list">
+                        @foreach (($obsScenes ?? []) as $obsSceneName)
+                            <option value="{{ $obsSceneName }}"></option>
+                        @endforeach
+                    </datalist>
 
                     <button type="button" id="vp-save-btn" class="s-btn is-active">Save View &amp; Logic</button>
                 </div>
@@ -993,6 +995,9 @@
                 const requestedViewId = @json($initialViewId ?? null);
                 const FONT_FAMILY_MAP = @json($fontFamilies ?? []);
                 const FONT_FAMILY_OPTIONS = [['', 'Inherit Collection Font'], ...Object.entries(FONT_FAMILY_MAP)];
+                const TIMER_END_ACTION_GROUPS = @json($timerEndActionGroups ?? []);
+                const OBS_SCENES_LIST = @json($obsScenes ?? []);
+                const MACROS_LIST = @json($macrosPayload ?? []);
                 let selectedViewId = Number(
                     (requestedViewId && (colData.views || []).some((v) => Number(v.id) === Number(requestedViewId)))
                         ? requestedViewId
@@ -1915,19 +1920,8 @@
 
                 const renderViewsList = () => {
                     const list = document.getElementById('views-list');
-                    const targetSel = document.getElementById('vp-logic-target-view');
                     const views = colData.views || [];
                     document.getElementById('views-count-meta').textContent = `${views.length} view${views.length === 1 ? '' : 's'}`;
-
-                    if (targetSel) {
-                        targetSel.innerHTML = '<option value="">Select View</option>';
-                        views.forEach((v) => {
-                            const o = document.createElement('option');
-                            o.value = String(v.id);
-                            o.textContent = v.name;
-                            targetSel.appendChild(o);
-                        });
-                    }
 
                     list.innerHTML = '';
                     views.forEach((v) => {
@@ -2490,6 +2484,23 @@
                         timerLiveBox.append(tlHead, durField);
                         extra.appendChild(timerLiveBox);
 
+                        const endActionFieldset = document.createElement('fieldset');
+                        endActionFieldset.className = 'live-content-box';
+                        const endActionLegend = document.createElement('legend');
+                        endActionLegend.textContent = 'When Timer Ends (00:00)';
+                        const endActionHost = document.createElement('div');
+                        endActionHost.className = 'stack';
+                        endActionFieldset.append(endActionLegend, endActionHost);
+                        renderTimerEndActionEditor(endActionHost, view, {
+                            idPrefix: 'timer-block-end',
+                            showApplyBtn: true,
+                            onUpdated: () => {
+                                const vpHost = document.getElementById('vp-logic-editor-host');
+                                if (vpHost) renderTimerEndActionEditor(vpHost, view, { idPrefix: 'vp-logic', showApplyBtn: false });
+                            },
+                        });
+                        extra.appendChild(endActionFieldset);
+
                         addExtra('Font Family', makeSelectField(
                             [['', 'Default Mono (JetBrains Mono)'], ...Object.entries(FONT_FAMILY_MAP)],
                             layer.props.font_family || '',
@@ -2850,6 +2861,282 @@
                     }
                 };
 
+                const normalizeLogicRules = (raw) => {
+                    const r = raw && typeof raw === 'object' ? raw : {};
+                    return {
+                        on_timer_end_action: String(r.on_timer_end_action || 'none'),
+                        on_timer_end_target_view_id: r.on_timer_end_target_view_id ? Number(r.on_timer_end_target_view_id) : null,
+                        on_timer_end_alert_title: String(r.on_timer_end_alert_title || ''),
+                        on_timer_end_alert_message: String(r.on_timer_end_alert_message || ''),
+                        on_timer_end_l3_badge: String(r.on_timer_end_l3_badge || ''),
+                        on_timer_end_l3_title: String(r.on_timer_end_l3_title || ''),
+                        on_timer_end_l3_subtitle: String(r.on_timer_end_l3_subtitle || ''),
+                        on_timer_end_obs_scene: String(r.on_timer_end_obs_scene || ''),
+                        on_timer_end_macro_id: r.on_timer_end_macro_id ? Number(r.on_timer_end_macro_id) : null,
+                    };
+                };
+
+                const renderTimerEndActionEditor = (hostEl, view, { idPrefix = 'timer-end', showApplyBtn = true, onUpdated = null } = {}) => {
+                    if (!hostEl || !view) return;
+                    hostEl.innerHTML = '';
+                    view.logic_rules = normalizeLogicRules(view.logic_rules);
+                    const rules = view.logic_rules;
+
+                    const makeField = (labelText, controlId, controlEl, hintText = '') => {
+                        const wrap = document.createElement('div');
+                        wrap.className = 'stack';
+                        const lbl = document.createElement('label');
+                        lbl.className = 'sub-label';
+                        lbl.htmlFor = controlId;
+                        lbl.textContent = labelText;
+                        controlEl.id = controlId;
+                        wrap.append(lbl, controlEl);
+                        if (hintText) {
+                            const hintId = `${controlId}-hint`;
+                            const hint = document.createElement('span');
+                            hint.id = hintId;
+                            hint.className = 'sub-label';
+                            hint.style.opacity = '0.78';
+                            hint.textContent = hintText;
+                            controlEl.setAttribute('aria-describedby', hintId);
+                            wrap.appendChild(hint);
+                        }
+                        return wrap;
+                    };
+
+                    const actionSel = document.createElement('select');
+                    actionSel.className = 's-select';
+                    actionSel.name = `${idPrefix}_action`;
+                    const noneOpt = document.createElement('option');
+                    noneOpt.value = 'none';
+                    noneOpt.textContent = 'Do Nothing (Stop at 00:00)';
+                    actionSel.appendChild(noneOpt);
+
+                    Object.entries(TIMER_END_ACTION_GROUPS).forEach(([groupLabel, options]) => {
+                        const og = document.createElement('optgroup');
+                        og.label = groupLabel;
+                        Object.entries(options || {}).forEach(([key, label]) => {
+                            const opt = document.createElement('option');
+                            opt.value = key;
+                            opt.textContent = label;
+                            og.appendChild(opt);
+                        });
+                        actionSel.appendChild(og);
+                    });
+                    actionSel.value = rules.on_timer_end_action || 'none';
+
+                    const detailsWrap = document.createElement('div');
+                    detailsWrap.className = 'stack';
+
+                    const renderDetails = () => {
+                        detailsWrap.innerHTML = '';
+                        const act = rules.on_timer_end_action || 'none';
+
+                        if (act === 'switch_view') {
+                            const targetSel = document.createElement('select');
+                            targetSel.className = 's-select';
+                            targetSel.name = `${idPrefix}_target_view_id`;
+                            const defOpt = document.createElement('option');
+                            defOpt.value = '';
+                            defOpt.textContent = 'Select target Screen View...';
+                            targetSel.appendChild(defOpt);
+                            (colData.views || []).forEach((v) => {
+                                const o = document.createElement('option');
+                                o.value = String(v.id);
+                                o.textContent = Number(v.id) === Number(view.id) ? `${v.name} (current view)` : v.name;
+                                if (Number(v.id) === Number(view.id)) o.disabled = true;
+                                targetSel.appendChild(o);
+                            });
+                            targetSel.value = rules.on_timer_end_target_view_id ? String(rules.on_timer_end_target_view_id) : '';
+                            targetSel.onchange = () => {
+                                pushUndoSnapshot();
+                                rules.on_timer_end_target_view_id = targetSel.value ? Number(targetSel.value) : null;
+                                setDirty(true);
+                                if (typeof onUpdated === 'function') onUpdated();
+                            };
+                            detailsWrap.appendChild(makeField('Target Screen View', `${idPrefix}-target-view`, targetSel));
+                        } else if (act === 'show_alert') {
+                            const tInp = document.createElement('input');
+                            tInp.type = 'text';
+                            tInp.className = 's-input';
+                            tInp.name = `${idPrefix}_alert_title`;
+                            tInp.maxLength = 120;
+                            tInp.placeholder = 'Going Live!';
+                            tInp.value = rules.on_timer_end_alert_title || '';
+                            tInp.oninput = () => {
+                                recordDebouncedUndo(`logic-alert-title:${view.id}`);
+                                rules.on_timer_end_alert_title = tInp.value;
+                                setDirty(true);
+                                if (typeof onUpdated === 'function') onUpdated();
+                            };
+                            const mInp = document.createElement('input');
+                            mInp.type = 'text';
+                            mInp.className = 's-input';
+                            mInp.name = `${idPrefix}_alert_message`;
+                            mInp.maxLength = 280;
+                            mInp.placeholder = 'Broadcast starting now.';
+                            mInp.value = rules.on_timer_end_alert_message || '';
+                            mInp.oninput = () => {
+                                recordDebouncedUndo(`logic-alert-msg:${view.id}`);
+                                rules.on_timer_end_alert_message = mInp.value;
+                                setDirty(true);
+                                if (typeof onUpdated === 'function') onUpdated();
+                            };
+                            detailsWrap.append(
+                                makeField('Alert Title', `${idPrefix}-alert-title`, tInp),
+                                makeField('Alert Message', `${idPrefix}-alert-msg`, mInp)
+                            );
+                        } else if (act === 'show_lower_third') {
+                            const bInp = document.createElement('input');
+                            bInp.type = 'text';
+                            bInp.className = 's-input';
+                            bInp.name = `${idPrefix}_l3_badge`;
+                            bInp.maxLength = 40;
+                            bInp.placeholder = 'LIVE (optional)';
+                            bInp.value = rules.on_timer_end_l3_badge || '';
+                            bInp.oninput = () => {
+                                recordDebouncedUndo(`logic-l3-badge:${view.id}`);
+                                rules.on_timer_end_l3_badge = bInp.value;
+                                setDirty(true);
+                                if (typeof onUpdated === 'function') onUpdated();
+                            };
+                            const tInp = document.createElement('input');
+                            tInp.type = 'text';
+                            tInp.className = 's-input';
+                            tInp.name = `${idPrefix}_l3_title`;
+                            tInp.maxLength = 120;
+                            tInp.placeholder = 'Leave blank to use current title';
+                            tInp.value = rules.on_timer_end_l3_title || '';
+                            tInp.oninput = () => {
+                                recordDebouncedUndo(`logic-l3-title:${view.id}`);
+                                rules.on_timer_end_l3_title = tInp.value;
+                                setDirty(true);
+                                if (typeof onUpdated === 'function') onUpdated();
+                            };
+                            const sInp = document.createElement('input');
+                            sInp.type = 'text';
+                            sInp.className = 's-input';
+                            sInp.name = `${idPrefix}_l3_subtitle`;
+                            sInp.maxLength = 180;
+                            sInp.placeholder = 'Leave blank to use current subtitle';
+                            sInp.value = rules.on_timer_end_l3_subtitle || '';
+                            sInp.oninput = () => {
+                                recordDebouncedUndo(`logic-l3-sub:${view.id}`);
+                                rules.on_timer_end_l3_subtitle = sInp.value;
+                                setDirty(true);
+                                if (typeof onUpdated === 'function') onUpdated();
+                            };
+                            detailsWrap.append(
+                                makeField('Lower Third Badge', `${idPrefix}-l3-badge`, bInp),
+                                makeField('Lower Third Title', `${idPrefix}-l3-title`, tInp),
+                                makeField('Lower Third Subtitle', `${idPrefix}-l3-sub`, sInp, 'Blank fields keep your current Lower Third text.')
+                            );
+                        } else if (act === 'obs_switch_scene') {
+                            const sInp = document.createElement('input');
+                            sInp.type = 'text';
+                            sInp.className = 's-input';
+                            sInp.name = `${idPrefix}_obs_scene`;
+                            sInp.maxLength = 180;
+                            sInp.setAttribute('list', 'builder-obs-scenes-list');
+                            sInp.placeholder = OBS_SCENES_LIST[0] || 'Main Camera Scene';
+                            sInp.value = rules.on_timer_end_obs_scene || '';
+                            sInp.oninput = () => {
+                                recordDebouncedUndo(`logic-obs-scene:${view.id}`);
+                                rules.on_timer_end_obs_scene = sInp.value;
+                                setDirty(true);
+                                if (typeof onUpdated === 'function') onUpdated();
+                            };
+                            detailsWrap.appendChild(makeField(
+                                'Target OBS Scene Name',
+                                `${idPrefix}-obs-scene`,
+                                sInp,
+                                OBS_SCENES_LIST.length > 0 ? 'Pick a synced OBS scene or type an exact scene name.' : 'Enter the exact OBS Scene name to switch to.'
+                            ));
+                        } else if (act === 'run_macro') {
+                            const mSel = document.createElement('select');
+                            mSel.className = 's-select';
+                            mSel.name = `${idPrefix}_macro_id`;
+                            const defOpt = document.createElement('option');
+                            defOpt.value = '';
+                            defOpt.textContent = MACROS_LIST.length > 0 ? 'Select OBS Macro...' : 'No macros created yet';
+                            mSel.appendChild(defOpt);
+                            MACROS_LIST.forEach((m) => {
+                                const o = document.createElement('option');
+                                o.value = String(m.id);
+                                o.textContent = m.name;
+                                mSel.appendChild(o);
+                            });
+                            mSel.value = rules.on_timer_end_macro_id ? String(rules.on_timer_end_macro_id) : '';
+                            mSel.onchange = () => {
+                                pushUndoSnapshot();
+                                rules.on_timer_end_macro_id = mSel.value ? Number(mSel.value) : null;
+                                setDirty(true);
+                                if (typeof onUpdated === 'function') onUpdated();
+                            };
+                            detailsWrap.appendChild(makeField(
+                                'OBS Macro to Run',
+                                `${idPrefix}-macro`,
+                                mSel,
+                                MACROS_LIST.length === 0 ? 'Create multi-step macros in Admin Panel -> OBS Macros.' : ''
+                            ));
+                        } else if (act === 'hide_timer') {
+                            const note = document.createElement('span');
+                            note.className = 'sub-label';
+                            note.textContent = 'Hides timer layer(s) on this view at 00:00 and automatically unhides them when you start or reset the timer.';
+                            detailsWrap.appendChild(note);
+                        } else if (act === 'restart_timer') {
+                            const note = document.createElement('span');
+                            note.className = 'sub-label';
+                            note.textContent = 'Automatically restarts the countdown from its full duration every time it hits 00:00.';
+                            detailsWrap.appendChild(note);
+                        } else if (act === 'reset_timer') {
+                            const note = document.createElement('span');
+                            note.className = 'sub-label';
+                            note.textContent = 'Resets the countdown back to its full duration and stops at 00:00.';
+                            detailsWrap.appendChild(note);
+                        }
+                    };
+
+                    actionSel.onchange = () => {
+                        pushUndoSnapshot();
+                        rules.on_timer_end_action = actionSel.value || 'none';
+                        if (rules.on_timer_end_action === 'switch_view' && !rules.on_timer_end_target_view_id) {
+                            const alt = (colData.views || []).find((v) => Number(v.id) !== Number(view.id));
+                            if (alt) rules.on_timer_end_target_view_id = Number(alt.id);
+                        }
+                        renderDetails();
+                        setDirty(true);
+                        if (typeof onUpdated === 'function') onUpdated();
+                    };
+
+                    renderDetails();
+                    hostEl.append(makeField('Action at 00:00', `${idPrefix}-action`, actionSel), detailsWrap);
+
+                    if (showApplyBtn) {
+                        const applyBtn = document.createElement('button');
+                        applyBtn.type = 'button';
+                        applyBtn.className = 's-btn s-btn-xs s-btn-gold';
+                        applyBtn.textContent = 'Save End Action';
+                        applyBtn.onclick = async () => {
+                            try {
+                                const res = await apiJson(endpoints.updateViewTpl.replace('__VIEW__', view.id), 'PUT', {
+                                    logic_rules: normalizeLogicRules(view.logic_rules),
+                                });
+                                colData = res.collection;
+                                const refreshed = getCurrentView();
+                                if (refreshed) {
+                                    const vpHost = document.getElementById('vp-logic-editor-host');
+                                    if (vpHost) renderTimerEndActionEditor(vpHost, refreshed, { idPrefix: 'vp-logic', showApplyBtn: false });
+                                }
+                                showToast('Timer end action saved & synced live');
+                            } catch (err) {
+                                showToast(`Could not save end action: ${err.message}`);
+                            }
+                        };
+                        hostEl.appendChild(applyBtn);
+                    }
+                };
+
                 const populateViewSettings = () => {
                     const view = getCurrentView();
                     if (!view) return;
@@ -2861,8 +3148,19 @@
                     setStaticColorValue('vp-theme-surface', view.theme_override?.surface_color || '');
                     document.getElementById('vp-tx-type').value = view.transition_override?.type || '';
                     document.getElementById('vp-tx-dur').value = view.transition_override?.duration_ms ?? '';
-                    document.getElementById('vp-logic-action').value = view.logic_rules?.on_timer_end_action || 'none';
-                    document.getElementById('vp-logic-target-view').value = String(view.logic_rules?.on_timer_end_target_view_id || '');
+                    const vpHost = document.getElementById('vp-logic-editor-host');
+                    if (vpHost) {
+                        renderTimerEndActionEditor(vpHost, view, {
+                            idPrefix: 'vp-logic',
+                            showApplyBtn: false,
+                            onUpdated: () => {
+                                const curLayer = (view.layers || []).find((l) => String(l.id) === String(selectedLayerId));
+                                if (curLayer && curLayer.type === 'timer') {
+                                    populateLayerInspector();
+                                }
+                            },
+                        });
+                    }
                     syncBackgroundFieldVisibility();
                 };
 
@@ -2981,10 +3279,7 @@
                         theme_override: Object.keys(themeOverride).length > 0 ? themeOverride : null,
                         transition_override: txTypeVal ? { type: txTypeVal, duration_ms: txDurVal } : null,
                         layers: view.layers || [],
-                        logic_rules: {
-                            on_timer_end_action: document.getElementById('vp-logic-action').value,
-                            on_timer_end_target_view_id: document.getElementById('vp-logic-target-view').value ? Number(document.getElementById('vp-logic-target-view').value) : null,
-                        },
+                        logic_rules: normalizeLogicRules(view.logic_rules),
                     });
                     colData = res.collection;
                     setDirty(false);

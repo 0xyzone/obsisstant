@@ -6,6 +6,7 @@ use App\Events\ObsCommandDispatched;
 use App\Events\ScreenCollectionUpdated;
 use App\Filament\Resources\ScreenCollections\Pages\CreateScreenCollection;
 use App\Filament\Resources\ScreenCollections\Pages\ListScreenCollections;
+use App\Models\ObsMacro;
 use App\Models\ObsStudio;
 use App\Models\ScreenAsset;
 use App\Models\ScreenCollection;
@@ -970,5 +971,218 @@ class ScreenCollectionStageTest extends TestCase
             ->assertSee('applyStrokeStyle', false)
             ->assertSee('formatFontStack', false)
             ->assertSee('bebas-neue', false);
+    }
+
+    public function test_timer_end_action_selector_validation_and_execution_across_all_timer_blocks(): void
+    {
+        Event::fake([ObsCommandDispatched::class, ScreenCollectionUpdated::class]);
+
+        $options = ScreenCollectionPresetService::timerEndActionOptions();
+        $this->assertArrayHasKey('switch_view', $options);
+        $this->assertArrayHasKey('show_lower_third', $options);
+        $this->assertArrayHasKey('hide_timer', $options);
+        $this->assertArrayHasKey('restart_timer', $options);
+        $this->assertArrayHasKey('obs_switch_scene', $options);
+        $this->assertArrayHasKey('obs_start_stream', $options);
+        $this->assertArrayHasKey('run_macro', $options);
+
+        $user = User::factory()->create();
+        $stranger = User::factory()->create();
+        $studio = ObsStudio::factory()->for($user)->create([
+            'control_mode' => 'screens',
+            'live_state' => [
+                'scenes' => [
+                    ['sceneName' => 'Intro Cam', 'sceneIndex' => 0],
+                    ['sceneName' => 'Main Desk', 'sceneIndex' => 1],
+                ],
+            ],
+        ]);
+        $macro = ObsMacro::factory()->for($user)->create([
+            'obs_studio_id' => $studio->id,
+            'name' => 'Go Live Sequence',
+            'steps' => [
+                ['type' => 'obs_command', 'request_type' => 'SetCurrentProgramScene', 'request_data' => ['sceneName' => 'Main Desk']],
+            ],
+        ]);
+        $strangerMacro = ObsMacro::factory()->for($stranger)->create(['name' => 'Foreign Macro']);
+
+        $collection = ScreenCollection::factory()->for($user)->create([
+            'obs_studio_id' => $studio->id,
+            'name' => 'Automation Show',
+        ]);
+        $timerLayer = ScreenCollectionPresetService::makeDefaultLayer('timer', 'Countdown Timer');
+        $viewA = ScreenView::factory()->create([
+            'screen_collection_id' => $collection->id,
+            'name' => 'Countdown Slate',
+            'sort_order' => 1,
+            'layers' => [$timerLayer],
+        ]);
+        $viewB = ScreenView::factory()->create([
+            'screen_collection_id' => $collection->id,
+            'name' => 'Main Show',
+            'sort_order' => 2,
+        ]);
+        $collection->update(['active_view_id' => $viewA->id]);
+        $studio->update(['active_screen_collection_id' => $collection->id]);
+
+        // Rejects unknown action (422) and foreign macro (403)
+        $this->actingAs($user)
+            ->putJson(route('studio.collections.views.update', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+                'view' => $viewA->id,
+            ]), [
+                'logic_rules' => ['on_timer_end_action' => 'invalid_action'],
+            ])
+            ->assertUnprocessable();
+
+        $this->actingAs($user)
+            ->putJson(route('studio.collections.views.update', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+                'view' => $viewA->id,
+            ]), [
+                'logic_rules' => [
+                    'on_timer_end_action' => 'run_macro',
+                    'on_timer_end_macro_id' => $strangerMacro->id,
+                ],
+            ])
+            ->assertForbidden();
+
+        // 1. Show Lower Third action
+        $this->actingAs($user)
+            ->putJson(route('studio.collections.views.update', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+                'view' => $viewA->id,
+            ]), [
+                'logic_rules' => [
+                    'on_timer_end_action' => 'show_lower_third',
+                    'on_timer_end_l3_badge' => 'ON AIR',
+                    'on_timer_end_l3_title' => 'Show Starting',
+                    'on_timer_end_l3_subtitle' => 'Main Desk',
+                ],
+            ])
+            ->assertOk();
+
+        $this->postJson(route('obs.collection.logic-trigger', ['token' => $collection->public_token]), [
+            'event' => 'timer_end',
+            'view_id' => $viewA->id,
+            'marker' => 'marker-l3',
+        ])
+            ->assertOk()
+            ->assertJsonPath('handled', true)
+            ->assertJsonPath('action', 'show_lower_third')
+            ->assertJsonPath('collection.runtime_state.lower_third.visible', true)
+            ->assertJsonPath('collection.runtime_state.lower_third.badge', 'ON AIR')
+            ->assertJsonPath('collection.runtime_state.lower_third.title', 'Show Starting');
+
+        // 2. Hide Timer Layer(s) action hides timer layer and Start restores it automatically
+        $viewA->update(['logic_rules' => ['on_timer_end_action' => 'hide_timer']]);
+        $this->postJson(route('obs.collection.logic-trigger', ['token' => $collection->public_token]), [
+            'event' => 'timer_end',
+            'view_id' => $viewA->id,
+            'marker' => 'marker-hide',
+        ])
+            ->assertOk()
+            ->assertJsonPath('handled', true)
+            ->assertJsonPath('action', 'hide_timer')
+            ->assertJsonPath('hidden_layer_ids.0', $timerLayer['id']);
+
+        $this->assertContains($timerLayer['id'], $collection->fresh()->runtime_state['hidden_layers'] ?? []);
+
+        $this->actingAs($user)
+            ->postJson(route('studio.collections.runtime', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                'timer' => ['action' => 'start'],
+            ])
+            ->assertOk();
+
+        $this->assertNotContains($timerLayer['id'], $collection->fresh()->runtime_state['hidden_layers'] ?? []);
+
+        // 3. Restart / Loop Countdown action
+        $viewA->update(['logic_rules' => ['on_timer_end_action' => 'restart_timer']]);
+        $this->postJson(route('obs.collection.logic-trigger', ['token' => $collection->public_token]), [
+            'event' => 'timer_end',
+            'view_id' => $viewA->id,
+            'marker' => 'marker-loop',
+        ])
+            ->assertOk()
+            ->assertJsonPath('handled', true)
+            ->assertJsonPath('action', 'restart_timer')
+            ->assertJsonPath('collection.runtime_state.timer.status', 'running');
+
+        // 4. OBS Switch Scene, Start Stream, and Run Macro actions dispatch to linked OBS Studio
+        $viewA->update([
+            'logic_rules' => [
+                'on_timer_end_action' => 'obs_switch_scene',
+                'on_timer_end_obs_scene' => 'Main Desk',
+            ],
+        ]);
+        $this->postJson(route('obs.collection.logic-trigger', ['token' => $collection->public_token]), [
+            'event' => 'timer_end',
+            'view_id' => $viewA->id,
+            'marker' => 'marker-obs-scene',
+        ])
+            ->assertOk()
+            ->assertJsonPath('handled', true)
+            ->assertJsonPath('action', 'obs_switch_scene')
+            ->assertJsonPath('scene_name', 'Main Desk');
+
+        $viewA->update(['logic_rules' => ['on_timer_end_action' => 'obs_start_stream']]);
+        $this->postJson(route('obs.collection.logic-trigger', ['token' => $collection->public_token]), [
+            'event' => 'timer_end',
+            'view_id' => $viewA->id,
+            'marker' => 'marker-obs-stream',
+        ])
+            ->assertOk()
+            ->assertJsonPath('handled', true)
+            ->assertJsonPath('request_type', 'StartStream');
+
+        $viewA->update([
+            'logic_rules' => [
+                'on_timer_end_action' => 'run_macro',
+                'on_timer_end_macro_id' => $macro->id,
+            ],
+        ]);
+        $this->postJson(route('obs.collection.logic-trigger', ['token' => $collection->public_token]), [
+            'event' => 'timer_end',
+            'view_id' => $viewA->id,
+            'marker' => 'marker-macro',
+        ])
+            ->assertOk()
+            ->assertJsonPath('handled', true)
+            ->assertJsonPath('action', 'run_macro')
+            ->assertJsonPath('macro_id', $macro->id);
+
+        Event::assertDispatched(ObsCommandDispatched::class, 3);
+
+        // 5. All timer UI surfaces render the When Timer Ends action selector
+        $this->actingAs($user)
+            ->get(route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => $collection->id]))
+            ->assertOk()
+            ->assertSee('When Timer Ends (00:00)', false)
+            ->assertSee('renderTimerEndActionEditor', false)
+            ->assertSee('id="vp-logic-fieldset"', false)
+            ->assertSee('id="builder-obs-scenes-list"', false);
+
+        $this->actingAs($user)
+            ->get(route('studio.show', ['studio' => $studio->slug]))
+            ->assertOk()
+            ->assertSee('id="uni-timer-end-fieldset"', false)
+            ->assertSee('id="uni-timer-end-action"', false)
+            ->assertSee('id="uni-timer-end-save"', false)
+            ->assertSee('obs_start_stream', false)
+            ->assertSee('run_macro', false);
+
+        $this->actingAs($user)
+            ->get(route('obs.deck.show', ['studio' => $studio->slug]))
+            ->assertOk()
+            ->assertSee('id="tm-end-fieldset"', false)
+            ->assertSee('id="tm-end-action"', false)
+            ->assertSee('id="tm-end-save"', false);
+
+        $this->get(route('obs.collection.show', ['token' => $collection->public_token]))
+            ->assertOk()
+            ->assertSee('countdownInfo.remainingMs <= 0', false);
     }
 }

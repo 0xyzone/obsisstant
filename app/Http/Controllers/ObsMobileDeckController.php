@@ -84,6 +84,7 @@ class ObsMobileDeckController extends Controller
             'activeCollectionId' => $activeCollectionId,
             'controlMode' => $initialDeckMode,
             'transitionTypes' => ScreenCollectionPresetService::transitionOptions(),
+            'timerEndActionGroups' => ScreenCollectionPresetService::groupedTimerEndActionOptions(),
             'echoConfig' => ReverbStatusService::clientEchoConfig(),
         ]);
     }

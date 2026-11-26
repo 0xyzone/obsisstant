@@ -72,6 +72,59 @@ class ScreenCollectionPresetService
     }
 
     /**
+     * Actions that can automatically run when a countdown timer reaches 00:00.
+     *
+     * @return array<string, string>
+     */
+    public static function timerEndActionOptions(): array
+    {
+        return [
+            'none' => 'Do Nothing (Stop at 00:00)',
+            'switch_view' => 'Switch to Another Screen View',
+            'show_alert' => 'Show Pop-Up Alert Banner',
+            'show_lower_third' => 'Show Lower Third Banner',
+            'hide_timer' => 'Hide Timer Layer(s) on This View',
+            'reset_timer' => 'Reset Timer to Full Duration',
+            'restart_timer' => 'Loop / Restart Countdown Automatically',
+            'obs_switch_scene' => 'Switch OBS Program Scene',
+            'obs_start_stream' => 'Start OBS Stream',
+            'obs_stop_stream' => 'Stop OBS Stream',
+            'obs_start_record' => 'Start OBS Recording',
+            'obs_stop_record' => 'Stop OBS Recording',
+            'run_macro' => 'Run OBS Macro',
+        ];
+    }
+
+    /**
+     * Grouped options for rendering clean <optgroup> selectors in timer blocks.
+     *
+     * @return array<string, array<string, string>>
+     */
+    public static function groupedTimerEndActionOptions(): array
+    {
+        return [
+            'Stage Screen Actions' => [
+                'switch_view' => 'Switch to Another Screen View',
+                'show_alert' => 'Show Pop-Up Alert Banner',
+                'show_lower_third' => 'Show Lower Third Banner',
+                'hide_timer' => 'Hide Timer Layer(s) on This View',
+            ],
+            'Timer Actions' => [
+                'reset_timer' => 'Reset Timer to Full Duration',
+                'restart_timer' => 'Loop / Restart Countdown Automatically',
+            ],
+            'OBS Studio Actions' => [
+                'obs_switch_scene' => 'Switch OBS Program Scene',
+                'obs_start_stream' => 'Start OBS Stream',
+                'obs_stop_stream' => 'Stop OBS Stream',
+                'obs_start_record' => 'Start OBS Recording',
+                'obs_stop_record' => 'Stop OBS Recording',
+                'run_macro' => 'Run OBS Macro',
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function defaultTheme(): array

@@ -1625,9 +1625,84 @@
                                             <input type="number" id="uni-timer-seconds" class="s-input" min="0" step="30" value="300" aria-label="Custom timer seconds" style="inline-size: 5.5rem; min-block-size: 1.85rem;">
                                             <button type="button" id="uni-timer-set" class="s-btn s-btn-xs">Set Secs</button>
                                         </div>
-                                        <div id="uni-timer-rule-hint" class="dock-subtitle">Configure auto-switch rules when timer hits 00:00 inside Canvas Builder.</div>
                                     </div>
                                 </div>
+
+                                <fieldset id="uni-timer-end-fieldset" style="margin: 0.7rem 0 0; padding: 0.65rem 0.75rem; border-radius: 0.6rem; border: 1px solid rgba(205, 173, 105, 0.28); background: rgba(205, 173, 105, 0.05); display: grid; gap: 0.55rem;">
+                                    <legend id="uni-timer-end-legend" style="padding: 0 0.35rem; font-size: 0.72rem; font-weight: 700; color: var(--gold-light); letter-spacing: 0.02em;">When Timer Ends (00:00)</legend>
+                                    <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5rem; align-items: end;">
+                                        <div class="field-stack">
+                                            <label for="uni-timer-end-action" class="field-label">Action to Run at 00:00</label>
+                                            <select id="uni-timer-end-action" name="uni_timer_end_action" class="s-select">
+                                                <option value="none">Do Nothing (Stop at 00:00)</option>
+                                                @foreach (($timerEndActionGroups ?? []) as $groupLabel => $groupOptions)
+                                                    <optgroup label="{{ $groupLabel }}">
+                                                        @foreach ($groupOptions as $actionKey => $actionLabel)
+                                                            <option value="{{ $actionKey }}">{{ $actionLabel }}</option>
+                                                        @endforeach
+                                                    </optgroup>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <button type="button" id="uni-timer-end-save" class="s-btn s-btn-gold">Save Action</button>
+                                    </div>
+
+                                    <div id="uni-timer-end-target-view-wrap" class="field-stack" hidden>
+                                        <label for="uni-timer-end-target-view" class="field-label">Target Screen View</label>
+                                        <select id="uni-timer-end-target-view" name="uni_timer_end_target_view_id" class="s-select"></select>
+                                    </div>
+
+                                    <div id="uni-timer-end-alert-wrap" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem;" hidden>
+                                        <div class="field-stack">
+                                            <label for="uni-timer-end-alert-title" class="field-label">Alert Title</label>
+                                            <input type="text" id="uni-timer-end-alert-title" name="uni_timer_end_alert_title" class="s-input" maxlength="120" placeholder="Going Live!">
+                                        </div>
+                                        <div class="field-stack">
+                                            <label for="uni-timer-end-alert-msg" class="field-label">Alert Message</label>
+                                            <input type="text" id="uni-timer-end-alert-msg" name="uni_timer_end_alert_message" class="s-input" maxlength="280" placeholder="Broadcast starting now.">
+                                        </div>
+                                    </div>
+
+                                    <div id="uni-timer-end-l3-wrap" style="display: grid; grid-template-columns: 0.7fr 1fr 1fr; gap: 0.45rem;" hidden>
+                                        <div class="field-stack">
+                                            <label for="uni-timer-end-l3-badge" class="field-label">Badge</label>
+                                            <input type="text" id="uni-timer-end-l3-badge" name="uni_timer_end_l3_badge" class="s-input" maxlength="40" placeholder="LIVE">
+                                        </div>
+                                        <div class="field-stack">
+                                            <label for="uni-timer-end-l3-title" class="field-label">Lower Third Title</label>
+                                            <input type="text" id="uni-timer-end-l3-title" name="uni_timer_end_l3_title" class="s-input" maxlength="120" placeholder="Keep current if blank">
+                                        </div>
+                                        <div class="field-stack">
+                                            <label for="uni-timer-end-l3-sub" class="field-label">Lower Third Subtitle</label>
+                                            <input type="text" id="uni-timer-end-l3-sub" name="uni_timer_end_l3_subtitle" class="s-input" maxlength="180" placeholder="Keep current if blank">
+                                        </div>
+                                    </div>
+
+                                    <div id="uni-timer-end-obs-scene-wrap" class="field-stack" hidden>
+                                        <label for="uni-timer-end-obs-scene" class="field-label">Target OBS Program Scene</label>
+                                        <input type="text" id="uni-timer-end-obs-scene" name="uni_timer_end_obs_scene" class="s-input" maxlength="180" list="uni-obs-scenes-list" placeholder="Exact OBS scene name">
+                                        <datalist id="uni-obs-scenes-list">
+                                            @foreach (($scenes ?? []) as $sceneItem)
+                                                @php $sceneLabel = is_array($sceneItem) ? trim((string) ($sceneItem['sceneName'] ?? '')) : trim((string) $sceneItem); @endphp
+                                                @if ($sceneLabel !== '')
+                                                    <option value="{{ $sceneLabel }}"></option>
+                                                @endif
+                                            @endforeach
+                                        </datalist>
+                                    </div>
+
+                                    <div id="uni-timer-end-macro-wrap" class="field-stack" hidden>
+                                        <label for="uni-timer-end-macro" class="field-label">OBS Macro to Run</label>
+                                        <select id="uni-timer-end-macro" name="uni_timer_end_macro_id" class="s-select">
+                                            <option value="">Select OBS Macro...</option>
+                                            @foreach (($macrosPayload ?? []) as $macroItem)
+                                                <option value="{{ $macroItem['id'] }}">{{ $macroItem['name'] }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div id="uni-timer-rule-hint" class="dock-subtitle" role="status" aria-live="polite">Timer stops at 00:00 with no automatic action.</div>
+                                </fieldset>
                             </div>
 
                             {{-- Tab 2: Tournament Scoreboard --}}
@@ -2111,6 +2186,7 @@
                 'collectionBuilderTpl' => route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
                 'collectionSwitchTpl' => route('studio.collections.switch', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
                 'collectionRuntimeTpl' => route('studio.collections.runtime', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
+                'collectionViewUpdateTpl' => route('studio.collections.views.update', ['studio' => $studio->slug, 'collection' => '__COL__', 'view' => '__VIEW__'], false),
                 'collectionPushTpl' => route('studio.collections.push', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
             ];
         @endphp
@@ -2120,6 +2196,7 @@
                 const studioSlug = @json($studio->slug);
                 const studioId = @json($studio->id);
                 const screensData = @json($screensPayload);
+                const macrosData = @json($macrosPayload ?? []);
                 let controlMode = @json($controlMode ?? 'obs');
                 let collectionsData = @json($collectionsPayload ?? []);
                 let activeCollectionId = @json($activeCollectionId);
@@ -2536,6 +2613,23 @@
                 const postJson = async (url, body = {}) => {
                     const res = await fetch(url, {
                         method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrf,
+                        },
+                        body: JSON.stringify(body),
+                    });
+                    if (!res.ok) {
+                        const errPayload = await res.json().catch(() => null);
+                        throw new Error(errPayload?.message || `HTTP ${res.status}`);
+                    }
+                    return res.json();
+                };
+
+                const putJson = async (url, body = {}) => {
+                    const res = await fetch(url, {
+                        method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
                             'Accept': 'application/json',
@@ -4463,6 +4557,9 @@
                 // Unified Single-Browser Screen Collection Remote Controls
                 let subscribedColToken = null;
                 let subscribedColChannel = null;
+                let uniFiredTimerEndMarker = null;
+                let uniTimerEndLastSyncedKey = null;
+                let uniTimerEndDirty = false;
 
                 const stampCollectionPerf = (col) => {
                     if (col && typeof col === 'object') {
@@ -4527,6 +4624,38 @@
                             : Number(t.remaining_seconds ?? t.duration_seconds ?? 0) * 1000;
                         if (status === 'running') remMs = Math.max(0, remMs - elapsedLocalMs);
                         el.textContent = fmtStageClock(Math.ceil(remMs / 1000));
+
+                        const activeView = (col.views || []).find((v) => Number(v.id) === Number(col.active_view_id));
+                        const endAction = activeView?.logic_rules?.on_timer_end_action || 'none';
+                        if (
+                            status === 'running'
+                            && t.target_at
+                            && endAction !== 'none'
+                            && remMs <= 0
+                            && col.logic_trigger_url
+                        ) {
+                            const marker = `${col.collection_id}::${activeView.id}::${t.target_at}`;
+                            if (uniFiredTimerEndMarker !== marker) {
+                                uniFiredTimerEndMarker = marker;
+                                fetch(col.logic_trigger_url, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                                    body: JSON.stringify({
+                                        event: 'timer_end',
+                                        view_id: Number(activeView.id),
+                                        marker: String(t.target_at),
+                                    }),
+                                })
+                                    .then((r) => (r.ok ? r.json() : null))
+                                    .then((res) => {
+                                        if (res?.handled && res?.collection) {
+                                            upsertCollectionData(res.collection);
+                                            renderUnifiedWorkspace();
+                                        }
+                                    })
+                                    .catch(() => {});
+                            }
+                        }
                     }
 
                     const statusEl = document.getElementById('uni-timer-status-label');
@@ -4729,6 +4858,7 @@
                                     transition: txType === 'default' ? null : { type: txType, duration_ms: txDur },
                                 });
                                 upsertCollectionData(res.collection);
+                                uniTimerEndDirty = false;
                                 renderUnifiedWorkspace();
                                 showToast(`Live View: ${view.name}`, 'success');
                             });
@@ -4745,19 +4875,89 @@
                         });
                     }
 
+                    const describeTimerEndRule = (rule, colObj) => {
+                        const act = rule?.on_timer_end_action || 'none';
+                        if (act === 'switch_view') {
+                            const targetView = (colObj.views || []).find((v) => Number(v.id) === Number(rule.on_timer_end_target_view_id));
+                            return targetView
+                                ? `Active rule: switches to "${targetView.name}" when countdown hits 00:00.`
+                                : 'Choose a target Screen View and click Save Action.';
+                        }
+                        if (act === 'show_alert') return `Active rule: shows alert "${rule.on_timer_end_alert_title || 'Time Up'}" at 00:00.`;
+                        if (act === 'show_lower_third') return 'Active rule: displays Lower Third banner at 00:00.';
+                        if (act === 'hide_timer') return 'Active rule: hides timer layer(s) on this view at 00:00.';
+                        if (act === 'reset_timer') return 'Active rule: resets timer back to full duration at 00:00.';
+                        if (act === 'restart_timer') return 'Active rule: loops and restarts countdown automatically at 00:00.';
+                        if (act === 'obs_switch_scene') return rule.on_timer_end_obs_scene ? `Active rule: switches OBS scene to "${rule.on_timer_end_obs_scene}" at 00:00.` : 'Enter an OBS scene name and click Save Action.';
+                        if (act === 'obs_start_stream') return 'Active rule: starts OBS Stream at 00:00.';
+                        if (act === 'obs_stop_stream') return 'Active rule: stops OBS Stream at 00:00.';
+                        if (act === 'obs_start_record') return 'Active rule: starts OBS Recording at 00:00.';
+                        if (act === 'obs_stop_record') return 'Active rule: stops OBS Recording at 00:00.';
+                        if (act === 'run_macro') {
+                            const m = macrosData.find((item) => Number(item.id) === Number(rule.on_timer_end_macro_id));
+                            return m ? `Active rule: runs OBS macro "${m.name}" at 00:00.` : 'Select an OBS Macro and click Save Action.';
+                        }
+                        return 'No automatic action configured — timer stops at 00:00.';
+                    };
+
+                    const syncUniTimerEndFieldVisibility = (actionVal) => {
+                        const setHidden = (id, hide) => {
+                            const el = document.getElementById(id);
+                            if (el) el.hidden = hide;
+                        };
+                        setHidden('uni-timer-end-target-view-wrap', actionVal !== 'switch_view');
+                        setHidden('uni-timer-end-alert-wrap', actionVal !== 'show_alert');
+                        setHidden('uni-timer-end-l3-wrap', actionVal !== 'show_lower_third');
+                        setHidden('uni-timer-end-obs-scene-wrap', actionVal !== 'obs_switch_scene');
+                        setHidden('uni-timer-end-macro-wrap', actionVal !== 'run_macro');
+                    };
+
+                    const timerEndLegend = document.getElementById('uni-timer-end-legend');
+                    if (timerEndLegend) {
+                        timerEndLegend.textContent = activeView
+                            ? `When Timer Ends (00:00) · ${activeView.name}`
+                            : 'When Timer Ends (00:00)';
+                    }
+
+                    const timerEndFieldset = document.getElementById('uni-timer-end-fieldset');
+                    const isEditingTimerEnd = Boolean(timerEndFieldset && timerEndFieldset.contains(document.activeElement));
+                    const rule = activeView?.logic_rules || {};
+                    const syncKey = `${col.collection_id}:${activeView?.id || 0}:${JSON.stringify(rule)}`;
+                    const targetViewSel = document.getElementById('uni-timer-end-target-view');
+                    if (targetViewSel && (!isEditingTimerEnd || uniTimerEndLastSyncedKey !== syncKey)) {
+                        const prevVal = targetViewSel.value;
+                        targetViewSel.innerHTML = '<option value="">Select target Screen View...</option>';
+                        (col.views || []).forEach((v) => {
+                            const o = document.createElement('option');
+                            o.value = String(v.id);
+                            o.textContent = Number(v.id) === Number(activeView?.id) ? `${v.name} (current view)` : v.name;
+                            if (Number(v.id) === Number(activeView?.id)) o.disabled = true;
+                            targetViewSel.appendChild(o);
+                        });
+                        targetViewSel.value = uniTimerEndDirty ? prevVal : String(rule.on_timer_end_target_view_id || '');
+                    }
+
+                    if (!uniTimerEndDirty && !isEditingTimerEnd) {
+                        const actSel = document.getElementById('uni-timer-end-action');
+                        if (actSel) actSel.value = rule.on_timer_end_action || 'none';
+                        const setField = (id, val) => {
+                            const el = document.getElementById(id);
+                            if (el) el.value = val ?? '';
+                        };
+                        setField('uni-timer-end-alert-title', rule.on_timer_end_alert_title || '');
+                        setField('uni-timer-end-alert-msg', rule.on_timer_end_alert_message || '');
+                        setField('uni-timer-end-l3-badge', rule.on_timer_end_l3_badge || '');
+                        setField('uni-timer-end-l3-title', rule.on_timer_end_l3_title || '');
+                        setField('uni-timer-end-l3-sub', rule.on_timer_end_l3_subtitle || '');
+                        setField('uni-timer-end-obs-scene', rule.on_timer_end_obs_scene || '');
+                        setField('uni-timer-end-macro', rule.on_timer_end_macro_id ? String(rule.on_timer_end_macro_id) : '');
+                        syncUniTimerEndFieldVisibility(rule.on_timer_end_action || 'none');
+                        uniTimerEndLastSyncedKey = syncKey;
+                    }
+
                     const ruleHint = document.getElementById('uni-timer-rule-hint');
                     if (ruleHint) {
-                        const rule = activeView?.logic_rules || {};
-                        if (rule.on_timer_end_action === 'switch_view' && rule.on_timer_end_target_view_id) {
-                            const targetView = (col.views || []).find((v) => Number(v.id) === Number(rule.on_timer_end_target_view_id));
-                            ruleHint.textContent = targetView
-                                ? `Auto-rule: switches to "${targetView.name}" when countdown hits 00:00.`
-                                : 'Auto-rule: switches view when countdown hits 00:00.';
-                        } else if (rule.on_timer_end_action === 'show_alert') {
-                            ruleHint.textContent = 'Auto-rule: displays alert banner when countdown hits 00:00.';
-                        } else {
-                            ruleHint.textContent = 'Configure auto-switch rules when timer hits 00:00 inside Canvas Builder.';
-                        }
+                        ruleHint.textContent = describeTimerEndRule(rule, col);
                     }
 
                     const sb = col.runtime_state?.scoreboard || {};
@@ -4948,6 +5148,97 @@
                 document.getElementById('uni-timer-set')?.addEventListener('click', () => {
                     const secs = Math.max(0, Number(document.getElementById('uni-timer-seconds')?.value || 300));
                     sendUnifiedRuntime({ timer: { action: 'set', duration_seconds: secs } });
+                });
+
+                document.getElementById('uni-timer-end-action')?.addEventListener('change', (ev) => {
+                    uniTimerEndDirty = true;
+                    const act = ev.target.value || 'none';
+                    const setHidden = (id, hide) => {
+                        const el = document.getElementById(id);
+                        if (el) el.hidden = hide;
+                    };
+                    setHidden('uni-timer-end-target-view-wrap', act !== 'switch_view');
+                    setHidden('uni-timer-end-alert-wrap', act !== 'show_alert');
+                    setHidden('uni-timer-end-l3-wrap', act !== 'show_lower_third');
+                    setHidden('uni-timer-end-obs-scene-wrap', act !== 'obs_switch_scene');
+                    setHidden('uni-timer-end-macro-wrap', act !== 'run_macro');
+                    if (act === 'switch_view') {
+                        const targetSel = document.getElementById('uni-timer-end-target-view');
+                        if (targetSel && !targetSel.value) {
+                            const firstEnabled = Array.from(targetSel.options).find((o) => o.value && !o.disabled);
+                            if (firstEnabled) targetSel.value = firstEnabled.value;
+                        }
+                    }
+                });
+
+                [
+                    'uni-timer-end-target-view',
+                    'uni-timer-end-alert-title',
+                    'uni-timer-end-alert-msg',
+                    'uni-timer-end-l3-badge',
+                    'uni-timer-end-l3-title',
+                    'uni-timer-end-l3-sub',
+                    'uni-timer-end-obs-scene',
+                    'uni-timer-end-macro',
+                ].forEach((fieldId) => {
+                    const el = document.getElementById(fieldId);
+                    el?.addEventListener('input', () => { uniTimerEndDirty = true; });
+                    el?.addEventListener('change', () => { uniTimerEndDirty = true; });
+                });
+
+                document.getElementById('uni-timer-end-save')?.addEventListener('click', async () => {
+                    const col = getActiveCollection();
+                    const activeView = (col?.views || []).find((v) => Number(v.id) === Number(col?.active_view_id));
+                    if (!col || !activeView) return;
+                    const actionVal = document.getElementById('uni-timer-end-action')?.value || 'none';
+                    const targetViewVal = document.getElementById('uni-timer-end-target-view')?.value || '';
+                    const obsSceneVal = document.getElementById('uni-timer-end-obs-scene')?.value?.trim() || '';
+                    const macroVal = document.getElementById('uni-timer-end-macro')?.value || '';
+
+                    if (actionVal === 'switch_view' && !targetViewVal) {
+                        showToast('Choose a target Screen View first', 'error');
+                        document.getElementById('uni-timer-end-target-view')?.focus();
+                        return;
+                    }
+                    if (actionVal === 'obs_switch_scene' && !obsSceneVal) {
+                        showToast('Enter a target OBS Scene name first', 'error');
+                        document.getElementById('uni-timer-end-obs-scene')?.focus();
+                        return;
+                    }
+                    if (actionVal === 'run_macro' && !macroVal) {
+                        showToast('Choose an OBS Macro first', 'error');
+                        document.getElementById('uni-timer-end-macro')?.focus();
+                        return;
+                    }
+
+                    const payload = {
+                        logic_rules: {
+                            on_timer_end_action: actionVal,
+                            on_timer_end_target_view_id: targetViewVal ? Number(targetViewVal) : null,
+                            on_timer_end_alert_title: document.getElementById('uni-timer-end-alert-title')?.value?.trim() || '',
+                            on_timer_end_alert_message: document.getElementById('uni-timer-end-alert-msg')?.value?.trim() || '',
+                            on_timer_end_l3_badge: document.getElementById('uni-timer-end-l3-badge')?.value?.trim() || '',
+                            on_timer_end_l3_title: document.getElementById('uni-timer-end-l3-title')?.value?.trim() || '',
+                            on_timer_end_l3_subtitle: document.getElementById('uni-timer-end-l3-sub')?.value?.trim() || '',
+                            on_timer_end_obs_scene: obsSceneVal,
+                            on_timer_end_macro_id: macroVal ? Number(macroVal) : null,
+                        },
+                    };
+
+                    try {
+                        const url = endpoints.collectionViewUpdateTpl
+                            .replace('__COL__', col.collection_id)
+                            .replace('__VIEW__', activeView.id);
+                        const res = await putJson(url, payload);
+                        uniTimerEndDirty = false;
+                        if (res?.collection) {
+                            upsertCollectionData(res.collection);
+                            renderUnifiedWorkspace();
+                        }
+                        showToast(`Saved timer-end action for "${activeView.name}"`, 'success');
+                    } catch (err) {
+                        showToast(`Failed to save timer-end action: ${err.message}`, 'error');
+                    }
                 });
 
                 document.getElementById('uni-sb-a-minus')?.addEventListener('click', () => sendUnifiedRuntime({ scoreboard: { delta_a: -1 } }));

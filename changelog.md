@@ -7,6 +7,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.17.0] - 2026-11-26 | type: minor
+
+> Added a full "When Timer Ends (00:00)" action selector directly inside every Timer block (Canvas Builder Timer layer, View & Logic tab, Studio Control Center Timer & Clock block, and Mobile Deck Timer modal) supporting Stage Screen, Timer, and OBS Studio automation actions with clock-skew-immune execution.
+
+### Added
+- Added 12 selectable timer-end automation actions grouped by category: Switch Screen View, Show Pop-Up Alert Banner (custom title & message), Show Lower Third Banner (custom badge/title/subtitle), Hide Timer Layer(s) (with automatic unhide on Start/Reset), Reset Timer, Loop / Restart Countdown, Switch OBS Program Scene, Start/Stop OBS Stream, Start/Stop OBS Recording, and Run OBS Macro.
+- Added the "When Timer Ends (00:00)" action selector and conditional target inputs directly inside the Canvas Builder Timer layer inspector (synced with View & Logic), the Studio Control Center Timer & Clock block, and the Mobile Deck Stage Timer Controls modal.
+
+### Fixed
+- Fixed Stage Player timer-end detection to use server-relative remaining milliseconds (`remainingMs <= 0`) instead of wall-clock `Date.now()`, preventing early or late automation triggers on skewed client clocks.
+- Added idempotent timer-end trigger fallback from Studio Control Center and Mobile Deck so configured actions run reliably at `00:00` even when Stage Player is not currently open.
+
 ## [v1.16.0] - 2026-11-26 | type: minor
 
 > Added broadcast font family controls, Canvas Builder Undo/Redo history and Delete-key layer removal, outline direction options (Inside / Outside / Center), inline Live View content editors in Canvas Builder and Studio Control Center, and direct pencil edit links on Studio Screen View tiles.

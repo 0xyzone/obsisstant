@@ -4,6 +4,7 @@ namespace App\Services\Obs;
 
 use App\Events\ScreenCollectionUpdated;
 use App\Models\ObsCommandLog;
+use App\Models\ObsMacro;
 use App\Models\ObsStudio;
 use App\Models\ScreenAsset;
 use App\Models\ScreenCollection;
@@ -137,6 +138,7 @@ class ScreenCollectionService
             'public_token' => $collection->public_token,
             'stage_url' => $collection->getStageUrl(true),
             'stage_path' => $collection->getStageUrl(false),
+            'logic_trigger_url' => route('obs.collection.logic-trigger', ['token' => $collection->public_token], false),
             'width' => $collection->width,
             'height' => $collection->height,
             'active_view_id' => $collection->active_view_id ?? ($views[0]['id'] ?? null),
@@ -330,6 +332,19 @@ class ScreenCollectionService
         $runtime = $collection->getMergedRuntimeState();
 
         if (is_array($input['timer'] ?? null)) {
+            $timerAction = (string) ($input['timer']['action'] ?? 'update');
+            if (in_array($timerAction, ['start', 'reset', 'set'], true) && ! empty($runtime['timer']['auto_hidden_layer_ids'])) {
+                $autoHidden = array_values(array_filter(
+                    is_array($runtime['timer']['auto_hidden_layer_ids']) ? $runtime['timer']['auto_hidden_layer_ids'] : [],
+                    static fn (mixed $id): bool => is_string($id) && $id !== '',
+                ));
+                $runtime['hidden_layers'] = array_values(array_diff(
+                    is_array($runtime['hidden_layers'] ?? null) ? $runtime['hidden_layers'] : [],
+                    $autoHidden,
+                ));
+                $runtime['timer']['auto_hidden_layer_ids'] = [];
+            }
+
             $runtime['timer'] = $this->applyTimerAction($runtime['timer'], $input['timer']);
         }
 
@@ -385,7 +400,7 @@ class ScreenCollectionService
     public function fireTimerEndLogic(ScreenCollection $collection, int $expectedViewId, ?string $marker = null): array
     {
         $lockKey = "obs.stage.timer_end.{$collection->id}.{$expectedViewId}.".($marker ?: 'latest');
-        if (! Cache::add($lockKey, 1, now()->addSeconds(8))) {
+        if (! Cache::add($lockKey, 1, now()->addSeconds(15))) {
             return ['handled' => false, 'reason' => 'debounced'];
         }
 
@@ -402,13 +417,14 @@ class ScreenCollectionService
             return ['handled' => false, 'reason' => 'missing_view'];
         }
 
-        $rules = $view->logic_rules ?? [];
+        $rules = is_array($view->logic_rules) ? $view->logic_rules : [];
         $action = (string) ($rules['on_timer_end_action'] ?? 'none');
-        if ($action === 'none') {
+        if ($action === 'none' || $action === '') {
             return ['handled' => false, 'reason' => 'no_action'];
         }
 
         $runtime = $collection->getMergedRuntimeState();
+        $durationSecs = max(0, (int) ($runtime['timer']['duration_seconds'] ?? 300));
         $runtime['timer']['status'] = 'stopped';
         $runtime['timer']['remaining_seconds'] = 0;
         $runtime['timer']['target_at'] = null;
@@ -420,27 +436,206 @@ class ScreenCollectionService
                 ->find((int) $rules['on_timer_end_target_view_id']);
 
             if ($targetView instanceof ScreenView && $targetView->id !== $view->id) {
-                $this->switchView($collection, $targetView);
+                $updated = $this->switchView($collection, $targetView);
 
-                return ['handled' => true, 'action' => 'switch_view', 'target_view_id' => $targetView->id];
+                return [
+                    'handled' => true,
+                    'action' => 'switch_view',
+                    'target_view_id' => $targetView->id,
+                    'collection' => self::buildStagePayload($updated),
+                ];
             }
         }
 
         if ($action === 'show_alert') {
-            $this->updateRuntime($collection, [
+            $updated = $this->updateRuntime($collection, [
                 'alert' => [
                     'visible' => true,
-                    'title' => (string) ($rules['on_timer_end_alert_title'] ?? 'Time Up'),
-                    'message' => (string) ($rules['on_timer_end_alert_message'] ?? 'Countdown finished.'),
+                    'title' => trim((string) ($rules['on_timer_end_alert_title'] ?? '')) ?: 'Time Up',
+                    'message' => trim((string) ($rules['on_timer_end_alert_message'] ?? '')) ?: 'Countdown finished.',
                 ],
             ]);
 
-            return ['handled' => true, 'action' => 'show_alert'];
+            return [
+                'handled' => true,
+                'action' => 'show_alert',
+                'collection' => self::buildStagePayload($updated),
+            ];
+        }
+
+        if ($action === 'show_lower_third') {
+            $l3Patch = ['visible' => true];
+            $badge = trim((string) ($rules['on_timer_end_l3_badge'] ?? ''));
+            $title = trim((string) ($rules['on_timer_end_l3_title'] ?? ''));
+            $subtitle = trim((string) ($rules['on_timer_end_l3_subtitle'] ?? ''));
+            if ($badge !== '') {
+                $l3Patch['badge'] = $badge;
+            }
+            if ($title !== '') {
+                $l3Patch['title'] = $title;
+            }
+            if ($subtitle !== '') {
+                $l3Patch['subtitle'] = $subtitle;
+            }
+
+            $updated = $this->updateRuntime($collection, ['lower_third' => $l3Patch]);
+
+            return [
+                'handled' => true,
+                'action' => 'show_lower_third',
+                'collection' => self::buildStagePayload($updated),
+            ];
+        }
+
+        if ($action === 'hide_timer') {
+            $timerLayerIds = [];
+            foreach ($view->layers ?? [] as $layer) {
+                if (is_array($layer) && ($layer['type'] ?? '') === 'timer' && ! empty($layer['id'])) {
+                    $timerLayerIds[] = (string) $layer['id'];
+                }
+            }
+
+            $hidden = array_values(array_unique(array_merge(
+                array_values(array_filter($runtime['hidden_layers'] ?? [], static fn (mixed $id): bool => is_string($id) && $id !== '')),
+                $timerLayerIds,
+            )));
+            $runtime['hidden_layers'] = $hidden;
+            $runtime['timer']['auto_hidden_layer_ids'] = $timerLayerIds;
+            $collection->forceFill(['runtime_state' => $runtime])->save();
+
+            $fresh = $collection->fresh(['views', 'assets']) ?? $collection;
+            $this->broadcastSafely($fresh);
+
+            return [
+                'handled' => true,
+                'action' => 'hide_timer',
+                'hidden_layer_ids' => $timerLayerIds,
+                'collection' => self::buildStagePayload($fresh),
+            ];
+        }
+
+        if ($action === 'reset_timer') {
+            $updated = $this->updateRuntime($collection, [
+                'timer' => [
+                    'action' => 'reset',
+                    'duration_seconds' => $durationSecs,
+                ],
+            ]);
+
+            return [
+                'handled' => true,
+                'action' => 'reset_timer',
+                'collection' => self::buildStagePayload($updated),
+            ];
+        }
+
+        if ($action === 'restart_timer') {
+            $restartSecs = max(1, $durationSecs > 0 ? $durationSecs : 60);
+            $updated = $this->updateRuntime($collection, [
+                'timer' => [
+                    'action' => 'set',
+                    'duration_seconds' => $restartSecs,
+                    'auto_start' => true,
+                ],
+            ]);
+
+            return [
+                'handled' => true,
+                'action' => 'restart_timer',
+                'collection' => self::buildStagePayload($updated),
+            ];
+        }
+
+        $obsStudio = $this->resolveStudioForCollection($collection);
+
+        if ($action === 'obs_switch_scene' && $obsStudio instanceof ObsStudio) {
+            $sceneName = trim((string) ($rules['on_timer_end_obs_scene'] ?? ''));
+            if ($sceneName !== '') {
+                $log = $this->commandService->dispatch(
+                    studio: $obsStudio,
+                    requestType: 'SetCurrentProgramScene',
+                    requestData: ['sceneName' => $sceneName],
+                    user: $collection->user,
+                );
+                $fresh = $collection->fresh(['views', 'assets']) ?? $collection;
+                $this->broadcastSafely($fresh);
+
+                return [
+                    'handled' => true,
+                    'action' => 'obs_switch_scene',
+                    'scene_name' => $sceneName,
+                    'command_uuid' => $log->command_uuid,
+                    'collection' => self::buildStagePayload($fresh),
+                ];
+            }
+        }
+
+        $simpleObsCommands = [
+            'obs_start_stream' => 'StartStream',
+            'obs_stop_stream' => 'StopStream',
+            'obs_start_record' => 'StartRecord',
+            'obs_stop_record' => 'StopRecord',
+        ];
+
+        if (isset($simpleObsCommands[$action]) && $obsStudio instanceof ObsStudio) {
+            $requestType = $simpleObsCommands[$action];
+            $log = $this->commandService->dispatch(
+                studio: $obsStudio,
+                requestType: $requestType,
+                requestData: [],
+                user: $collection->user,
+            );
+            $fresh = $collection->fresh(['views', 'assets']) ?? $collection;
+            $this->broadcastSafely($fresh);
+
+            return [
+                'handled' => true,
+                'action' => $action,
+                'request_type' => $requestType,
+                'command_uuid' => $log->command_uuid,
+                'collection' => self::buildStagePayload($fresh),
+            ];
+        }
+
+        if ($action === 'run_macro' && $obsStudio instanceof ObsStudio && ! empty($rules['on_timer_end_macro_id'])) {
+            $macro = ObsMacro::query()
+                ->where('user_id', $collection->user_id)
+                ->find((int) $rules['on_timer_end_macro_id']);
+
+            if ($macro instanceof ObsMacro) {
+                $results = $this->commandService->executeMacro($obsStudio, $macro, $collection->user);
+                $fresh = $collection->fresh(['views', 'assets']) ?? $collection;
+                $this->broadcastSafely($fresh);
+
+                return [
+                    'handled' => true,
+                    'action' => 'run_macro',
+                    'macro_id' => $macro->id,
+                    'results' => $results,
+                    'collection' => self::buildStagePayload($fresh),
+                ];
+            }
         }
 
         $this->broadcast($collection);
 
         return ['handled' => false, 'reason' => 'unsupported_action'];
+    }
+
+    private function resolveStudioForCollection(ScreenCollection $collection): ?ObsStudio
+    {
+        if ($collection->obs_studio_id !== null) {
+            $linked = $collection->studio()->first();
+            if ($linked instanceof ObsStudio) {
+                return $linked;
+            }
+        }
+
+        return ObsStudio::query()
+            ->where('user_id', $collection->user_id)
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->first();
     }
 
     public function pushStageToObs(ObsStudio $studio, ScreenCollection $collection, ?User $user = null): ObsCommandLog

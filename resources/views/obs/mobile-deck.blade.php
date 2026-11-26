@@ -10,6 +10,7 @@
         'builderTpl' => route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
         'switchTpl' => route('studio.collections.switch', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
         'runtimeTpl' => route('studio.collections.runtime', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
+        'viewUpdateTpl' => route('studio.collections.views.update', ['studio' => $studio->slug, 'collection' => '__COL__', 'view' => '__VIEW__'], false),
         'deckLayoutTpl' => route('studio.collections.deck-layout', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
         'pushTpl' => route('studio.collections.push', ['studio' => $studio->slug, 'collection' => '__COL__'], false),
     ];
@@ -1245,6 +1246,80 @@
                         <button type="button" id="tm-label-save" class="deck-pill-btn is-outline">Set Label</button>
                     </div>
                 </div>
+
+                {{-- Action When Countdown Timer Ends (00:00) --}}
+                <fieldset id="tm-end-fieldset" style="margin: 0; padding: 0.65rem; border-radius: 0.65rem; border: 1px solid rgba(205, 173, 105, 0.3); background: rgba(205, 173, 105, 0.06); display: grid; gap: 0.5rem;">
+                    <legend id="tm-end-legend" style="padding: 0 0.3rem; font-size: 0.72rem; font-weight: 700; color: var(--gold);">When Timer Ends (00:00)</legend>
+                    <div class="field-stack">
+                        <label for="tm-end-action" class="field-label">Action to Run at 00:00</label>
+                        <select id="tm-end-action" name="tm_end_action" class="deck-select">
+                            <option value="none">Do Nothing (Stop at 00:00)</option>
+                            @foreach (($timerEndActionGroups ?? []) as $groupLabel => $groupOptions)
+                                <optgroup label="{{ $groupLabel }}">
+                                    @foreach ($groupOptions as $actionKey => $actionLabel)
+                                        <option value="{{ $actionKey }}">{{ $actionLabel }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div id="tm-end-target-view-wrap" class="field-stack" hidden>
+                        <label for="tm-end-target-view" class="field-label">Target Screen View</label>
+                        <select id="tm-end-target-view" name="tm_end_target_view_id" class="deck-select"></select>
+                    </div>
+
+                    <div id="tm-end-alert-wrap" style="display: grid; gap: 0.4rem;" hidden>
+                        <div class="field-stack">
+                            <label for="tm-end-alert-title" class="field-label">Alert Title</label>
+                            <input type="text" id="tm-end-alert-title" name="tm_end_alert_title" class="deck-input" maxlength="120" placeholder="Going Live!">
+                        </div>
+                        <div class="field-stack">
+                            <label for="tm-end-alert-msg" class="field-label">Alert Message</label>
+                            <input type="text" id="tm-end-alert-msg" name="tm_end_alert_message" class="deck-input" maxlength="280" placeholder="Broadcast starting now.">
+                        </div>
+                    </div>
+
+                    <div id="tm-end-l3-wrap" style="display: grid; gap: 0.4rem;" hidden>
+                        <div class="field-stack">
+                            <label for="tm-end-l3-badge" class="field-label">Lower Third Badge</label>
+                            <input type="text" id="tm-end-l3-badge" name="tm_end_l3_badge" class="deck-input" maxlength="40" placeholder="LIVE">
+                        </div>
+                        <div class="field-stack">
+                            <label for="tm-end-l3-title" class="field-label">Lower Third Title</label>
+                            <input type="text" id="tm-end-l3-title" name="tm_end_l3_title" class="deck-input" maxlength="120" placeholder="Keep current if blank">
+                        </div>
+                        <div class="field-stack">
+                            <label for="tm-end-l3-sub" class="field-label">Lower Third Subtitle</label>
+                            <input type="text" id="tm-end-l3-sub" name="tm_end_l3_subtitle" class="deck-input" maxlength="180" placeholder="Keep current if blank">
+                        </div>
+                    </div>
+
+                    <div id="tm-end-obs-scene-wrap" class="field-stack" hidden>
+                        <label for="tm-end-obs-scene" class="field-label">Target OBS Program Scene</label>
+                        <input type="text" id="tm-end-obs-scene" name="tm_end_obs_scene" class="deck-input" maxlength="180" list="deck-obs-scenes-list" placeholder="Exact OBS scene name">
+                        <datalist id="deck-obs-scenes-list">
+                            @foreach (($initialObsScenes ?? []) as $sceneItem)
+                                @php $sceneLabel = is_array($sceneItem) ? trim((string) ($sceneItem['sceneName'] ?? '')) : trim((string) $sceneItem); @endphp
+                                @if ($sceneLabel !== '')
+                                    <option value="{{ $sceneLabel }}"></option>
+                                @endif
+                            @endforeach
+                        </datalist>
+                    </div>
+
+                    <div id="tm-end-macro-wrap" class="field-stack" hidden>
+                        <label for="tm-end-macro" class="field-label">OBS Macro to Run</label>
+                        <select id="tm-end-macro" name="tm_end_macro_id" class="deck-select">
+                            <option value="">Select OBS Macro...</option>
+                            @foreach (($macrosPayload ?? []) as $macroItem)
+                                <option value="{{ $macroItem['id'] }}">{{ $macroItem['name'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <button type="button" id="tm-end-save" class="deck-pill-btn is-gold">Save End Action</button>
+                </fieldset>
             </div>
         </dialog>
 
@@ -1303,6 +1378,8 @@
                 let editingTileIndex = null;
                 let selectedSwatch = 'neutral';
                 let dragTileIndex = null;
+                let deckFiredTimerEndMarker = null;
+                let tmEndDirty = false;
 
                 const createCommandUuid = () => {
                     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
@@ -1599,7 +1676,7 @@
                     if (mode === 'clock') {
                         const d = new Date();
                         const text = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
-                        return { secs: 0, duration, mode, status: 'running', label: t.label || 'LOCAL TIME', text, pct: 100 };
+                        return { secs: 0, remMs: 0, duration, mode, status: 'running', label: t.label || 'LOCAL TIME', text, pct: 100 };
                     }
 
                     if (mode === 'countup') {
@@ -1610,7 +1687,7 @@
                             elapsedMs += elapsedLocalMs;
                         }
                         const secs = Math.max(0, Math.floor(elapsedMs / 1000));
-                        return { secs, duration, mode, status, label: t.label || 'ELAPSED', text: fmtDeckClock(secs), pct: 100 };
+                        return { secs, remMs: elapsedMs, duration, mode, status, label: t.label || 'ELAPSED', text: fmtDeckClock(secs), pct: 100 };
                     }
 
                     let remMs = Number.isFinite(Number(t.remaining_ms))
@@ -1621,7 +1698,7 @@
                     }
                     const secs = Math.max(0, Math.ceil(remMs / 1000));
                     const pct = Math.max(0, Math.min(100, Math.round((remMs / (duration * 1000)) * 100)));
-                    return { secs, duration, mode, status, label: t.label || 'LIVE IN', text: fmtDeckClock(secs), pct };
+                    return { secs, remMs, duration, mode, status, label: t.label || 'LIVE IN', text: fmtDeckClock(secs), pct };
                 };
 
                 const subscribeDeckCollectionEcho = (col) => {
@@ -2335,14 +2412,78 @@
                         labelInput.value = col.runtime_state?.timer?.label || '';
                     }
 
+                    const activeView = (col.views || []).find((v) => Number(v.id) === Number(col.active_view_id));
+                    const rule = activeView?.logic_rules || {};
+
+                    const syncTmEndVisibility = (act) => {
+                        const setH = (id, h) => { const el = document.getElementById(id); if (el) el.hidden = h; };
+                        setH('tm-end-target-view-wrap', act !== 'switch_view');
+                        setH('tm-end-alert-wrap', act !== 'show_alert');
+                        setH('tm-end-l3-wrap', act !== 'show_lower_third');
+                        setH('tm-end-obs-scene-wrap', act !== 'obs_switch_scene');
+                        setH('tm-end-macro-wrap', act !== 'run_macro');
+                    };
+
+                    const tmLegend = document.getElementById('tm-end-legend');
+                    if (tmLegend) {
+                        tmLegend.textContent = activeView ? `When Timer Ends (00:00) · ${activeView.name}` : 'When Timer Ends (00:00)';
+                    }
+
+                    const tmFieldset = document.getElementById('tm-end-fieldset');
+                    const isEditingEnd = Boolean(tmFieldset && tmFieldset.contains(document.activeElement));
+                    if (!tmEndDirty && !isEditingEnd) {
+                        const tvSel = document.getElementById('tm-end-target-view');
+                        if (tvSel) {
+                            tvSel.innerHTML = '<option value="">Select target Screen View...</option>';
+                            (col.views || []).forEach((v) => {
+                                const o = document.createElement('option');
+                                o.value = String(v.id);
+                                o.textContent = Number(v.id) === Number(activeView?.id) ? `${v.name} (current view)` : v.name;
+                                if (Number(v.id) === Number(activeView?.id)) o.disabled = true;
+                                tvSel.appendChild(o);
+                            });
+                            tvSel.value = String(rule.on_timer_end_target_view_id || '');
+                        }
+                        const setF = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+                        setF('tm-end-action', rule.on_timer_end_action || 'none');
+                        setF('tm-end-alert-title', rule.on_timer_end_alert_title || '');
+                        setF('tm-end-alert-msg', rule.on_timer_end_alert_message || '');
+                        setF('tm-end-l3-badge', rule.on_timer_end_l3_badge || '');
+                        setF('tm-end-l3-title', rule.on_timer_end_l3_title || '');
+                        setF('tm-end-l3-sub', rule.on_timer_end_l3_subtitle || '');
+                        setF('tm-end-obs-scene', rule.on_timer_end_obs_scene || '');
+                        setF('tm-end-macro', rule.on_timer_end_macro_id ? String(rule.on_timer_end_macro_id) : '');
+                        syncTmEndVisibility(rule.on_timer_end_action || 'none');
+                    }
+
                     if (ruleHint) {
-                        const activeView = (col.views || []).find((v) => Number(v.id) === Number(col.active_view_id));
-                        const rule = activeView?.logic_rules || {};
-                        if (rule.on_timer_end_action === 'switch_view' && rule.on_timer_end_target_view_id) {
+                        const act = rule.on_timer_end_action || 'none';
+                        if (act === 'switch_view' && rule.on_timer_end_target_view_id) {
                             const target = (col.views || []).find((v) => Number(v.id) === Number(rule.on_timer_end_target_view_id));
                             ruleHint.textContent = target ? `Auto-rule: switches to "${target.name}" at 00:00` : 'Auto-rule: switches view at 00:00';
-                        } else if (rule.on_timer_end_action === 'show_alert') {
-                            ruleHint.textContent = 'Auto-rule: fires alert banner at 00:00';
+                        } else if (act === 'show_alert') {
+                            ruleHint.textContent = `Auto-rule: shows alert "${rule.on_timer_end_alert_title || 'Time Up'}" at 00:00`;
+                        } else if (act === 'show_lower_third') {
+                            ruleHint.textContent = 'Auto-rule: shows Lower Third at 00:00';
+                        } else if (act === 'hide_timer') {
+                            ruleHint.textContent = 'Auto-rule: hides timer layer(s) at 00:00';
+                        } else if (act === 'reset_timer') {
+                            ruleHint.textContent = 'Auto-rule: resets timer at 00:00';
+                        } else if (act === 'restart_timer') {
+                            ruleHint.textContent = 'Auto-rule: loops countdown at 00:00';
+                        } else if (act === 'obs_switch_scene' && rule.on_timer_end_obs_scene) {
+                            ruleHint.textContent = `Auto-rule: switches OBS scene to "${rule.on_timer_end_obs_scene}" at 00:00`;
+                        } else if (act === 'obs_start_stream') {
+                            ruleHint.textContent = 'Auto-rule: starts OBS Stream at 00:00';
+                        } else if (act === 'obs_stop_stream') {
+                            ruleHint.textContent = 'Auto-rule: stops OBS Stream at 00:00';
+                        } else if (act === 'obs_start_record') {
+                            ruleHint.textContent = 'Auto-rule: starts OBS Recording at 00:00';
+                        } else if (act === 'obs_stop_record') {
+                            ruleHint.textContent = 'Auto-rule: stops OBS Recording at 00:00';
+                        } else if (act === 'run_macro') {
+                            const m = macrosList.find((item) => Number(item.id) === Number(rule.on_timer_end_macro_id));
+                            ruleHint.textContent = m ? `Auto-rule: runs macro "${m.name}" at 00:00` : 'Auto-rule: runs OBS macro at 00:00';
                         } else {
                             ruleHint.textContent = '';
                         }
@@ -2352,6 +2493,7 @@
                 const openTimerModal = () => {
                     const col = getActiveCollection();
                     if (!col || !timerModal) return;
+                    tmEndDirty = false;
                     const dur = Math.max(0, Number(col.runtime_state?.timer?.duration_seconds ?? 300));
                     const minInput = document.getElementById('tm-custom-min');
                     const secInput = document.getElementById('tm-custom-sec');
@@ -2971,6 +3113,92 @@
                     sendDeckRuntime({ timer: { action: 'update', label } }, 'Timer label updated');
                 });
 
+                document.getElementById('tm-end-action')?.addEventListener('change', (ev) => {
+                    tmEndDirty = true;
+                    const act = ev.target.value || 'none';
+                    const setH = (id, h) => { const el = document.getElementById(id); if (el) el.hidden = h; };
+                    setH('tm-end-target-view-wrap', act !== 'switch_view');
+                    setH('tm-end-alert-wrap', act !== 'show_alert');
+                    setH('tm-end-l3-wrap', act !== 'show_lower_third');
+                    setH('tm-end-obs-scene-wrap', act !== 'obs_switch_scene');
+                    setH('tm-end-macro-wrap', act !== 'run_macro');
+                    if (act === 'switch_view') {
+                        const tvSel = document.getElementById('tm-end-target-view');
+                        if (tvSel && !tvSel.value) {
+                            const firstOpt = Array.from(tvSel.options).find((o) => o.value && !o.disabled);
+                            if (firstOpt) tvSel.value = firstOpt.value;
+                        }
+                    }
+                });
+
+                [
+                    'tm-end-target-view',
+                    'tm-end-alert-title',
+                    'tm-end-alert-msg',
+                    'tm-end-l3-badge',
+                    'tm-end-l3-title',
+                    'tm-end-l3-sub',
+                    'tm-end-obs-scene',
+                    'tm-end-macro',
+                ].forEach((fid) => {
+                    const el = document.getElementById(fid);
+                    el?.addEventListener('input', () => { tmEndDirty = true; });
+                    el?.addEventListener('change', () => { tmEndDirty = true; });
+                });
+
+                document.getElementById('tm-end-save')?.addEventListener('click', async () => {
+                    const col = getActiveCollection();
+                    const activeView = (col?.views || []).find((v) => Number(v.id) === Number(col?.active_view_id));
+                    if (!col || !activeView) return;
+                    const actionVal = document.getElementById('tm-end-action')?.value || 'none';
+                    const targetViewVal = document.getElementById('tm-end-target-view')?.value || '';
+                    const obsSceneVal = document.getElementById('tm-end-obs-scene')?.value?.trim() || '';
+                    const macroVal = document.getElementById('tm-end-macro')?.value || '';
+
+                    if (actionVal === 'switch_view' && !targetViewVal) {
+                        showToast('Choose a target Screen View first', true);
+                        document.getElementById('tm-end-target-view')?.focus();
+                        return;
+                    }
+                    if (actionVal === 'obs_switch_scene' && !obsSceneVal) {
+                        showToast('Enter an OBS Scene name first', true);
+                        document.getElementById('tm-end-obs-scene')?.focus();
+                        return;
+                    }
+                    if (actionVal === 'run_macro' && !macroVal) {
+                        showToast('Choose an OBS Macro first', true);
+                        document.getElementById('tm-end-macro')?.focus();
+                        return;
+                    }
+
+                    try {
+                        const url = deckUrls.viewUpdateTpl
+                            .replace('__COL__', col.collection_id)
+                            .replace('__VIEW__', activeView.id);
+                        const res = await putJson(url, {
+                            logic_rules: {
+                                on_timer_end_action: actionVal,
+                                on_timer_end_target_view_id: targetViewVal ? Number(targetViewVal) : null,
+                                on_timer_end_alert_title: document.getElementById('tm-end-alert-title')?.value?.trim() || '',
+                                on_timer_end_alert_message: document.getElementById('tm-end-alert-msg')?.value?.trim() || '',
+                                on_timer_end_l3_badge: document.getElementById('tm-end-l3-badge')?.value?.trim() || '',
+                                on_timer_end_l3_title: document.getElementById('tm-end-l3-title')?.value?.trim() || '',
+                                on_timer_end_l3_subtitle: document.getElementById('tm-end-l3-sub')?.value?.trim() || '',
+                                on_timer_end_obs_scene: obsSceneVal,
+                                on_timer_end_macro_id: macroVal ? Number(macroVal) : null,
+                            },
+                        });
+                        tmEndDirty = false;
+                        if (res?.collection) {
+                            upsertCollection(res.collection);
+                            renderUnifiedDeck();
+                        }
+                        showToast(`Saved end action for "${activeView.name}"`);
+                    } catch (err) {
+                        showToast(`Save failed: ${err.message}`, true);
+                    }
+                });
+
                 document.querySelectorAll('[data-quick-timer-preset]').forEach((btn) => {
                     btn.addEventListener('click', () => {
                         const secs = Math.max(0, Number(btn.dataset.quickTimerPreset || 300));
@@ -3109,6 +3337,40 @@
                     document.querySelectorAll('[data-live-tile-progress]').forEach((el) => {
                         el.style.inlineSize = `${info.pct}%`;
                     });
+
+                    const tState = col.runtime_state?.timer || {};
+                    const activeView = (col.views || []).find((v) => Number(v.id) === Number(col.active_view_id));
+                    const endAction = activeView?.logic_rules?.on_timer_end_action || 'none';
+                    if (
+                        info.mode === 'countdown'
+                        && info.status === 'running'
+                        && tState.target_at
+                        && endAction !== 'none'
+                        && info.remMs <= 0
+                        && col.logic_trigger_url
+                    ) {
+                        const marker = `${col.collection_id}::${activeView.id}::${tState.target_at}`;
+                        if (deckFiredTimerEndMarker !== marker) {
+                            deckFiredTimerEndMarker = marker;
+                            fetch(col.logic_trigger_url, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                                body: JSON.stringify({
+                                    event: 'timer_end',
+                                    view_id: Number(activeView.id),
+                                    marker: String(tState.target_at),
+                                }),
+                            })
+                                .then((r) => (r.ok ? r.json() : null))
+                                .then((res) => {
+                                    if (res?.handled && res?.collection) {
+                                        upsertCollection(res.collection);
+                                        renderUnifiedDeck();
+                                    }
+                                })
+                                .catch(() => {});
+                        }
+                    }
                 }, 250);
 
                 renderUnifiedDeck();
