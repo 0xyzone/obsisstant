@@ -1183,6 +1183,13 @@ class ScreenCollectionStageTest extends TestCase
 
         $this->get(route('obs.collection.show', ['token' => $collection->public_token]))
             ->assertOk()
-            ->assertSee('countdownInfo.remainingMs <= 0', false);
+            ->assertSee('countdownInfo.remainingMs <= 0', false)
+            ->assertSee('el.style.rotate', false)
+            ->assertSee('lastRenderedViewSig', false);
+
+        $this->actingAs($user)
+            ->get(route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => $collection->id]))
+            ->assertOk()
+            ->assertSee('box.style.rotate', false);
     }
 }

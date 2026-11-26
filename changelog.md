@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.17.1] - 2026-11-26 | type: macro
+
+> Fixed layer rotation not being applied when loop/enter animations are active or when editing the currently live Screen View without switching views.
+
+### Fixed
+- Switched layer rotation in Canvas Builder and Stage Player to the independent CSS `rotate` property so `loop-pulse`, `loop-float`, and entrance `transform` animations no longer overwrite layer rotation.
+- Fixed Stage Player to re-render the active view slot immediately (without replaying entrance animations) whenever the editor saves changes to the currently active Screen View or theme.
+
 ## [v1.17.0] - 2026-11-26 | type: minor
 
 > Added a full "When Timer Ends (00:00)" action selector directly inside every Timer block (Canvas Builder Timer layer, View & Logic tab, Studio Control Center Timer & Clock block, and Mobile Deck Timer modal) supporting Stage Screen, Timer, and OBS Studio automation actions with clock-skew-immune execution.

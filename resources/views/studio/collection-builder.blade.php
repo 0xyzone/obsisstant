@@ -1635,9 +1635,8 @@
                         box.style.zIndex = String(idx + 2);
                         box.style.opacity = String(layer.opacity ?? 1);
                         box.style.borderRadius = `${Number(layer.radius || 0)}px`;
-                        if (Number(layer.rotation || 0) !== 0) {
-                            box.style.transform = `rotate(${Number(layer.rotation)}deg)`;
-                        }
+                        box.style.transformOrigin = 'center center';
+                        box.style.rotate = Number(layer.rotation || 0) !== 0 ? `${Number(layer.rotation)}deg` : 'none';
 
                         const p = layer.props || {};
                         const isSelected = String(layer.id) === String(selectedLayerId);

@@ -427,6 +427,7 @@
                 let activeSlot = slotA;
                 let standbySlot = slotB;
                 let renderedViewId = null;
+                let lastRenderedViewSig = '';
                 let lastTransitionSeq = Number(stageData?.runtime_state?.last_transition?.seq || 0);
                 let transitionLock = false;
                 let lastEchoAt = 0;
@@ -735,9 +736,7 @@
                         el.style.height = `${Math.max(16, Number(layer.h || 80))}px`;
                         el.style.zIndex = String(Number(layer.z_index || idx + 1) + 2);
                         el.style.opacity = String(layer.opacity ?? 1);
-                        if (Number(layer.rotation || 0) !== 0) {
-                            el.style.transform = `rotate(${Number(layer.rotation)}deg)`;
-                        }
+                        el.style.rotate = Number(layer.rotation || 0) !== 0 ? `${Number(layer.rotation)}deg` : 'none';
 
                         const p = layer.props || {};
                         const radius = Number(layer.radius ?? 0);
@@ -957,14 +956,13 @@
                             const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
                             const dur = reduced ? 120 : Number(layer.enter_duration_ms || 380);
                             const delay = reduced ? 0 : Number(layer.enter_delay_ms || 0);
-                            const baseTransform = Number(layer.rotation || 0) !== 0 ? `rotate(${Number(layer.rotation)}deg) ` : '';
                             const keyframeMap = {
                                 fade: [{ opacity: 0 }, { opacity: Number(layer.opacity ?? 1) }],
-                                slide_up: [{ opacity: 0, transform: `${baseTransform}translateY(28px)` }, { opacity: Number(layer.opacity ?? 1), transform: `${baseTransform}translateY(0)` }],
-                                slide_down: [{ opacity: 0, transform: `${baseTransform}translateY(-28px)` }, { opacity: Number(layer.opacity ?? 1), transform: `${baseTransform}translateY(0)` }],
-                                slide_left: [{ opacity: 0, transform: `${baseTransform}translateX(36px)` }, { opacity: Number(layer.opacity ?? 1), transform: `${baseTransform}translateX(0)` }],
-                                slide_right: [{ opacity: 0, transform: `${baseTransform}translateX(-36px)` }, { opacity: Number(layer.opacity ?? 1), transform: `${baseTransform}translateX(0)` }],
-                                scale_in: [{ opacity: 0, transform: `${baseTransform}scale(0.92)` }, { opacity: Number(layer.opacity ?? 1), transform: `${baseTransform}scale(1)` }],
+                                slide_up: [{ opacity: 0, transform: 'translateY(28px)' }, { opacity: Number(layer.opacity ?? 1), transform: 'translateY(0)' }],
+                                slide_down: [{ opacity: 0, transform: 'translateY(-28px)' }, { opacity: Number(layer.opacity ?? 1), transform: 'translateY(0)' }],
+                                slide_left: [{ opacity: 0, transform: 'translateX(36px)' }, { opacity: Number(layer.opacity ?? 1), transform: 'translateX(0)' }],
+                                slide_right: [{ opacity: 0, transform: 'translateX(-36px)' }, { opacity: Number(layer.opacity ?? 1), transform: 'translateX(0)' }],
+                                scale_in: [{ opacity: 0, transform: 'scale(0.92)' }, { opacity: Number(layer.opacity ?? 1), transform: 'scale(1)' }],
                                 blur_in: [{ opacity: 0, filter: 'blur(8px)' }, { opacity: Number(layer.opacity ?? 1), filter: 'blur(0px)' }],
                             };
                             const frames = reduced ? keyframeMap.fade : (keyframeMap[layer.enter_animation] || keyframeMap.fade);
@@ -1148,8 +1146,11 @@
                     const targetView = findView(stageData.active_view_id);
                     if (!targetView) return;
 
+                    const targetViewSig = JSON.stringify({ view: targetView, theme: stageData.theme || null });
+
                     if (renderedViewId === null) {
                         renderedViewId = targetView.id;
+                        lastRenderedViewSig = targetViewSig;
                         lastTransitionSeq = txSeq;
                         renderViewIntoSlot(activeSlot, targetView, activeSlot === slotA ? 'a' : 'b', true);
                         activeSlot.hidden = false;
@@ -1158,6 +1159,7 @@
 
                     if (txSeq > lastTransitionSeq || Number(targetView.id) !== Number(renderedViewId)) {
                         lastTransitionSeq = txSeq;
+                        lastRenderedViewSig = targetViewSig;
                         if (!transitionLock) {
                             transitionLock = true;
                             try {
@@ -1172,7 +1174,13 @@
                         return;
                     }
 
-                    // View stayed the same: re-evaluate layers only if editor modified structure or non-embed content changed
+                    // View stayed the same: re-render layers if editor modified view structure, rotation, styles, or theme
+                    if (targetViewSig !== lastRenderedViewSig) {
+                        lastRenderedViewSig = targetViewSig;
+                        renderViewIntoSlot(activeSlot, targetView, activeSlot === slotA ? 'a' : 'b', false);
+                        return;
+                    }
+
                     syncRuntimeToSlot(activeSlot);
                 };
 
