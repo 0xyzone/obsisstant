@@ -699,64 +699,112 @@
 
                         const p = layer.props || {};
                         const radius = Number(layer.radius ?? 0);
+                        const radiusCss = (layer.type === 'color_box' && p.shape_preset === 'circle') ? '50%' : `${radius}px`;
+                        const applyLayerOutline = (node) => {
+                            const bw = Number(p.border_width ?? 0);
+                            const bs = p.border_style || 'solid';
+                            if (p.border_width !== undefined && p.border_width !== '' && bw > 0) {
+                                node.style.border = `${bw}px ${bs} ${p.border_color || theme.accent_color || '#CDAD69'}`;
+                            } else if (p.border_width === 0 || p.border_width === '0') {
+                                node.style.border = 'none';
+                            } else if (p.border_color) {
+                                node.style.borderColor = p.border_color;
+                                node.style.borderStyle = bs;
+                                if (!node.style.borderWidth) node.style.borderWidth = '2px';
+                            }
+                        };
 
                         if (layer.type === 'camera_cutout') {
                             const frame = document.createElement('div');
                             frame.className = 'cutout-frame';
                             const bw = Number(p.border_width ?? 3);
                             const bc = p.border_color || theme.accent_color || '#CDAD69';
-                            frame.style.borderRadius = `${radius}px`;
+                            frame.style.borderRadius = radiusCss;
                             if (bw > 0) frame.style.border = `${bw}px solid ${bc}`;
                             if (p.glow) frame.style.boxShadow = `inset 0 0 0 1px rgba(255,236,179,0.22), 0 0 36px -14px ${bc}`;
                             el.appendChild(frame);
+                        } else if (layer.type === 'color_box') {
+                            const box = document.createElement('div');
+                            const fillMode = p.fill_mode || 'solid';
+                            const fillColor = p.fill_color || theme.accent_color || '#CDAD69';
+                            const fillEnd = p.fill_color_end || theme.surface_color || '#181714';
+                            const angle = Number(p.gradient_angle ?? 135);
+                            const bw = Math.max(0, Number(p.border_width ?? 0));
+                            const bs = p.border_style || 'solid';
+                            const bc = p.border_color || '#FAF7EE';
+                            box.style.cssText = `width:100%;height:100%;box-sizing:border-box;border-radius:${radiusCss};`;
+                            if (fillMode === 'transparent') {
+                                box.style.background = 'transparent';
+                            } else if (fillMode === 'gradient') {
+                                box.style.background = `linear-gradient(${angle}deg, ${fillColor}, ${fillEnd})`;
+                            } else {
+                                box.style.background = fillColor;
+                            }
+                            if (bw > 0) box.style.border = `${bw}px ${bs} ${bc}`;
+                            if (p.shadow) box.style.boxShadow = '0 22px 48px -12px rgba(0, 0, 0, 0.72)';
+                            el.appendChild(box);
                         } else if (layer.type === 'shape') {
                             const box = document.createElement('div');
                             box.className = 'glass-box';
-                            box.style.borderRadius = `${radius}px`;
+                            box.style.borderRadius = radiusCss;
                             if (p.fill_color) box.style.background = p.fill_color;
-                            if (p.border_color) box.style.borderColor = p.border_color;
-                            if (p.border_width !== undefined) box.style.borderWidth = `${Number(p.border_width)}px`;
+                            if (p.backdrop_blur !== undefined && p.backdrop_blur !== '') {
+                                box.style.backdropFilter = `blur(${Number(p.backdrop_blur)}px) saturate(140%)`;
+                                box.style.webkitBackdropFilter = `blur(${Number(p.backdrop_blur)}px) saturate(140%)`;
+                            }
+                            applyLayerOutline(box);
                             el.appendChild(box);
                         } else if (layer.type === 'asset') {
                             if (p.url) {
-                                if (p.media_kind === 'video' || /\.webm$|\.mp4$/i.test(p.url)) {
+                                const wrapMedia = document.createElement('div');
+                                wrapMedia.style.cssText = `width:100%;height:100%;box-sizing:border-box;border-radius:${radiusCss};overflow:hidden;`;
+                                applyLayerOutline(wrapMedia);
+                                if (p.media_kind === 'video' || /\.(webm|mp4)(\?.*)?$/i.test(p.url)) {
                                     const vid = document.createElement('video');
                                     vid.src = p.url;
                                     vid.autoplay = true;
                                     vid.loop = p.loop !== false;
                                     vid.muted = p.muted !== false;
                                     vid.playsInline = true;
-                                    vid.style.cssText = `width:100%;height:100%;object-fit:${p.fit || 'contain'};border-radius:${radius}px;display:block;`;
-                                    el.appendChild(vid);
+                                    vid.style.cssText = `width:100%;height:100%;object-fit:${p.fit || 'contain'};display:block;`;
+                                    wrapMedia.appendChild(vid);
                                 } else {
                                     const img = document.createElement('img');
                                     img.src = p.url;
                                     img.alt = layer.name || '';
-                                    img.style.cssText = `width:100%;height:100%;object-fit:${p.fit || 'contain'};border-radius:${radius}px;display:block;`;
-                                    el.appendChild(img);
+                                    img.style.cssText = `width:100%;height:100%;object-fit:${p.fit || 'contain'};display:block;`;
+                                    wrapMedia.appendChild(img);
                                 }
+                                el.appendChild(wrapMedia);
                             }
                         } else if (layer.type === 'text') {
                             const box = document.createElement('div');
-                            box.style.cssText = `width:100%;height:100%;display:flex;align-items:center;padding:${Number(p.padding || 8)}px;border-radius:${radius}px;`;
+                            box.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;padding:${Number(p.padding ?? 8)}px;border-radius:${radiusCss};`;
                             box.style.justifyContent = p.align === 'left' ? 'flex-start' : (p.align === 'right' ? 'flex-end' : 'center');
                             box.style.textAlign = p.align || 'center';
                             if (p.bg_color) box.style.background = p.bg_color;
+                            applyLayerOutline(box);
                             const span = document.createElement('span');
                             span.className = 'live-text-content';
                             span.textContent = p.text || '';
-                            span.style.cssText = `font-size:${Number(p.font_size || 48)}px;font-weight:${Number(p.font_weight || 700)};line-height:1.12;color:${p.text_color || 'var(--v-text)'};`;
+                            span.style.cssText = `font-size:${Number(p.font_size || 48)}px;font-weight:${Number(p.font_weight || 700)};line-height:1.12;letter-spacing:${Number(p.letter_spacing || 0)}px;color:${p.text_color || 'var(--v-text)'};white-space:pre-wrap;`;
+                            if (p.font_family) span.style.fontFamily = `'${p.font_family}', ui-sans-serif, system-ui, sans-serif`;
+                            if (p.text_shadow) span.style.textShadow = '0 4px 18px rgba(0,0,0,0.75)';
                             box.appendChild(span);
                             el.appendChild(box);
                         } else if (layer.type === 'timer') {
                             const box = document.createElement('div');
                             box.className = `timer-box${p.show_bg !== false ? ' glass-box' : ''}`;
-                            box.style.borderRadius = `${radius}px`;
-                            if (p.bg_color) box.style.background = p.bg_color;
+                            box.style.borderRadius = radiusCss;
+                            if (p.show_bg === false) box.style.background = 'transparent';
+                            else if (p.bg_color) box.style.background = p.bg_color;
+                            applyLayerOutline(box);
                             const lbl = document.createElement('div');
                             lbl.className = 'timer-label live-timer-label';
                             lbl.dataset.defaultLabel = p.label || '';
                             lbl.textContent = stageData?.runtime_state?.timer?.label || p.label || 'TIMER';
+                            if (p.label_font_size) lbl.style.fontSize = `${Number(p.label_font_size)}px`;
+                            if (p.label_color) lbl.style.color = p.label_color;
                             const digits = document.createElement('div');
                             digits.className = 'timer-digits live-timer-digits';
                             digits.dataset.timerMode = String(p.mode || 'countdown');
@@ -768,7 +816,11 @@
                         } else if (layer.type === 'scoreboard') {
                             const sb = document.createElement('div');
                             sb.className = 'glass-box scoreboard-box live-scoreboard-widget';
-                            sb.style.borderRadius = `${radius}px`;
+                            sb.style.borderRadius = radiusCss;
+                            if (p.bg_color) sb.style.background = p.bg_color;
+                            if (p.text_color) sb.style.color = p.text_color;
+                            if (p.accent_color) sb.style.setProperty('--v-accent', p.accent_color);
+                            applyLayerOutline(sb);
                             sb.innerHTML = `
                                 <div class="sb-team">
                                     <span class="sb-name live-sb-a-name"></span>
@@ -787,7 +839,12 @@
                         } else if (layer.type === 'lower_third') {
                             const l3 = document.createElement('div');
                             l3.className = 'glass-box lower-third-box live-l3-widget';
-                            l3.style.borderRadius = `${radius}px`;
+                            l3.style.borderRadius = radiusCss;
+                            if (p.bg_color) l3.style.background = p.bg_color;
+                            if (p.text_color) l3.style.color = p.text_color;
+                            if (p.accent_color) l3.style.setProperty('--v-accent', p.accent_color);
+                            applyLayerOutline(l3);
+                            l3.style.borderInlineStart = `5px solid ${p.accent_color || 'var(--v-accent, var(--accent))'}`;
                             l3.innerHTML = `
                                 <span class="l3-badge live-l3-badge"></span>
                                 <div>
@@ -799,8 +856,12 @@
                         } else if (layer.type === 'ticker') {
                             const tk = document.createElement('div');
                             tk.className = 'glass-box ticker-box live-ticker-widget';
-                            tk.style.borderRadius = `${radius}px`;
+                            tk.style.borderRadius = radiusCss;
                             tk.style.setProperty('--ticker-sec', `${Number(p.speed_sec || 28)}s`);
+                            if (p.bg_color) tk.style.background = p.bg_color;
+                            if (p.text_color) tk.style.color = p.text_color;
+                            if (p.accent_color) tk.style.setProperty('--v-accent', p.accent_color);
+                            applyLayerOutline(tk);
                             tk.innerHTML = `
                                 <span class="ticker-pill live-ticker-label"></span>
                                 <div style="overflow:hidden;flex:1;">
@@ -809,12 +870,16 @@
                             `;
                             el.appendChild(tk);
                         } else if (layer.type === 'embed' && p.url) {
+                            const wrapEmbed = document.createElement('div');
+                            wrapEmbed.style.cssText = `width:100%;height:100%;box-sizing:border-box;border-radius:${radiusCss};overflow:hidden;background:${p.bg_color || 'transparent'};`;
+                            applyLayerOutline(wrapEmbed);
                             const iframe = document.createElement('iframe');
                             iframe.src = p.url;
                             iframe.title = layer.name || 'Embedded overlay widget';
                             iframe.allow = 'autoplay; camera; microphone';
-                            iframe.style.cssText = `width:100%;height:100%;border:0;border-radius:${radius}px;background:transparent;`;
-                            el.appendChild(iframe);
+                            iframe.style.cssText = 'width:100%;height:100%;border:0;background:transparent;display:block;';
+                            wrapEmbed.appendChild(iframe);
+                            el.appendChild(wrapEmbed);
                         }
 
                         if (layer.loop_animation && layer.loop_animation !== 'none') {

@@ -8,7 +8,7 @@
         <x-app-favicon />
         <x-dev-hot-reload />
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700&family=jetbrains-mono:500,600&display=swap" rel="stylesheet">
+        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700,800|jetbrains-mono:500,600,700|poppins:400,500,600,700,800&display=swap" rel="stylesheet">
         <style>
             :root {
                 color-scheme: dark;
@@ -358,6 +358,34 @@
             .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
             .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
 
+            .color-field-row {
+                display: grid;
+                grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+                gap: 0.3rem;
+                align-items: center;
+            }
+            .color-swatch-input {
+                inline-size: 2.25rem;
+                min-block-size: 2rem;
+                padding: 0.12rem;
+                cursor: pointer;
+            }
+            .toggle-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.5rem;
+                font-size: 0.72rem;
+                color: var(--ink-secondary);
+                cursor: pointer;
+            }
+            .toggle-row input[type="checkbox"] {
+                accent-color: var(--gold-accent);
+                inline-size: 0.95rem;
+                block-size: 0.95rem;
+                cursor: pointer;
+            }
+
             .empty-hint {
                 padding: 1rem;
                 border-radius: 0.55rem;
@@ -548,6 +576,7 @@
                     <button type="button" class="s-btn s-btn-xs" data-quick-add="camera_cutout">+ Camera Cutout</button>
                     <button type="button" class="s-btn s-btn-xs" data-quick-add="text">+ Text</button>
                     <button type="button" class="s-btn s-btn-xs" data-quick-add="timer">+ Timer</button>
+                    <button type="button" class="s-btn s-btn-xs" data-quick-add="color_box">+ Color Box</button>
                     <button type="button" class="s-btn s-btn-xs" data-quick-add="scoreboard">+ Scoreboard</button>
                     <button type="button" class="s-btn s-btn-xs" data-quick-add="lower_third">+ Lower Third</button>
                     <button type="button" class="s-btn s-btn-xs" data-quick-add="ticker">+ Ticker</button>
@@ -943,17 +972,59 @@
                         }
 
                         const p = layer.props || {};
+                        const isSelected = String(layer.id) === String(selectedLayerId);
                         const glassBorder = `color-mix(in oklab, ${accent} 42%, transparent)`;
+                        const layerRadiusCss = (layer.type === 'color_box' && p.shape_preset === 'circle')
+                            ? '50%'
+                            : `${Number(layer.radius || 0)}px`;
+                        box.style.borderRadius = layerRadiusCss;
+                        const applyInnerOutline = (el, defaultBorder = null) => {
+                            const bw = Number(p.border_width ?? 0);
+                            const bs = p.border_style || 'solid';
+                            if (p.border_width !== undefined && p.border_width !== '' && bw > 0) {
+                                el.style.border = `${bw}px ${bs} ${p.border_color || accent}`;
+                            } else if (p.border_width === 0 || p.border_width === '0') {
+                                el.style.border = 'none';
+                            } else if (p.border_color) {
+                                el.style.border = `2px ${bs} ${p.border_color}`;
+                            } else if (defaultBorder) {
+                                el.style.border = defaultBorder;
+                            }
+                        };
+
                         if (layer.type === 'camera_cutout') {
-                            box.style.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.09) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.09) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.09) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.09) 75%)';
-                            box.style.backgroundSize = '32px 32px';
-                            box.style.backgroundColor = 'rgba(0,0,0,0.42)';
-                            box.style.borderColor = p.border_color || accent;
-                            const hint = document.createElement('div');
-                            hint.style.cssText = 'width:100%;height:100%;display:grid;place-items:center;color:rgba(250,247,238,0.65);font-size:26px;font-weight:600;pointer-events:none;text-align:center;padding:24px;';
-                            hint.textContent = p.label || 'OBS Camera / Capture Shows Here';
-                            box.appendChild(hint);
+                            const cutoutInner = document.createElement('div');
+                            cutoutInner.style.cssText = `width:100%;height:100%;box-sizing:border-box;border-radius:${layerRadiusCss};background-image:linear-gradient(45deg, rgba(255,255,255,0.09) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.09) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.09) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.09) 75%);background-size:32px 32px;background-color:rgba(0,0,0,0.42);display:grid;place-items:center;color:rgba(250,247,238,0.65);font-size:26px;font-weight:600;pointer-events:none;text-align:center;padding:24px;`;
+                            const bw = Number(p.border_width ?? 3);
+                            const bc = p.border_color || accent;
+                            if (bw > 0) cutoutInner.style.border = `${bw}px solid ${bc}`;
+                            if (p.glow) cutoutInner.style.boxShadow = `inset 0 0 0 1px rgba(255,236,179,0.22), 0 0 36px -14px ${bc}`;
+                            cutoutInner.textContent = p.label || 'OBS Camera / Capture Shows Here';
+                            box.appendChild(cutoutInner);
+                        } else if (layer.type === 'color_box') {
+                            const inner = document.createElement('div');
+                            const fillMode = p.fill_mode || 'solid';
+                            const fillColor = p.fill_color || accent;
+                            const fillEnd = p.fill_color_end || surface;
+                            const angle = Number(p.gradient_angle ?? 135);
+                            const bw = Math.max(0, Number(p.border_width ?? 0));
+                            const bs = p.border_style || 'solid';
+                            const bc = p.border_color || '#FAF7EE';
+                            inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;border-radius:${layerRadiusCss};pointer-events:none;`;
+                            if (fillMode === 'transparent') {
+                                inner.style.background = 'transparent';
+                            } else if (fillMode === 'gradient') {
+                                inner.style.background = `linear-gradient(${angle}deg, ${fillColor}, ${fillEnd})`;
+                            } else {
+                                inner.style.background = fillColor;
+                            }
+                            if (bw > 0) inner.style.border = `${bw}px ${bs} ${bc}`;
+                            if (p.shadow) inner.style.boxShadow = '0 22px 48px -12px rgba(0, 0, 0, 0.72)';
+                            box.appendChild(inner);
                         } else if (layer.type === 'asset' && p.url) {
+                            const wrapMedia = document.createElement('div');
+                            wrapMedia.style.cssText = `width:100%;height:100%;box-sizing:border-box;border-radius:${layerRadiusCss};overflow:hidden;pointer-events:none;`;
+                            applyInnerOutline(wrapMedia);
                             if (p.media_kind === 'video' || /\.(webm|mp4)(\?.*)?$/i.test(p.url)) {
                                 const vid = document.createElement('video');
                                 vid.src = p.url;
@@ -961,46 +1032,88 @@
                                 vid.loop = true;
                                 vid.muted = true;
                                 vid.playsInline = true;
-                                vid.style.cssText = `width:100%;height:100%;object-fit:${p.fit || 'contain'};pointer-events:none;`;
-                                box.appendChild(vid);
+                                vid.style.cssText = `width:100%;height:100%;object-fit:${p.fit || 'contain'};display:block;pointer-events:none;`;
+                                wrapMedia.appendChild(vid);
                             } else {
                                 const img = document.createElement('img');
                                 img.src = p.url;
                                 img.alt = '';
-                                img.style.cssText = `width:100%;height:100%;object-fit:${p.fit || 'contain'};pointer-events:none;`;
-                                box.appendChild(img);
+                                img.style.cssText = `width:100%;height:100%;object-fit:${p.fit || 'contain'};display:block;pointer-events:none;`;
+                                wrapMedia.appendChild(img);
                             }
+                            box.appendChild(wrapMedia);
                         } else if (layer.type === 'text') {
                             const preview = document.createElement('div');
-                            preview.textContent = p.text || 'Text';
-                            preview.style.cssText = `width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:${Number(p.font_size || 48)}px;font-weight:700;color:${p.text_color || textColor};pointer-events:none;`;
+                            const align = p.align || 'center';
+                            const justify = align === 'left' ? 'flex-start' : (align === 'right' ? 'flex-end' : 'center');
+                            preview.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:${justify};text-align:${align};padding:${Number(p.padding ?? 12)}px;border-radius:${layerRadiusCss};pointer-events:none;`;
                             if (p.bg_color) preview.style.background = p.bg_color;
+                            applyInnerOutline(preview);
+                            const span = document.createElement('span');
+                            span.textContent = p.text || 'Text';
+                            span.style.cssText = `font-size:${Number(p.font_size || 48)}px;font-weight:${Number(p.font_weight || 700)};line-height:1.12;letter-spacing:${Number(p.letter_spacing || 0)}px;color:${p.text_color || textColor};white-space:pre-wrap;`;
+                            if (p.font_family) span.style.fontFamily = `'${p.font_family}', ui-sans-serif, system-ui, sans-serif`;
+                            if (p.text_shadow) span.style.textShadow = '0 4px 18px rgba(0,0,0,0.75)';
+                            preview.appendChild(span);
                             box.appendChild(preview);
                         } else if (layer.type === 'timer') {
-                            box.style.background = `color-mix(in oklab, ${surface} 85%, transparent)`;
-                            if (String(layer.id) !== String(selectedLayerId)) box.style.borderColor = glassBorder;
-                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;place-content:center;text-align:center;pointer-events:none;"><div style="font-size:20px;letter-spacing:0.12em;color:${mutedColor};">${p.label || 'LIVE IN'}</div><div style="font-family:JetBrains Mono,monospace;font-size:${Number(p.font_size || 72)}px;font-weight:700;color:${p.text_color || accent};">05:00</div></div>`;
+                            const showBg = p.show_bg !== false;
+                            const inner = document.createElement('div');
+                            inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:grid;place-content:center;text-align:center;gap:6px;padding:12px 20px;border-radius:${layerRadiusCss};pointer-events:none;`;
+                            inner.style.background = showBg ? (p.bg_color || `color-mix(in oklab, ${surface} 85%, transparent)`) : 'transparent';
+                            applyInnerOutline(inner, showBg ? `1px solid ${glassBorder}` : null);
+                            const lblDiv = document.createElement('div');
+                            lblDiv.style.cssText = `font-size:${Number(p.label_font_size || 20)}px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${p.label_color || mutedColor};`;
+                            lblDiv.textContent = p.label || 'LIVE IN';
+                            const digitsDiv = document.createElement('div');
+                            digitsDiv.style.cssText = `font-family:'JetBrains Mono',monospace;font-size:${Number(p.font_size || 72)}px;font-weight:700;line-height:1;color:${p.text_color || accent};`;
+                            digitsDiv.textContent = p.show_hours ? '00:05:00' : '05:00';
+                            inner.append(lblDiv, digitsDiv);
+                            box.appendChild(inner);
                         } else if (layer.type === 'scoreboard') {
                             const sb = colData.runtime_state?.scoreboard || {};
-                            box.style.background = `color-mix(in oklab, ${surface} 88%, transparent)`;
-                            if (String(layer.id) !== String(selectedLayerId)) box.style.borderColor = glassBorder;
-                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 28px;font-size:26px;font-weight:700;color:${textColor};pointer-events:none;"><span>${sb.team_a_name || 'Team Alpha'} <strong style="color:${accent};margin-left:12px;">${sb.team_a_score ?? 0}</strong></span><span style="font-size:18px;color:${mutedColor};padding:0 20px;">${sb.round_label || 'VS'}</span><span style="text-align:right;"><strong style="color:${accent};margin-right:12px;">${sb.team_b_score ?? 0}</strong> ${sb.team_b_name || 'Team Omega'}</span></div>`;
+                            const sbAccent = p.accent_color || accent;
+                            const sbText = p.text_color || textColor;
+                            const inner = document.createElement('div');
+                            inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 28px;font-size:26px;font-weight:700;border-radius:${layerRadiusCss};color:${sbText};background:${p.bg_color || `color-mix(in oklab, ${surface} 88%, transparent)`};pointer-events:none;`;
+                            applyInnerOutline(inner, `1px solid ${glassBorder}`);
+                            inner.innerHTML = `<span>${sb.team_a_name || 'Team Alpha'} <strong style="color:${sbAccent};margin-left:12px;">${sb.team_a_score ?? 0}</strong></span><span style="font-size:18px;color:${mutedColor};padding:0 20px;">${sb.round_label || 'VS'}</span><span style="text-align:right;"><strong style="color:${sbAccent};margin-right:12px;">${sb.team_b_score ?? 0}</strong> ${sb.team_b_name || 'Team Omega'}</span>`;
+                            box.appendChild(inner);
                         } else if (layer.type === 'lower_third') {
                             const l3 = colData.runtime_state?.lower_third || {};
-                            box.style.background = `color-mix(in oklab, ${surface} 88%, transparent)`;
-                            if (String(layer.id) !== String(selectedLayerId)) box.style.borderColor = glassBorder;
-                            box.style.borderLeft = `6px solid ${accent}`;
-                            box.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 28px;color:${textColor};pointer-events:none;"><div style="font-size:32px;font-weight:700;">${l3.title || 'Broadcast Host'}</div><div style="font-size:20px;color:${accent};">${l3.subtitle || 'Live From Studio'}</div></div>`;
+                            const l3Accent = p.accent_color || accent;
+                            const l3Text = p.text_color || textColor;
+                            const inner = document.createElement('div');
+                            inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;padding:0 28px;border-radius:${layerRadiusCss};color:${l3Text};background:${p.bg_color || `color-mix(in oklab, ${surface} 88%, transparent)`};pointer-events:none;`;
+                            applyInnerOutline(inner, `1px solid ${glassBorder}`);
+                            inner.style.borderLeft = `6px solid ${l3Accent}`;
+                            inner.innerHTML = `<div style="font-size:32px;font-weight:700;">${l3.title || 'Broadcast Host'}</div><div style="font-size:20px;color:${l3Accent};">${l3.subtitle || 'Live From Studio'}</div>`;
+                            box.appendChild(inner);
                         } else if (layer.type === 'ticker') {
-                            box.style.background = `color-mix(in oklab, ${surface} 88%, transparent)`;
-                            if (String(layer.id) !== String(selectedLayerId)) box.style.borderColor = glassBorder;
-                            box.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;gap:20px;padding:0 24px;font-size:22px;color:${textColor};pointer-events:none;overflow:hidden;"><span style="color:${accent};font-weight:700;">LIVE</span><span style="color:${textColor};opacity:0.86;white-space:nowrap;">Scrolling news and tournament updates appear here...</span></div>`;
+                            const tkAccent = p.accent_color || accent;
+                            const tkText = p.text_color || textColor;
+                            const inner = document.createElement('div');
+                            inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;gap:20px;padding:0 24px;font-size:22px;border-radius:${layerRadiusCss};color:${tkText};background:${p.bg_color || `color-mix(in oklab, ${surface} 88%, transparent)`};pointer-events:none;overflow:hidden;`;
+                            applyInnerOutline(inner, `1px solid ${glassBorder}`);
+                            inner.innerHTML = `<span style="color:${tkAccent};font-weight:700;">LIVE</span><span style="color:${tkText};opacity:0.86;white-space:nowrap;">Scrolling news and tournament updates appear here...</span>`;
+                            box.appendChild(inner);
                         } else if (layer.type === 'embed') {
-                            box.style.background = `color-mix(in oklab, ${surface} 86%, transparent)`;
-                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;place-items:center;font-size:24px;color:${mutedColor};pointer-events:none;">Web Embed: ${p.url || 'Paste URL in Inspector'}</div>`;
+                            const inner = document.createElement('div');
+                            inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;display:grid;place-items:center;font-size:24px;border-radius:${layerRadiusCss};color:${mutedColor};background:${p.bg_color || `color-mix(in oklab, ${surface} 86%, transparent)`};pointer-events:none;`;
+                            applyInnerOutline(inner);
+                            inner.textContent = `Web Embed: ${p.url || 'Paste URL in Inspector'}`;
+                            box.appendChild(inner);
                         } else {
-                            box.style.background = p.fill_color || `color-mix(in oklab, ${surface} 82%, transparent)`;
-                            if (String(layer.id) !== String(selectedLayerId)) box.style.borderColor = p.border_color || glassBorder;
+                            const inner = document.createElement('div');
+                            inner.style.cssText = `width:100%;height:100%;box-sizing:border-box;border-radius:${layerRadiusCss};background:${p.fill_color || `color-mix(in oklab, ${surface} 82%, transparent)`};pointer-events:none;`;
+                            if (p.backdrop_blur !== undefined && p.backdrop_blur !== '') {
+                                inner.style.backdropFilter = `blur(${Number(p.backdrop_blur)}px)`;
+                            }
+                            applyInnerOutline(inner, `1px solid ${p.border_color || glassBorder}`);
+                            box.appendChild(inner);
+                        }
+                        if (!isSelected) {
+                            box.style.borderColor = 'rgba(255, 255, 255, 0.14)';
                         }
 
                         const tag = document.createElement('div');
@@ -1031,8 +1144,16 @@
                                 const dx = (mEv.clientX - startX) / scale;
                                 const dy = (mEv.clientY - startY) / scale;
                                 if (isResize) {
-                                    layer.w = Math.max(40, Math.round(init.w + dx));
-                                    layer.h = Math.max(24, Math.round(init.h + dy));
+                                    const lockSquare = layer.type === 'color_box'
+                                        && ['square', 'circle'].includes(layer.props?.shape_preset || '');
+                                    if (lockSquare) {
+                                        const nextSide = Math.max(40, Math.round(Math.max(init.w + dx, init.h + dy)));
+                                        layer.w = nextSide;
+                                        layer.h = nextSide;
+                                    } else {
+                                        layer.w = Math.max(40, Math.round(init.w + dx));
+                                        layer.h = Math.max(24, Math.round(init.h + dy));
+                                    }
                                     box.style.width = `${layer.w}px`;
                                     box.style.height = `${layer.h}px`;
                                     document.getElementById('lp-w').value = String(layer.w);
@@ -1305,6 +1426,33 @@
                             populateLayerInspector();
                         });
 
+                        const moveLayerOrder = (delta) => {
+                            const sortedAsc = [...(view?.layers || [])].sort((a, b) => Number(a.z_index || 0) - Number(b.z_index || 0));
+                            const curIdx = sortedAsc.findIndex((l) => String(l.id) === String(layer.id));
+                            const targetIdx = curIdx + delta;
+                            if (curIdx < 0 || targetIdx < 0 || targetIdx >= sortedAsc.length) return;
+                            const [moved] = sortedAsc.splice(curIdx, 1);
+                            sortedAsc.splice(targetIdx, 0, moved);
+                            sortedAsc.forEach((l, i) => { l.z_index = i + 1; });
+                            setDirty(true);
+                            renderCanvas();
+                            renderLayerStack();
+                        };
+
+                        const upBtn = document.createElement('button');
+                        upBtn.type = 'button';
+                        upBtn.className = 's-btn s-btn-xs';
+                        upBtn.textContent = '↑';
+                        upBtn.title = 'Bring forward';
+                        upBtn.addEventListener('click', () => moveLayerOrder(1));
+
+                        const downBtn = document.createElement('button');
+                        downBtn.type = 'button';
+                        downBtn.className = 's-btn s-btn-xs';
+                        downBtn.textContent = '↓';
+                        downBtn.title = 'Send backward';
+                        downBtn.addEventListener('click', () => moveLayerOrder(-1));
+
                         const visBtn = document.createElement('button');
                         visBtn.type = 'button';
                         visBtn.className = `s-btn s-btn-xs${layer.visible !== false ? ' is-active' : ''}`;
@@ -1327,7 +1475,7 @@
                             renderLayerStack();
                         });
 
-                        top.append(selBtn, visBtn, lockBtn);
+                        top.append(selBtn, upBtn, downBtn, visBtn, lockBtn);
                         row.appendChild(top);
                         list.appendChild(row);
                     });
@@ -1372,14 +1520,144 @@
                     const extra = document.getElementById('layer-type-fields');
                     extra.innerHTML = '';
                     layer.props = layer.props || {};
-                    const addExtra = (label, inputEl) => {
+                    const activeTheme = getMergedViewTheme(view);
+
+                    const addExtra = (label, inputEl, parent = extra) => {
                         const w = document.createElement('label');
                         w.className = 'stack';
                         const s = document.createElement('span');
                         s.className = 'sub-label';
                         s.textContent = label;
                         w.append(s, inputEl);
-                        extra.appendChild(w);
+                        parent.appendChild(w);
+                    };
+
+                    const makeGrid2 = () => {
+                        const g = document.createElement('div');
+                        g.className = 'grid-2';
+                        extra.appendChild(g);
+                        return g;
+                    };
+
+                    const isValidHex6 = (val) => /^#[0-9a-f]{6}$/i.test(String(val || '').trim());
+
+                    const makeColorField = (currentVal, fallbackHex, placeholder, onChange) => {
+                        const row = document.createElement('div');
+                        row.className = 'color-field-row';
+                        const swatch = document.createElement('input');
+                        swatch.type = 'color';
+                        swatch.className = 's-input color-swatch-input';
+                        swatch.value = isValidHex6(currentVal) ? currentVal : (isValidHex6(fallbackHex) ? fallbackHex : '#CDAD69');
+
+                        const txt = document.createElement('input');
+                        txt.type = 'text';
+                        txt.className = 's-input';
+                        txt.placeholder = placeholder || 'Inherit';
+                        txt.value = currentVal || '';
+
+                        const clr = document.createElement('button');
+                        clr.type = 'button';
+                        clr.className = 's-btn s-btn-xs';
+                        clr.textContent = '×';
+                        clr.title = 'Reset / Clear color';
+
+                        swatch.oninput = () => {
+                            txt.value = swatch.value;
+                            onChange(swatch.value);
+                            setDirty(true);
+                            renderCanvas();
+                        };
+                        txt.oninput = () => {
+                            const cleaned = txt.value.trim();
+                            if (isValidHex6(cleaned)) swatch.value = cleaned;
+                            onChange(cleaned);
+                            setDirty(true);
+                            renderCanvas();
+                        };
+                        clr.onclick = () => {
+                            txt.value = '';
+                            swatch.value = isValidHex6(fallbackHex) ? fallbackHex : '#CDAD69';
+                            onChange('');
+                            setDirty(true);
+                            renderCanvas();
+                        };
+
+                        row.append(swatch, txt, clr);
+                        return row;
+                    };
+
+                    const makeNumberField = (val, { min = 0, max = 500, step = 1, fallback = 0 } = {}, onChange) => {
+                        const inp = document.createElement('input');
+                        inp.type = 'number';
+                        inp.className = 's-input';
+                        inp.min = String(min);
+                        inp.max = String(max);
+                        inp.step = String(step);
+                        inp.value = val ?? fallback;
+                        inp.oninput = inp.onchange = () => {
+                            onChange(Number(inp.value === '' ? fallback : inp.value));
+                            setDirty(true);
+                            renderCanvas();
+                        };
+                        return inp;
+                    };
+
+                    const makeSelectField = (options, currentVal, onChange) => {
+                        const sel = document.createElement('select');
+                        sel.className = 's-select';
+                        options.forEach(([v, lbl]) => {
+                            const o = document.createElement('option');
+                            o.value = String(v);
+                            o.textContent = lbl;
+                            sel.appendChild(o);
+                        });
+                        sel.value = String(currentVal ?? options[0]?.[0] ?? '');
+                        sel.onchange = () => {
+                            onChange(sel.value);
+                            setDirty(true);
+                            renderCanvas();
+                        };
+                        return sel;
+                    };
+
+                    const makeToggleField = (labelText, checked, onChange) => {
+                        const wrap = document.createElement('label');
+                        wrap.className = 'toggle-row';
+                        const span = document.createElement('span');
+                        span.textContent = labelText;
+                        const chk = document.createElement('input');
+                        chk.type = 'checkbox';
+                        chk.checked = Boolean(checked);
+                        chk.onchange = () => {
+                            onChange(chk.checked);
+                            setDirty(true);
+                            renderCanvas();
+                        };
+                        wrap.append(span, chk);
+                        extra.appendChild(wrap);
+                        return chk;
+                    };
+
+                    const addOutlineControls = (defaultWidth = 0, allowStyle = false) => {
+                        addExtra('Outline Color', makeColorField(
+                            layer.props.border_color || '',
+                            activeTheme.accent_color || '#CDAD69',
+                            'Default / None',
+                            (v) => { layer.props.border_color = v; }
+                        ));
+                        const g = makeGrid2();
+                        addExtra('Outline Thickness (px)', makeNumberField(
+                            layer.props.border_width ?? defaultWidth,
+                            { min: 0, max: 40, step: 1, fallback: defaultWidth },
+                            (v) => { layer.props.border_width = Math.max(0, v); }
+                        ), g);
+                        if (allowStyle) {
+                            addExtra('Outline Style', makeSelectField(
+                                [['solid', 'Solid'], ['dashed', 'Dashed'], ['dotted', 'Dotted']],
+                                layer.props.border_style || 'solid',
+                                (v) => { layer.props.border_style = v; }
+                            ), g);
+                        }
                     };
 
                     if (layer.type === 'text') {
@@ -1390,25 +1668,156 @@
                         ta.oninput = () => { layer.props.text = ta.value; setDirty(true); renderCanvas(); };
                         addExtra('Text Content', ta);
 
-                        const fs = document.createElement('input');
-                        fs.type = 'number';
-                        fs.className = 's-input';
-                        fs.value = layer.props.font_size || 48;
-                        fs.oninput = () => { layer.props.font_size = Number(fs.value || 48); setDirty(true); renderCanvas(); };
-                        addExtra('Font Size (px)', fs);
+                        const g1 = makeGrid2();
+                        addExtra('Font Size (px)', makeNumberField(layer.props.font_size ?? 48, { min: 10, max: 320, step: 2, fallback: 48 }, (v) => { layer.props.font_size = Math.max(10, v); }), g1);
+                        addExtra('Font Weight', makeSelectField(
+                            [['400', 'Regular (400)'], ['500', 'Medium (500)'], ['600', 'SemiBold (600)'], ['700', 'Bold (700)'], ['800', 'ExtraBold (800)']],
+                            String(layer.props.font_weight || 700),
+                            (v) => { layer.props.font_weight = Number(v); }
+                        ), g1);
+
+                        const g2 = makeGrid2();
+                        addExtra('Font Family', makeSelectField(
+                            [['', 'Inherit Theme'], ['Instrument Sans', 'Instrument Sans'], ['Poppins', 'Poppins'], ['JetBrains Mono', 'JetBrains Mono']],
+                            layer.props.font_family || '',
+                            (v) => { layer.props.font_family = v; }
+                        ), g2);
+                        addExtra('Alignment', makeSelectField(
+                            [['left', 'Left'], ['center', 'Center'], ['right', 'Right']],
+                            layer.props.align || 'center',
+                            (v) => { layer.props.align = v; }
+                        ), g2);
+
+                        const g3 = makeGrid2();
+                        addExtra('Padding (px)', makeNumberField(layer.props.padding ?? 12, { min: 0, max: 120, step: 2, fallback: 12 }, (v) => { layer.props.padding = Math.max(0, v); }), g3);
+                        addExtra('Letter Spacing (px)', makeNumberField(layer.props.letter_spacing ?? 0, { min: -4, max: 24, step: 0.5, fallback: 0 }, (v) => { layer.props.letter_spacing = v; }), g3);
+
+                        addExtra('Font Color', makeColorField(layer.props.text_color || '', activeTheme.text_color || '#FAF7EE', 'Inherit Theme Text', (v) => { layer.props.text_color = v; }));
+                        addExtra('Background Color', makeColorField(layer.props.bg_color || '', activeTheme.surface_color || '#0B0A08', 'Transparent', (v) => { layer.props.bg_color = v; }));
+                        addOutlineControls(0, true);
+                        makeToggleField('Text Drop Shadow', Boolean(layer.props.text_shadow), (v) => { layer.props.text_shadow = v; });
                     } else if (layer.type === 'timer') {
-                        const sel = document.createElement('select');
-                        sel.className = 's-select';
-                        sel.innerHTML = '<option value="countdown">Countdown</option><option value="countup">Stopwatch (Count Up)</option><option value="clock">Local Wall Clock</option>';
-                        sel.value = layer.props.mode || 'countdown';
-                        sel.onchange = () => { layer.props.mode = sel.value; setDirty(true); };
-                        addExtra('Timer Mode', sel);
+                        addExtra('Timer Mode', makeSelectField(
+                            [['countdown', 'Countdown'], ['countup', 'Stopwatch (Count Up)'], ['clock', 'Local Wall Clock']],
+                            layer.props.mode || 'countdown',
+                            (v) => { layer.props.mode = v; }
+                        ));
 
                         const lbl = document.createElement('input');
                         lbl.className = 's-input';
                         lbl.value = layer.props.label || 'LIVE IN';
                         lbl.oninput = () => { layer.props.label = lbl.value; setDirty(true); renderCanvas(); };
                         addExtra('Timer Label', lbl);
+
+                        const g1 = makeGrid2();
+                        addExtra('Digit Size (px)', makeNumberField(layer.props.font_size ?? 72, { min: 18, max: 260, step: 2, fallback: 72 }, (v) => { layer.props.font_size = Math.max(18, v); }), g1);
+                        addExtra('Label Size (px)', makeNumberField(layer.props.label_font_size ?? 20, { min: 10, max: 80, step: 1, fallback: 20 }, (v) => { layer.props.label_font_size = Math.max(10, v); }), g1);
+
+                        addExtra('Digit Font Color', makeColorField(layer.props.text_color || '', activeTheme.accent_color || '#CDAD69', 'Inherit Accent', (v) => { layer.props.text_color = v; }));
+                        addExtra('Label Font Color', makeColorField(layer.props.label_color || '', activeTheme.muted_color || '#ABA291', 'Inherit Muted', (v) => { layer.props.label_color = v; }));
+                        addExtra('Background Color', makeColorField(layer.props.bg_color || '', activeTheme.surface_color || '#0B0A08', 'Inherit Surface Glass', (v) => { layer.props.bg_color = v; }));
+                        addOutlineControls(1, true);
+                        makeToggleField('Show Card Background', layer.props.show_bg !== false, (v) => { layer.props.show_bg = v; });
+                        makeToggleField('Show Hours (HH:MM:SS)', Boolean(layer.props.show_hours), (v) => { layer.props.show_hours = v; });
+                    } else if (layer.type === 'color_box') {
+                        const g1 = makeGrid2();
+                        const shapeSel = makeSelectField(
+                            [['rectangle', 'Rectangle'], ['square', 'Square'], ['circle', 'Circle']],
+                            layer.props.shape_preset || 'rectangle',
+                            (v) => {
+                                layer.props.shape_preset = v;
+                                if (v === 'square' || v === 'circle') {
+                                    const side = Math.max(40, Math.round(Math.min(Number(layer.w || 240), Number(layer.h || 240))));
+                                    layer.w = side;
+                                    layer.h = side;
+                                    document.getElementById('lp-w').value = String(side);
+                                    document.getElementById('lp-h').value = String(side);
+                                }
+                                populateLayerInspector();
+                            }
+                        );
+                        addExtra('Box Shape', shapeSel, g1);
+
+                        const fillModeSel = makeSelectField(
+                            [['solid', 'Solid Color'], ['gradient', 'Gradient'], ['transparent', 'Outline Only']],
+                            layer.props.fill_mode || 'solid',
+                            (v) => {
+                                layer.props.fill_mode = v;
+                                populateLayerInspector();
+                            }
+                        );
+                        addExtra('Fill Style', fillModeSel, g1);
+
+                        if ((layer.props.fill_mode || 'solid') !== 'transparent') {
+                            addExtra('Box Color', makeColorField(
+                                layer.props.fill_color || activeTheme.accent_color || '#CDAD69',
+                                activeTheme.accent_color || '#CDAD69',
+                                '#CDAD69',
+                                (v) => { layer.props.fill_color = v; }
+                            ));
+                        }
+
+                        if (layer.props.fill_mode === 'gradient') {
+                            addExtra('Gradient Second Color', makeColorField(
+                                layer.props.fill_color_end || activeTheme.surface_color || '#181714',
+                                activeTheme.surface_color || '#181714',
+                                '#181714',
+                                (v) => { layer.props.fill_color_end = v; }
+                            ));
+                            addExtra('Gradient Angle (°)', makeNumberField(
+                                layer.props.gradient_angle ?? 135,
+                                { min: 0, max: 360, step: 15, fallback: 135 },
+                                (v) => { layer.props.gradient_angle = v; }
+                            ));
+                        }
+
+                        if ((layer.props.shape_preset || 'rectangle') !== 'circle') {
+                            const radRow = document.createElement('div');
+                            radRow.style.cssText = 'display:flex;gap:0.3rem;align-items:center;';
+                            const radSlider = document.createElement('input');
+                            radSlider.type = 'range';
+                            radSlider.min = '0';
+                            radSlider.max = '240';
+                            radSlider.value = String(Number(layer.radius || 0));
+                            radSlider.style.cssText = 'flex:1;accent-color:var(--gold-accent);';
+                            const radVal = document.createElement('span');
+                            radVal.className = 'sub-label';
+                            radVal.style.minInlineSize = '2.75rem';
+                            radVal.style.textAlign = 'end';
+                            radVal.textContent = `${Number(layer.radius || 0)}px`;
+                            radSlider.oninput = () => {
+                                layer.radius = Number(radSlider.value || 0);
+                                radVal.textContent = `${layer.radius}px`;
+                                document.getElementById('lp-radius').value = String(layer.radius);
+                                setDirty(true);
+                                renderCanvas();
+                            };
+                            radRow.append(radSlider, radVal);
+                            addExtra('Rounded Edges', radRow);
+                        }
+
+                        addOutlineControls(0, true);
+                        makeToggleField('Drop Shadow', Boolean(layer.props.shadow), (v) => { layer.props.shadow = v; });
+                    } else if (layer.type === 'scoreboard' || layer.type === 'lower_third' || layer.type === 'ticker') {
+                        if (layer.type === 'ticker') {
+                            addExtra('Scroll Speed (seconds)', makeNumberField(
+                                layer.props.speed_sec ?? 28,
+                                { min: 5, max: 120, step: 1, fallback: 28 },
+                                (v) => { layer.props.speed_sec = Math.max(5, v); }
+                            ));
+                        }
+                        addExtra('Text Color', makeColorField(layer.props.text_color || '', activeTheme.text_color || '#FAF7EE', 'Inherit Theme Text', (v) => { layer.props.text_color = v; }));
+                        addExtra('Accent / Highlight Color', makeColorField(layer.props.accent_color || '', activeTheme.accent_color || '#CDAD69', 'Inherit Theme Accent', (v) => { layer.props.accent_color = v; }));
+                        addExtra('Background Color', makeColorField(layer.props.bg_color || '', activeTheme.surface_color || '#0B0A08', 'Inherit Surface Glass', (v) => { layer.props.bg_color = v; }));
+                        addOutlineControls(1, true);
+                    } else if (layer.type === 'shape') {
+                        addExtra('Fill / Background Color', makeColorField(layer.props.fill_color || '', activeTheme.surface_color || '#0B0A08', 'Inherit Surface Glass', (v) => { layer.props.fill_color = v; }));
+                        addExtra('Backdrop Blur (px)', makeNumberField(
+                            layer.props.backdrop_blur ?? 18,
+                            { min: 0, max: 60, step: 2, fallback: 18 },
+                            (v) => { layer.props.backdrop_blur = Math.max(0, v); }
+                        ));
+                        addOutlineControls(1, true);
                     } else if (layer.type === 'asset') {
                         const sel = document.createElement('select');
                         sel.className = 's-select';
@@ -1429,6 +1838,12 @@
                             renderCanvas();
                         };
                         addExtra('Media Asset', sel);
+                        addExtra('Fit Mode', makeSelectField(
+                            [['contain', 'Contain (Keep Aspect)'], ['cover', 'Cover (Fill Box)'], ['fill', 'Stretch to Fill']],
+                            layer.props.fit || 'contain',
+                            (v) => { layer.props.fit = v; }
+                        ));
+                        addOutlineControls(0, true);
                     } else if (layer.type === 'embed') {
                         const inp = document.createElement('input');
                         inp.type = 'url';
@@ -1437,13 +1852,28 @@
                         inp.value = layer.props.url || '';
                         inp.oninput = () => { layer.props.url = inp.value; setDirty(true); renderCanvas(); };
                         addExtra('Widget / VDO.Ninja Embed URL', inp);
+                        addExtra('Background Color', makeColorField(layer.props.bg_color || '', activeTheme.surface_color || '#0B0A08', 'Transparent', (v) => { layer.props.bg_color = v; }));
+                        addOutlineControls(0, true);
                     } else if (layer.type === 'camera_cutout') {
-                        const inp = document.createElement('input');
-                        inp.className = 's-input';
-                        inp.value = layer.props.border_color || '';
-                        inp.placeholder = 'Default accent (#CDAD69)';
-                        inp.oninput = () => { layer.props.border_color = inp.value; setDirty(true); renderCanvas(); };
-                        addExtra('Cutout Border Color', inp);
+                        const lbl = document.createElement('input');
+                        lbl.className = 's-input';
+                        lbl.value = layer.props.label || '';
+                        lbl.placeholder = 'OBS Camera / Capture Shows Here';
+                        lbl.oninput = () => { layer.props.label = lbl.value; setDirty(true); renderCanvas(); };
+                        addExtra('Cutout Label (Editor Only)', lbl);
+
+                        addExtra('Cutout Border Color', makeColorField(
+                            layer.props.border_color || '',
+                            activeTheme.accent_color || '#CDAD69',
+                            'Inherit Theme Accent',
+                            (v) => { layer.props.border_color = v; }
+                        ));
+                        addExtra('Border Thickness (px)', makeNumberField(
+                            layer.props.border_width ?? 3,
+                            { min: 0, max: 30, step: 1, fallback: 3 },
+                            (v) => { layer.props.border_width = Math.max(0, v); }
+                        ));
+                        makeToggleField('Accent Border Glow', layer.props.glow !== false, (v) => { layer.props.glow = v; });
                     }
                 };
 
@@ -1603,14 +2033,15 @@
                         view.layers = view.layers || [];
                         const presets = {
                             camera_cutout: { name: 'Camera Cutout', x: 260, y: 140, w: 1400, h: 788, radius: 22, props: { label: 'OBS Camera / Capture Shows Here', border_width: 3, glow: true } },
-                            timer: { name: 'Countdown Timer', x: 680, y: 180, w: 560, h: 200, radius: 20, props: { mode: 'countdown', label: 'LIVE IN', font_size: 84 } },
+                            timer: { name: 'Countdown Timer', x: 680, y: 180, w: 560, h: 200, radius: 20, props: { mode: 'countdown', label: 'LIVE IN', font_size: 84, label_font_size: 20, show_bg: true } },
+                            color_box: { name: 'Color Box', x: 760, y: 340, w: 400, h: 240, radius: 16, props: { shape_preset: 'rectangle', fill_mode: 'solid', fill_color: colData.theme?.accent_color || '#CDAD69', fill_color_end: colData.theme?.surface_color || '#181714', gradient_angle: 135, border_color: '#FAF7EE', border_width: 0, border_style: 'solid', shadow: false } },
                             scoreboard: { name: 'Match Scoreboard', x: 360, y: 32, w: 1200, h: 84, radius: 16, props: { style: 'versus_bar' } },
                             lower_third: { name: 'Lower Third', x: 64, y: 880, w: 640, h: 120, radius: 18, props: { style: 'glass' } },
                             ticker: { name: 'Scrolling Ticker', x: 64, y: 968, w: 1792, h: 64, radius: 14, props: { speed_sec: 28 } },
-                            shape: { name: 'Glass Card', x: 310, y: 200, w: 1300, h: 520, radius: 24, props: { border_width: 1 } },
+                            shape: { name: 'Glass Card', x: 310, y: 200, w: 1300, h: 520, radius: 24, props: { border_width: 1, backdrop_blur: 18 } },
                             asset: { name: 'Media Asset', x: 160, y: 140, w: 480, h: 270, radius: 12, props: { asset_id: null, url: '', fit: 'contain' } },
                             embed: { name: 'Web Embed', x: 300, y: 180, w: 960, h: 540, radius: 16, props: { url: '' } },
-                            text: { name: 'Text Label', x: 360, y: 400, w: 1200, h: 140, radius: 0, props: { text: 'Broadcast Headline', font_size: 64 } },
+                            text: { name: 'Text Label', x: 360, y: 400, w: 1200, h: 140, radius: 12, props: { text: 'Broadcast Headline', font_size: 64, font_weight: 700, align: 'center', padding: 12 } },
                         };
                         const cfg = presets[type] || presets.text;
                         view.layers.push({

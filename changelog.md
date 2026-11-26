@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.14.0] - 2026-11-26 | type: minor
+
+> Added the transformable Color Box canvas element (rectangle, square, circle) and full per-element styling controls for text, timers, scoreboards, lower thirds, tickers, glass cards, assets, cutouts, and embeds.
+
+### Added
+- Added the Color Box element (color_box) in Canvas Builder and Stage Player with Rectangle, Square, and Circle presets, solid/gradient/outline-only fills, rounded-edge controls, outline color/thickness/style, drop shadow, and aspect-locked resize for squares and circles
+- Added comprehensive per-element inspector controls including font color, font weight, font family, alignment, padding, letter spacing, text shadow, digit & label font sizes/colors, background colors, card background & hours toggles, backdrop blur, fit modes, outline color/thickness/style, and layer stack bring-forward/send-backward ordering
+
 ## [v1.13.6] - 2026-11-26 | type: macro
 
 > Fixed real-time Canvas Editor theme reflection and added Transparent and Animated Video/Image options for the Collection Default Background with 1:1 Stage Player sync.

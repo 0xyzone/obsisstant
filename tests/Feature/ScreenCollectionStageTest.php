@@ -11,6 +11,7 @@ use App\Models\ScreenAsset;
 use App\Models\ScreenCollection;
 use App\Models\ScreenView;
 use App\Models\User;
+use App\Services\Obs\ScreenCollectionPresetService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
@@ -707,5 +708,93 @@ class ScreenCollectionStageTest extends TestCase
             ->assertOk()
             ->assertSee('resolveEffectiveBackground', false)
             ->assertSee('applyRootThemeVars', false);
+    }
+
+    public function test_color_box_element_and_rich_text_timer_style_props_persist_and_render(): void
+    {
+        Event::fake([ScreenCollectionUpdated::class]);
+
+        $this->assertArrayHasKey('color_box', ScreenCollectionPresetService::layerTypeOptions());
+        $defaultBox = ScreenCollectionPresetService::makeDefaultLayer('color_box', 'Accent Circle', [
+            'shape_preset' => 'circle',
+            'fill_mode' => 'gradient',
+            'fill_color' => '#E05297',
+            'fill_color_end' => '#6D28D9',
+            'border_color' => '#FFFFFF',
+            'border_width' => 6,
+            'border_style' => 'solid',
+        ]);
+        $this->assertSame('color_box', $defaultBox['type']);
+        $this->assertSame('circle', $defaultBox['props']['shape_preset']);
+        $this->assertSame(6, $defaultBox['props']['border_width']);
+
+        $user = User::factory()->create();
+        $studio = ObsStudio::factory()->for($user)->create();
+        $collection = ScreenCollection::factory()->for($user)->create(['obs_studio_id' => $studio->id]);
+        $view = ScreenView::factory()->create([
+            'screen_collection_id' => $collection->id,
+            'name' => 'Styled View',
+        ]);
+        $collection->update(['active_view_id' => $view->id]);
+
+        $styledText = ScreenCollectionPresetService::makeDefaultLayer('text', 'Styled Headline', [
+            'text' => 'GRAND FINALS',
+            'font_size' => 72,
+            'font_weight' => 800,
+            'font_family' => 'Poppins',
+            'align' => 'left',
+            'text_color' => '#FFE082',
+            'bg_color' => '#1A1426',
+            'border_color' => '#E05297',
+            'border_width' => 3,
+            'border_style' => 'solid',
+            'text_shadow' => true,
+        ], 2);
+
+        $styledTimer = ScreenCollectionPresetService::makeDefaultLayer('timer', 'Match Timer', [
+            'label' => 'NEXT MATCH',
+            'font_size' => 92,
+            'label_font_size' => 24,
+            'text_color' => '#4CC38A',
+            'label_color' => '#FAF7EE',
+            'bg_color' => '#11161C',
+            'border_color' => '#4CC38A',
+            'border_width' => 2,
+            'show_bg' => true,
+        ], 3);
+
+        $saveRes = $this->actingAs($user)
+            ->putJson(route('studio.collections.views.update', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+                'view' => $view->id,
+            ]), [
+                'name' => 'Styled View',
+                'background_mode' => 'transparent',
+                'layers' => [$defaultBox, $styledText, $styledTimer],
+            ])
+            ->assertOk();
+
+        $saveRes->assertJsonPath('collection.views.0.layers.0.type', 'color_box');
+        $saveRes->assertJsonPath('collection.views.0.layers.0.props.shape_preset', 'circle');
+        $saveRes->assertJsonPath('collection.views.0.layers.0.props.border_width', 6);
+        $saveRes->assertJsonPath('collection.views.0.layers.1.props.text_color', '#FFE082');
+        $saveRes->assertJsonPath('collection.views.0.layers.1.props.bg_color', '#1A1426');
+        $saveRes->assertJsonPath('collection.views.0.layers.2.props.label_color', '#FAF7EE');
+        $saveRes->assertJsonPath('collection.views.0.layers.2.props.border_color', '#4CC38A');
+
+        $this->actingAs($user)
+            ->get(route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => $collection->id]))
+            ->assertOk()
+            ->assertSee('data-quick-add="color_box"', false)
+            ->assertSee('Box Shape', false)
+            ->assertSee('Outline Thickness (px)', false)
+            ->assertSee('Font Color', false)
+            ->assertSee('Digit Font Color', false);
+
+        $this->get(route('obs.collection.show', ['token' => $collection->public_token]))
+            ->assertOk()
+            ->assertSee("layer.type === 'color_box'", false)
+            ->assertSee('applyLayerOutline', false);
     }
 }

@@ -4643,6 +4643,14 @@
                                     box.style.top = `${topPct}%`;
                                     box.style.width = `${wPct}%`;
                                     box.style.height = `${hPct}%`;
+                                    if (lType === 'color_box') {
+                                        if (layer.props?.fill_mode !== 'transparent' && layer.props?.fill_color) {
+                                            box.style.background = layer.props.fill_color;
+                                        }
+                                        if (layer.props?.shape_preset === 'circle') {
+                                            box.style.borderRadius = '50%';
+                                        }
+                                    }
                                     thumb.appendChild(box);
                                 });
 
