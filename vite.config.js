@@ -9,7 +9,7 @@ const hasMampSsl = fs.existsSync(keyPath) && fs.existsSync(certPath);
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/js/app.js', 'reources/css/app.css'],
+            input: ['resources/js/app.js', 'resources/css/app.css'],
             refresh: [
                 'resources/views/**',
                 'app/**/*.php',
