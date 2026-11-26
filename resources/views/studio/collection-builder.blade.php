@@ -626,8 +626,8 @@
 
         <main class="builder-grid">
             {{-- Left Column: Tabbed Views / Collection Assets / Theme & Transition --}}
-            <aside class="panel">
-                <div class="tab-row tab-row--3 sticky top-30" role="tablist" aria-label="Collection sections">
+            <aside class="panel sticky top-120">
+                <div class="tab-row tab-row--3" role="tablist" aria-label="Collection sections">
                     <button type="button" class="tab-btn" role="tab" aria-selected="true" data-left-tab="views">Views</button>
                     <button type="button" class="tab-btn" role="tab" aria-selected="false" data-left-tab="assets">Assets</button>
                     <button type="button" class="tab-btn" role="tab" aria-selected="false" data-left-tab="theme">Theme</button>
