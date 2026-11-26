@@ -307,6 +307,7 @@
             box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.24), 0 28px 60px -18px rgba(0, 0, 0, 0.95);
             font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
             color: #FAF7EE;
+            will-change: transform;
             transform-origin: bottom right;
             transition: opacity 200ms ease, border-color 220ms ease, box-shadow 220ms ease;
         }

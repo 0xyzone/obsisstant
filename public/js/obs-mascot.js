@@ -444,6 +444,19 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
     const history = [];
     let speakTimeout = null;
+    let cachedW = 340;
+    let cachedH = 360;
+    let lastBx = null;
+    let lastBy = null;
+    let lastSide = '';
+
+    const measureDrawer = () => {
+        if (drawer.hidden) return;
+        cachedW = drawer.offsetWidth || 340;
+        cachedH = drawer.offsetHeight || 360;
+    };
+
+    window.addEventListener('resize', measureDrawer, { passive: true });
 
     const setSpeaking = (speaking, label = null) => {
         clearTimeout(speakTimeout);
@@ -461,8 +474,8 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
 
     const syncPosition = (mascotX, mascotY, mascotSize) => {
         if (drawer.hidden) return;
-        const dw = drawer.offsetWidth || 340;
-        const dh = drawer.offsetHeight || 360;
+        const dw = cachedW;
+        const dh = cachedH;
         const vw = window.innerWidth;
         const vh = window.innerHeight;
         const pad = 12;
@@ -484,14 +497,26 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
             y = Math.max(56, Math.min(vh - dh - pad, mascotY + mascotSize - dh + 6));
         }
 
-        drawer.dataset.bubbleSide = side;
-        drawer.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+        if (lastSide !== side) {
+            lastSide = side;
+            drawer.dataset.bubbleSide = side;
+        }
+        const rx = Math.round(x * 10) / 10;
+        const ry = Math.round(y * 10) / 10;
+        if (rx !== lastBx || ry !== lastBy) {
+            lastBx = rx;
+            lastBy = ry;
+            drawer.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
+        }
     };
 
     const setOpen = (open) => {
         drawer.hidden = !open;
         toggleBtns.forEach((btn) => btn.setAttribute('aria-expanded', open ? 'true' : 'false'));
         if (open) {
+            lastBx = null;
+            lastBy = null;
+            measureDrawer();
             if (speechEl) speechEl.classList.remove('is-visible');
             instance?.triggerReaction('peek', false);
             setTimeout(() => input.focus(), 40);
@@ -527,6 +552,7 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
         }
         log.appendChild(bubble);
         log.scrollTop = log.scrollHeight;
+        measureDrawer();
         return bubble;
     };
 
@@ -661,11 +687,23 @@ function initMascots() {
         let pinnedY = 0;
         let wasPinned = false;
         let lastStopId = null;
+        let drawerCtrl = null;
 
         const computeTarget = () => {
             const isMobile = window.innerWidth < 1024;
             const anchorRect = anchorEl?.getBoundingClientRect();
             const inHero = isHeroGuide && anchorRect && anchorRect.bottom > 150 && window.scrollY < 160;
+
+            if (drawerCtrl?.isOpen()) {
+                if (controlsEl) controlsEl.style.opacity = inHero ? '1' : '0';
+                targetScale = isMobile ? 0.36 : 0.48;
+                const effSize = baseSize * targetScale;
+                targetX = window.innerWidth - effSize - (isMobile ? 10 : 18);
+                targetY = window.innerHeight - effSize - (isMobile ? 56 : 18);
+                flyerEl.dataset.side = 'right';
+                instance?.setPointDirection(-1, -0.05);
+                return;
+            }
 
             if (Date.now() < pinnedUntil) {
                 wasPinned = true;
@@ -779,7 +817,7 @@ function initMascots() {
             return;
         }
 
-        const drawerCtrl = wireAssistantDrawer(host, instance, showBriefSpeech);
+        drawerCtrl = wireAssistantDrawer(host, instance, showBriefSpeech);
 
         // Brief initial greeting only on hero, then fades out cleanly
         if (isHeroGuide && speechEl?.textContent?.trim()) {

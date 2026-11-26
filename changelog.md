@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.22.5] - 2026-11-27 | type: macro
+
+> Made Oxy smoothly fly to and dock in the bottom-right corner alongside the speech-bubble chat whenever "Ask Oxy" is opened (returning to the hero or scroll position when closed), and eliminated per-frame layout reflow for lag-free motion.
+
+### Improved
+- **Smooth Corner Docking & Zero-Lag Tracking**: Opening Oxy's chat now overrides scroll/hero targets so Oxy glides smoothly to the bottom-right corner and stays there until closed; cached speech-bubble dimensions (`measureDrawer()`) and added `will-change: transform` to eliminate per-frame DOM layout thrashing.
+
 ## [v1.22.4] - 2026-11-27 | type: macro
 
 > Removed the duplicate corner "Ask Oxy" button so only Oxy's own pill appears, and redesigned Oxy's chat modal into a live speech-bubble anchored directly to Oxy with thinking/speaking animations.
