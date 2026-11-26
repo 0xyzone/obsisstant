@@ -2,8 +2,6 @@
 
 namespace App\Filament\SuperAdmin\Resources\Subscriptions;
 
-use App\Filament\SuperAdmin\Resources\Subscriptions\Pages\CreateSubscription;
-use App\Filament\SuperAdmin\Resources\Subscriptions\Pages\EditSubscription;
 use App\Filament\SuperAdmin\Resources\Subscriptions\Pages\ListSubscriptions;
 use App\Models\Package;
 use App\Models\Subscription;
@@ -12,6 +10,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -141,6 +140,7 @@ class SubscriptionResource extends Resource
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -155,8 +155,6 @@ class SubscriptionResource extends Resource
     {
         return [
             'index' => ListSubscriptions::route('/'),
-            'create' => CreateSubscription::route('/create'),
-            'edit' => EditSubscription::route('/{record}/edit'),
         ];
     }
 }

@@ -20,6 +20,16 @@ class SaasSuperAdminEntitlementTest extends TestCase
     {
         $this->get('/admin/register')->assertNotFound();
 
+        $this->get('/admin/login')
+            ->assertOk()
+            ->assertSee('Studio Operator')
+            ->assertSee('Sign in to Studio');
+
+        $this->get('/hq/login')
+            ->assertOk()
+            ->assertSee('Super Admin HQ')
+            ->assertSee('Sign in to Obsisstant HQ');
+
         $customer = User::factory()->create();
         $superAdmin = User::factory()->superAdmin()->create();
 
@@ -28,7 +38,11 @@ class SaasSuperAdminEntitlementTest extends TestCase
         $this->actingAs($customer)->get('/hq/users')->assertForbidden();
         $this->actingAs($customer)->get('/hq/subscriptions')->assertForbidden();
 
-        $this->actingAs($superAdmin)->get('/hq')->assertOk();
+        $this->actingAs($superAdmin)->get('/hq')
+            ->assertOk()
+            ->assertSee('Total Customers')
+            ->assertSee('Monthly Value (NPR)')
+            ->assertSee('Recent Customer Subscriptions');
         $this->actingAs($superAdmin)->get('/hq/packages')->assertOk();
         $this->actingAs($superAdmin)->get('/hq/users')->assertOk();
         $this->actingAs($superAdmin)->get('/hq/subscriptions')->assertOk();

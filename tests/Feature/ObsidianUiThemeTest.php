@@ -136,7 +136,7 @@ class ObsidianUiThemeTest extends TestCase
         $response = $this->get('/admin/login');
 
         $response->assertOk()
-            ->assertSee('Sign in to Obsisstant')
+            ->assertSee('Sign in to Studio')
             ->assertSee('filament-obs-theme.css')
             ->assertSee('poppins:400,500,600')
             ->assertSee('dark', false);

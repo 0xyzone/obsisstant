@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.23.1] - 2026-11-27 | type: macro
+
+> Distinguished the Studio vs. Super Admin HQ login pages, switched default package pricing to NPR (Nepalese Rupee), added Super Admin dashboard widgets, and configured all Create/Edit/View actions in `/hq` to open as `7xl` slide-over modals.
+
+### Improved
+- **Distinct Studio vs. HQ Login**: Updated `login-hero.blade.php` and `simple-topbar.blade.php` so `/hq/login` clearly shows **Obsisstant HQ / Super Admin HQ** with a quick link to Studio login, while `/admin/login` shows **Studio Operator / Sign in to Studio**.
+- **Nepal Currency (`NPR`)**: Switched default package currency and seeded plans (`PackageSeeder`, `Package::formattedPrice()`, `PackageResource`) to **NPR** (`NPR 1,500/mo`, `NPR 3,500/mo`, `NPR 8,500/mo`), with `USD` and `INR` also selectable.
+- **Super Admin Widgets & Global `7xl` Slide-Overs**: Added `SuperAdminStatsOverview` and `RecentSubscriptionsWidget` to `/hq`, and globally configured `CreateAction`, `EditAction`, and `ViewAction` in `SuperAdminPanelProvider` to open in `slideOver()` modals at `7xl` width.
+
 ## [v1.23.0] - 2026-11-27 | type: minor
 
 > Added SaaS foundation with purchase-only user provisioning (public self-signup disabled), a dedicated Super Admin panel (`/hq`), modular Packages with feature toggles and numeric quotas, per-client Subscriptions with overrides, and central `EntitlementService` enforcement.

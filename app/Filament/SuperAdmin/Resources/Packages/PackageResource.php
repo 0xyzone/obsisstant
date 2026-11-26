@@ -2,8 +2,6 @@
 
 namespace App\Filament\SuperAdmin\Resources\Packages;
 
-use App\Filament\SuperAdmin\Resources\Packages\Pages\CreatePackage;
-use App\Filament\SuperAdmin\Resources\Packages\Pages\EditPackage;
 use App\Filament\SuperAdmin\Resources\Packages\Pages\ListPackages;
 use App\Models\Package;
 use BackedEnum;
@@ -11,6 +9,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -80,12 +79,12 @@ class PackageResource extends Resource
                             ->maxLength(120)
                             ->unique(ignoreRecord: true),
                         TextInput::make('price_cents')
-                            ->label('Price (in cents)')
+                            ->label('Price (in paisa / cents)')
                             ->numeric()
-                            ->default(2900)
+                            ->default(150000)
                             ->required()
                             ->minValue(0)
-                            ->helperText('Example: 2900 = $29.00'),
+                            ->helperText('Example: 150000 = NPR 1,500'),
                         Select::make('billing_cycle')
                             ->options([
                                 'monthly' => 'Monthly',
@@ -94,9 +93,13 @@ class PackageResource extends Resource
                             ])
                             ->default('monthly')
                             ->required(),
-                        TextInput::make('currency')
-                            ->default('USD')
-                            ->maxLength(8)
+                        Select::make('currency')
+                            ->options([
+                                'NPR' => 'NPR (Rs.)',
+                                'USD' => 'USD ($)',
+                                'INR' => 'INR (₹)',
+                            ])
+                            ->default('NPR')
                             ->required(),
                         TextInput::make('sort_order')
                             ->numeric()
@@ -148,6 +151,7 @@ class PackageResource extends Resource
             ])
             ->defaultSort('sort_order')
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -162,8 +166,6 @@ class PackageResource extends Resource
     {
         return [
             'index' => ListPackages::route('/'),
-            'create' => CreatePackage::route('/create'),
-            'edit' => EditPackage::route('/{record}/edit'),
         ];
     }
 }

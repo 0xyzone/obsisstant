@@ -3,7 +3,13 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
+use App\Filament\SuperAdmin\Widgets\RecentSubscriptionsWidget;
+use App\Filament\SuperAdmin\Widgets\SuperAdminStatsOverview;
 use App\Services\ReverbStatusService;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -14,6 +20,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -25,6 +32,19 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class SuperAdminPanelProvider extends PanelProvider
 {
+    public function boot(): void
+    {
+        Filament::serving(function (): void {
+            if (Filament::getCurrentPanel()?->getId() !== 'superadmin') {
+                return;
+            }
+
+            CreateAction::configureUsing(fn (CreateAction $action): CreateAction => $action->slideOver()->modalWidth(Width::SevenExtraLarge));
+            EditAction::configureUsing(fn (EditAction $action): EditAction => $action->slideOver()->modalWidth(Width::SevenExtraLarge));
+            ViewAction::configureUsing(fn (ViewAction $action): ViewAction => $action->slideOver()->modalWidth(Width::SevenExtraLarge));
+        });
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -98,8 +118,13 @@ class SuperAdminPanelProvider extends PanelProvider
                     ->sort(2),
             ])
             ->discoverResources(in: app_path('Filament/SuperAdmin/Resources'), for: 'App\Filament\SuperAdmin\Resources')
+            ->discoverWidgets(in: app_path('Filament/SuperAdmin/Widgets'), for: 'App\Filament\SuperAdmin\Widgets')
             ->pages([
                 Dashboard::class,
+            ])
+            ->widgets([
+                SuperAdminStatsOverview::class,
+                RecentSubscriptionsWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

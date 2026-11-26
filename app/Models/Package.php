@@ -94,14 +94,19 @@ class Package extends Model
 
     public function formattedPrice(): string
     {
-        $amount = number_format(((int) $this->price_cents) / 100, 2);
+        $cents = (int) $this->price_cents;
+        $whole = $cents / 100;
+        $amount = ($cents % 100 === 0)
+            ? number_format($whole, 0)
+            : number_format($whole, 2);
+        $currency = $this->currency ?: 'NPR';
         $cycle = match ($this->billing_cycle) {
             'yearly' => '/yr',
             'lifetime' => ' one-time',
             default => '/mo',
         };
 
-        return "{$this->currency} {$amount}{$cycle}";
+        return "{$currency} {$amount}{$cycle}";
     }
 
     /**

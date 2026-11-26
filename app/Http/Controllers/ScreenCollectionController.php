@@ -150,6 +150,7 @@ class ScreenCollectionController extends Controller
         $user = $this->authorizeStudio($request, $studio);
         $this->authorizeCollection($user, $collection);
         abort_unless(app(EntitlementService::class)->hasFeature($user, 'canvas_builder'), 403, 'Canvas Builder is not enabled on your current package.');
+        abort_unless(app(EntitlementService::class)->hasFeature($user, 'canvas_builder'), 403, 'Canvas Builder is not enabled on your current package.');
 
         $requestedViewId = $request->integer('view') ?: null;
         $initialViewId = $requestedViewId !== null && $collection->views()->whereKey($requestedViewId)->exists()

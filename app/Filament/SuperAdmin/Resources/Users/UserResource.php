@@ -2,8 +2,6 @@
 
 namespace App\Filament\SuperAdmin\Resources\Users;
 
-use App\Filament\SuperAdmin\Resources\Users\Pages\CreateUser;
-use App\Filament\SuperAdmin\Resources\Users\Pages\EditUser;
 use App\Filament\SuperAdmin\Resources\Users\Pages\ListUsers;
 use App\Models\Package;
 use App\Models\User;
@@ -12,6 +10,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -127,6 +126,7 @@ class UserResource extends Resource
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -141,8 +141,6 @@ class UserResource extends Resource
     {
         return [
             'index' => ListUsers::route('/'),
-            'create' => CreateUser::route('/create'),
-            'edit' => EditUser::route('/{record}/edit'),
         ];
     }
 }
