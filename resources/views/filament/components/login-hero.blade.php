@@ -4,4 +4,3 @@
         <p class="obs-login-sub">Enter your studio operator credentials to access live OBS controls.</p>
     </div>
 </div>
-<x-obs-mascot mode="floating-assistant" />

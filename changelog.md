@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.22.3] - 2026-11-27 | type: macro
+
+> Fixed Oxy and the Ask Oxy launcher being trapped inside the Filament login card (`backdrop-filter` containing block) by moving the mascot mount from `login-hero.blade.php` to `PanelsRenderHook::BODY_END`.
+
+### Fixed
+- Removed `<x-obs-mascot mode="floating-assistant" />` from `resources/views/filament/components/login-hero.blade.php` and moved it outside `@if (auth()->check())` in `resources/views/filament/components/mobile-bottom-dock.blade.php` (`PanelsRenderHook::BODY_END`) so `position: fixed` anchors to the viewport on `/admin/login` without overlapping the Sign in button.
+
 ## [v1.22.2] - 2026-11-27 | type: macro
 
 > Added an always-reachable "Ask Oxy" floating launcher button and attached the "Ask Oxy" pill directly to Oxy as it flies across sections on scroll so users can open Oxy's chat drawer from anywhere at any time.
