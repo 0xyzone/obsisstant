@@ -8,6 +8,7 @@ use App\Filament\Resources\ObsStudios\Pages\ListObsStudios;
 use App\Models\ObsStudio;
 use App\Models\User;
 use App\Services\Obs\ObsAgentInstallerService;
+use App\Services\Obs\ObsCommandService;
 use App\Services\Saas\EntitlementService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -28,6 +29,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use UnitEnum;
 
@@ -181,6 +183,24 @@ class ObsStudioResource extends Resource
                     ->label('Mobile Deck')
                     ->icon(Heroicon::OutlinedDevicePhoneMobile)
                     ->url(fn (ObsStudio $record): string => route('obs.deck.show', ['studio' => $record->slug]), shouldOpenInNewTab: true),
+                Action::make('stopAgent')
+                    ->label('Stop Agent')
+                    ->icon(Heroicon::OutlinedStop)
+                    ->color('danger')
+                    ->visible(fn (ObsStudio $record): bool => $record->status !== 'offline' || Cache::has("obs_studio_agent_runtime_{$record->id}"))
+                    ->requiresConfirmation()
+                    ->modalDescription('This sends a clean shutdown signal to the running OBS Agent process on your Mac or Windows PC.')
+                    ->action(function (ObsStudio $record): void {
+                        $user = auth()->user();
+                        app(ObsCommandService::class)->dispatch($record, 'obsisstant.StopAgent', [], $user instanceof User ? $user : null);
+                        Cache::forget("obs_studio_agent_runtime_{$record->id}");
+                        $record->update(['status' => 'offline']);
+                        Notification::make()
+                            ->warning()
+                            ->title('Stop signal sent to OBS Agent')
+                            ->body("Agent for \"{$record->name}\" is shutting down.")
+                            ->send();
+                    }),
                 Action::make('regenerateToken')
                     ->label('Rotate Token')
                     ->icon(Heroicon::OutlinedKey)

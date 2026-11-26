@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -388,6 +389,10 @@ class StudioWorker {
                 studio_id: this.studio.id,
                 agent_instance_id: AGENT_INSTANCE_ID,
                 status,
+                agent_pid: process.pid,
+                agent_platform: os.platform(),
+                agent_hostname: os.hostname(),
+                agent_uptime: Math.floor(process.uptime()),
             });
             if (res?.ignored_duplicate_relay || res?.ignored_duplicate_agent) {
                 await this.yieldToRemoteOwner('owned by another active agent');
@@ -1248,6 +1253,18 @@ class StudioWorker {
             console.log(`${this.logPrefix()} Executing ${requestType} (${uuid || 'whisper'})`);
         }
 
+        if (requestType === 'obsisstant.StopAgent') {
+            await this.ackCommandWithRetry(uuid, {
+                status: 'succeeded',
+                response_data: { stopped: true, pid: process.pid },
+            });
+            console.log(`${this.logPrefix()} Received obsisstant.StopAgent — terminating agent cleanly...`);
+            setTimeout(() => {
+                shutdown().catch(() => process.exit(0));
+            }, 200);
+            return;
+        }
+
         try {
             if (!this.obsConnected) {
                 if (this.remoteAgentOnline || this.waitingForEndpointKey) {
@@ -1628,11 +1645,18 @@ class StudioWorker {
         await this.drainPendingCommands(this.pendingCommands);
         this.pendingCommands = [];
 
+        this.lastIdleStatsPollAt = 0;
         this.statsTimer = setInterval(async () => {
             if (this.stopped) {
                 return;
             }
             if (this.obsConnected) {
+                const isLive = Boolean(this.liveState?.outputs?.streaming || this.liveState?.outputs?.recording);
+                const minInterval = isLive ? 25000 : 60000;
+                if (Date.now() - this.lastIdleStatsPollAt < minInterval) {
+                    return;
+                }
+                this.lastIdleStatsPollAt = Date.now();
                 try {
                     const stats = await this.obs.call('GetStats');
                     const nextStats = {
@@ -1888,7 +1912,143 @@ async function syncFromBootstrap() {
     }
 }
 
+const LOCK_FILE = path.join(os.tmpdir(), 'obsisstant-agent.lock');
+let localUiServer = null;
+
+async function acquireSingleInstanceLock() {
+    try {
+        if (fs.existsSync(LOCK_FILE)) {
+            const rawPid = fs.readFileSync(LOCK_FILE, 'utf8').trim();
+            const oldPid = Number.parseInt(rawPid, 10);
+            if (Number.isFinite(oldPid) && oldPid > 0 && oldPid !== process.pid) {
+                try {
+                    process.kill(oldPid, 0);
+                    console.log(`[obs-agent] Replacing previous agent instance (PID ${oldPid})...`);
+                    process.kill(oldPid, 'SIGTERM');
+                    await new Promise((resolve) => setTimeout(resolve, 350));
+                } catch {
+                    // Previous PID already exited
+                }
+            }
+        }
+        fs.writeFileSync(LOCK_FILE, String(process.pid), 'utf8');
+    } catch {
+        // Non-fatal if lockfile cannot be written
+    }
+}
+
+function releaseSingleInstanceLock() {
+    try {
+        if (fs.existsSync(LOCK_FILE)) {
+            const rawPid = fs.readFileSync(LOCK_FILE, 'utf8').trim();
+            if (Number.parseInt(rawPid, 10) === process.pid) {
+                fs.unlinkSync(LOCK_FILE);
+            }
+        }
+    } catch {
+        // Ignore cleanup errors
+    }
+}
+
+function startLocalCompanionServer() {
+    const port = Number.parseInt(process.env.OBS_AGENT_UI_PORT || '4458', 10);
+    if (!Number.isFinite(port) || port <= 0) {
+        return;
+    }
+
+    localUiServer = http.createServer(async (req, res) => {
+        const url = new URL(req.url || '/', `http://127.0.0.1:${port}`);
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+
+        if (req.method === 'GET' && url.pathname === '/status') {
+            const studios = Array.from(workers.values()).map((w) => ({
+                id: w.studio.id,
+                name: w.studio.name,
+                obsConnected: w.obsConnected,
+                status: w.deriveStatus(),
+            }));
+            res.end(JSON.stringify({
+                running: true,
+                pid: process.pid,
+                platform: os.platform(),
+                hostname: os.hostname(),
+                uptime: Math.floor(process.uptime()),
+                baseUrl: BASE_URL,
+                studios,
+            }));
+            return;
+        }
+
+        if (req.method === 'POST' && url.pathname === '/stop') {
+            res.end(JSON.stringify({ ok: true, message: 'Stopping Obsisstant Agent...' }));
+            setTimeout(() => shutdown().catch(() => process.exit(0)), 150);
+            return;
+        }
+
+        if (req.method === 'POST' && url.pathname === '/pair') {
+            let body = '';
+            req.on('data', (chunk) => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const parsed = JSON.parse(body || '{}');
+                    const code = String(parsed.code || '').replace(/\D/g, '');
+                    const serverBase = String(parsed.baseUrl || BASE_URL).replace(/\/+$/, '');
+                    if (code.length !== 6) {
+                        res.statusCode = 422;
+                        res.end(JSON.stringify({ ok: false, message: 'Enter a valid 6-digit pairing code.' }));
+                        return;
+                    }
+                    const pairRes = await fetch(`${serverBase}/api/obs-agent/pair-code`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                        body: JSON.stringify({ code }),
+                    });
+                    const pairJson = await pairRes.json().catch(() => null);
+                    if (!pairRes.ok || !pairJson?.relay_token) {
+                        res.statusCode = pairRes.status || 400;
+                        res.end(JSON.stringify({ ok: false, message: pairJson?.message || 'Pairing code invalid or expired.' }));
+                        return;
+                    }
+                    const envPath = path.resolve(__dirname, '../.env');
+                    const nextEnv = [
+                        `OBSISSTANT_URL=${pairJson.api_base || serverBase}`,
+                        `OBS_RELAY_TOKEN=${pairJson.relay_token}`,
+                        `OBS_DEFAULT_HOST=${pairJson.obs_host || '127.0.0.1'}`,
+                        `OBS_DEFAULT_PORT=${pairJson.obs_port || 4455}`,
+                        `OBS_DEFAULT_PASSWORD=${pairJson.obs_password || ''}`,
+                    ].join('\n') + '\n';
+                    fs.writeFileSync(envPath, nextEnv, 'utf8');
+                    res.end(JSON.stringify({ ok: true, message: 'Paired! Restarting agent connection...' }));
+                    setTimeout(() => process.exit(0), 300);
+                } catch (err) {
+                    res.statusCode = 500;
+                    res.end(JSON.stringify({ ok: false, message: err.message }));
+                }
+            });
+            return;
+        }
+
+        if (req.method === 'GET' && url.pathname === '/') {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            res.end(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Obsisstant Agent</title><style>body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:#070706;color:#FAF7EE;display:grid;place-items:center;min-height:100vh;padding:16px}main{width:100%;max-width:420px;background:#121210;border:1px solid rgba(205,173,105,.38);border-radius:16px;padding:20px;display:grid;gap:14px}h1{margin:0;font-size:18px;color:#F4E185}p{margin:0;font-size:13px;color:#C8C0AF}input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid rgba(205,173,105,.35);background:#080807;color:#FAF7EE;font-size:16px;letter-spacing:4px;text-align:center}button{padding:10px 14px;border-radius:999px;border:0;font-weight:600;cursor:pointer}.gold{background:linear-gradient(180deg,#F6E496,#B89143);color:#070706}.danger{background:#2D1314;color:#F4A3A6;border:1px solid rgba(229,72,77,.45)}.row{display:flex;gap:8px;justify-content:space-between;align-items:center}</style></head><body><main><div class="row"><h1>Obsisstant Agent</h1><span style="font-size:12px;color:#9EE6C3">PID ${process.pid}</span></div><p id="st">Loading status...</p><form id="pf" style="display:grid;gap:8px"><input id="code" maxlength="7" placeholder="482-915" required><button class="gold" type="submit">Pair with 6-Digit Code</button></form><button id="stop" class="danger" type="button">Stop Agent</button></main><script>fetch('/status').then(r=>r.json()).then(d=>{document.getElementById('st').textContent='Running on '+d.hostname+' ('+d.platform+') · '+d.studios.length+' studio(s)';});document.getElementById('pf').onsubmit=async e=>{e.preventDefault();const r=await fetch('/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:document.getElementById('code').value})});const j=await r.json();alert(j.message);if(j.ok)location.reload();};document.getElementById('stop').onclick=async()=>{await fetch('/stop',{method:'POST'});document.getElementById('st').textContent='Agent stopped.';};</script></body></html>`);
+            return;
+        }
+
+        res.statusCode = 404;
+        res.end(JSON.stringify({ message: 'Not found' }));
+    });
+
+    localUiServer.on('error', () => {
+        localUiServer = null;
+    });
+    localUiServer.listen(port, '127.0.0.1', () => {
+        console.log(`[obs-agent] Local status & pairing UI: http://127.0.0.1:${port}`);
+    });
+}
+
 async function main() {
+    await acquireSingleInstanceLock();
+    startLocalCompanionServer();
     console.log(`[obs-agent] Bootstrapping from ${BASE_URL}...`);
     const bootstrap = await syncFromBootstrap();
 
@@ -1926,6 +2086,14 @@ async function shutdown() {
     if (pusherClient) {
         pusherClient.disconnect();
     }
+    if (localUiServer) {
+        try {
+            localUiServer.close();
+        } catch {
+            // Ignore close errors
+        }
+    }
+    releaseSingleInstanceLock();
     process.exit(0);
 }
 

@@ -4,6 +4,10 @@ use App\Http\Controllers\Api\ObsAgentController;
 use App\Http\Middleware\AuthenticateObsAgent;
 use Illuminate\Support\Facades\Route;
 
+Route::post('/obs-agent/pair-code', [ObsAgentController::class, 'exchangePairCode'])
+    ->middleware('throttle:15,1')
+    ->name('api.obs-agent.pair-code');
+
 Route::prefix('obs-agent')
     ->middleware(AuthenticateObsAgent::class)
     ->group(function (): void {

@@ -24,6 +24,7 @@ class ObsAgentInstallerService
      *
      * @return array{
      *     token: string,
+     *     pairing_code: string,
      *     expires_in_minutes: int,
      *     mac_command: string,
      *     windows_command: string,
@@ -39,6 +40,12 @@ class ObsAgentInstallerService
             'studio_id' => $studio?->id,
         ], now()->addMinutes(self::SETUP_TOKEN_TTL_MINUTES));
 
+        $pairDigits = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $this->cacheStore()->put("obs_agent_pair_code:{$pairDigits}", [
+            'user_id' => $user->id,
+            'studio_id' => $studio?->id,
+        ], now()->addMinutes(10));
+
         // Pre-warm personal relay token so the account token exists before bundle download
         if ($studio === null) {
             $user->getOrCreateRelayToken();
@@ -52,11 +59,49 @@ class ObsAgentInstallerService
 
         return [
             'token' => $token,
+            'pairing_code' => substr($pairDigits, 0, 3).'-'.substr($pairDigits, 3, 3),
             'expires_in_minutes' => self::SETUP_TOKEN_TTL_MINUTES,
             'mac_command' => "curl -fsSL \"{$macScriptUrl}\" | bash",
             'windows_command' => "powershell -NoProfile -ExecutionPolicy Bypass -Command \"irm '{$winScriptUrl}' | iex\"",
             'mac_download_url' => route('agent-installer.download', ['platform' => self::PLATFORM_MAC]).$studioQuery,
             'windows_download_url' => route('agent-installer.download', ['platform' => self::PLATFORM_WINDOWS]).$studioQuery,
+        ];
+    }
+
+    /**
+     * Exchange a one-time 6-digit pairing code for the user's relay credentials.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function resolvePairingCode(string $code): ?array
+    {
+        $digits = preg_replace('/\D+/', '', $code) ?? '';
+        if (strlen($digits) !== 6) {
+            return null;
+        }
+
+        $payload = $this->cacheStore()->pull("obs_agent_pair_code:{$digits}");
+        if (! is_array($payload) || empty($payload['user_id'])) {
+            return null;
+        }
+
+        $user = User::query()->find((int) $payload['user_id']);
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        $studio = ! empty($payload['studio_id'])
+            ? ObsStudio::query()->ownedBy($user)->where('id', (int) $payload['studio_id'])->first()
+            : null;
+
+        return [
+            'relay_token' => $user->getOrCreateRelayToken(),
+            'api_base' => $this->resolveAppUrl(),
+            'studio_slug' => $studio?->slug,
+            'studio_name' => $studio?->name,
+            'obs_host' => $studio?->obs_host ?? '127.0.0.1',
+            'obs_port' => (int) ($studio?->obs_port ?? 4455),
+            'obs_password' => $studio?->obs_password ?? '',
         ];
     }
 
@@ -141,16 +186,27 @@ class ObsAgentInstallerService
 
         if ($normalizedPlatform === self::PLATFORM_MAC) {
             $installName = "{$root}/Install & Run Obsisstant Agent.command";
+            $stopName = "{$root}/Stop Obsisstant Agent.command";
+            $statusName = "{$root}/Open Agent Status & Pairing.command";
             $uninstallName = "{$root}/Uninstall Obsisstant Agent.command";
 
             $zip->addFromString($installName, $this->buildMacInstallCommand());
             $zip->setExternalAttributesName($installName, ZipArchive::OPSYS_UNIX, 0100755 << 16);
+
+            $zip->addFromString($stopName, $this->buildMacStopCommand());
+            $zip->setExternalAttributesName($stopName, ZipArchive::OPSYS_UNIX, 0100755 << 16);
+
+            $zip->addFromString($statusName, $this->buildMacStatusCommand());
+            $zip->setExternalAttributesName($statusName, ZipArchive::OPSYS_UNIX, 0100755 << 16);
 
             $zip->addFromString($uninstallName, $this->buildMacUninstallCommand());
             $zip->setExternalAttributesName($uninstallName, ZipArchive::OPSYS_UNIX, 0100755 << 16);
         } else {
             $zip->addFromString("{$root}/Install & Run Obsisstant Agent.bat", $this->toCrlf($this->buildWindowsInstallBat()));
             $zip->addFromString("{$root}/install-agent.ps1", $this->toCrlf($this->buildWindowsInstallPs1()));
+            $zip->addFromString("{$root}/Stop Obsisstant Agent.bat", $this->toCrlf($this->buildWindowsStopBat()));
+            $zip->addFromString("{$root}/Open Agent Status & Pairing.bat", $this->toCrlf($this->buildWindowsStatusBat()));
+            $zip->addFromString("{$root}/obsisstant-tray.ps1", $this->toCrlf($this->buildWindowsTrayPs1()));
             $zip->addFromString("{$root}/Uninstall Obsisstant Agent.bat", $this->toCrlf($this->buildWindowsUninstallBat()));
         }
 
@@ -654,6 +710,74 @@ Write-Host ""
 Write-Host "Next step in OBS Studio:" -ForegroundColor Yellow
 Write-Host "  Open OBS -> Tools -> WebSocket Server Settings -> Check 'Enable WebSocket server' (port 4455)."
 Write-Host "  Your Obsisstant web app will switch to Online automatically!"
+PS1;
+    }
+
+    private function buildMacStopCommand(): string
+    {
+        return <<<'SH'
+#!/bin/bash
+echo "Stopping Obsisstant OBS Agent..."
+launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.obsisstant.agent.plist" 2>/dev/null || true
+pkill -f "ObsisstantAgent/src/index.js" 2>/dev/null || true
+pkill -f "obs-agent/src/index.js" 2>/dev/null || true
+curl -s -X POST "http://127.0.0.1:4458/stop" >/dev/null 2>&1 || true
+echo "Obsisstant OBS Agent stopped."
+SH;
+    }
+
+    private function buildMacStatusCommand(): string
+    {
+        return <<<'SH'
+#!/bin/bash
+open "http://127.0.0.1:4458" || echo "Open http://127.0.0.1:4458 in your browser."
+SH;
+    }
+
+    private function buildWindowsStopBat(): string
+    {
+        return <<<'BAT'
+@echo off
+echo Stopping Obsisstant OBS Agent...
+schtasks /End /TN "Obsisstant OBS Agent" >nul 2>&1
+powershell -NoProfile -Command "try { Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:4458/stop' | Out-Null } catch {}; Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'ObsisstantAgent|obs-agent' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+echo Obsisstant OBS Agent stopped.
+pause
+BAT;
+    }
+
+    private function buildWindowsStatusBat(): string
+    {
+        return <<<'BAT'
+@echo off
+start "" "http://127.0.0.1:4458"
+BAT;
+    }
+
+    private function buildWindowsTrayPs1(): string
+    {
+        return <<<'PS1'
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+$notify = New-Object System.Windows.Forms.NotifyIcon
+$notify.Icon = [System.Drawing.SystemIcons]::Application
+$notify.Text = "Obsisstant OBS Agent"
+$notify.Visible = $true
+
+$menu = New-Object System.Windows.Forms.ContextMenuStrip
+$openItem = $menu.Items.Add("Open Agent Status & Pairing")
+$openItem.Add_Click({ Start-Process "http://127.0.0.1:4458" })
+
+$stopItem = $menu.Items.Add("Stop OBS Agent & Quit")
+$stopItem.Add_Click({
+    try { Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:4458/stop" | Out-Null } catch {}
+    $notify.Visible = $false
+    [System.Windows.Forms.Application]::Exit()
+})
+
+$notify.ContextMenuStrip = $menu
+[System.Windows.Forms.Application]::Run()
 PS1;
     }
 

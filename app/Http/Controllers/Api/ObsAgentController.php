@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ObsCommandLog;
 use App\Models\ObsStudio;
 use App\Models\User;
+use App\Services\Obs\ObsAgentInstallerService;
 use App\Services\Obs\ObsCommandService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,26 @@ use Throwable;
 class ObsAgentController extends Controller
 {
     private const ONLINE_LEASE_TTL_SECONDS = 95;
+
+    public function exchangePairCode(Request $request, ObsAgentInstallerService $installer): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:16'],
+        ]);
+
+        $resolved = $installer->resolvePairingCode((string) $validated['code']);
+        if ($resolved === null) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid or expired 6-digit pairing code. Generate a fresh code in Obsisstant.',
+            ], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            ...$resolved,
+        ]);
+    }
 
     public function bootstrap(Request $request): JsonResponse
     {
@@ -330,6 +351,16 @@ class ObsAgentController extends Controller
             'status' => $status,
             'last_seen_at' => now(),
         ]);
+
+        if ($request->filled('agent_pid') || $request->filled('agent_hostname')) {
+            Cache::put("obs_studio_agent_runtime_{$studio->id}", [
+                'pid' => $request->integer('agent_pid') ?: null,
+                'platform' => (string) $request->input('agent_platform', ''),
+                'hostname' => (string) $request->input('agent_hostname', ''),
+                'uptime' => $request->integer('agent_uptime'),
+                'last_seen_at' => now()->toIso8601String(),
+            ], now()->addMinutes(2));
+        }
 
         return response()->json([
             'ok' => true,

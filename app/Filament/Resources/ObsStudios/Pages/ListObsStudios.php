@@ -104,9 +104,10 @@ class ListObsStudios extends ListRecords
                     $personalToken = $user instanceof User ? $user->getOrCreateRelayToken() : 'Sign in to view token';
                     $payload = $user instanceof User
                         ? app(ObsAgentInstallerService::class)->issueBootstrapPayload($user)
-                        : ['mac_command' => '', 'windows_command' => ''];
+                        : ['pairing_code' => '', 'mac_command' => '', 'windows_command' => ''];
 
                     return [
+                        'pairing_code' => $payload['pairing_code'],
                         'mac_command' => $payload['mac_command'],
                         'windows_command' => $payload['windows_command'],
                         'relay_token' => $personalToken,
@@ -115,7 +116,16 @@ class ListObsStudios extends ListRecords
                     ];
                 })
                 ->schema([
-                    Section::make('Recommended for Mac (Zero Gatekeeper Warnings) & 1-Click Windows')
+                    Section::make('Option 1: 6-Digit Pairing Code (No Terminal Needed)')
+                        ->description('Open "Open Agent Status & Pairing" (or http://127.0.0.1:4458) on your OBS computer and enter this 6-digit code.')
+                        ->schema([
+                            TextInput::make('pairing_code')
+                                ->label('One-Time 6-Digit Pairing Code (Valid 10 minutes)')
+                                ->disabled()
+                                ->copyable(),
+                        ]),
+                    Section::make('Option 2: 1-Click Terminal / PowerShell Install')
+                        ->collapsed()
                         ->schema([
                             TextInput::make('mac_command')
                                 ->label('Mac Terminal (⌘ Space -> Terminal -> Paste & Enter)')

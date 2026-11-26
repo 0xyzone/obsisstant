@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.25.0] - 2026-11-27 | type: minor
+
+> Added single-instance process locking and 60s idle WebSocket polling in `obs-agent`, 6-digit pairing codes (`POST /api/obs-agent/pair-code`), remote/local **Stop Agent** termination (`obsisstant.StopAgent`), and a local Agent Status & Pairing UI (`http://127.0.0.1:4458`) plus Mac/Windows Stop & Tray launchers.
+
+### Added
+- **6-Digit Pairing Code & Local Agent UI**: `ObsAgentInstallerService::issueBootstrapPayload()` now issues a 10-minute 6-digit pairing code exchangeable via `POST /api/obs-agent/pair-code`, and `obs-agent` serves a lightweight local status/pairing/stop page at `http://127.0.0.1:4458`.
+- **In-App Stop Agent & Mac/Windows Tray/Stop Launchers**: Added `obsisstant.StopAgent`, `POST /studio/{studio}/agent/stop`, **Stop Agent** buttons in Studio Control Center and `/admin/obs-studios`, plus `Stop Obsisstant Agent` / `Open Agent Status & Pairing` scripts and `obsisstant-tray.ps1` in the installer ZIPs.
+
+### Improved
+- **Single-Instance Lock & Lower Idle WebSocket Traffic**: `obs-agent` now enforces a single-instance PID lockfile (`obsisstant-agent.lock`) so duplicate agents cannot double-connect to OBS, and slows idle `GetStats` polling to 60s when not streaming/recording.
+
 ## [v1.24.1] - 2026-11-27 | type: macro
 
 > Fixed navigation active-state highlighting across the homepage (scroll-spy for Overview, Architecture, and Overlays), Changelog, Knowledge Base, and Pricing pages.

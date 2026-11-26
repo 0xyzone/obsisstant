@@ -1284,6 +1284,7 @@
 
             <div class="studio-bar-right">
                 <button type="button" id="open-install-agent-btn" class="s-btn" commandfor="install-agent-dialog" command="show-modal">Install Agent</button>
+                <button type="button" id="stop-agent-btn" class="s-btn s-btn-danger" title="Terminate running OBS Agent process" @if (! ($studio->isOnline() || $agentReachable)) hidden @endif>Stop Agent</button>
                 <a href="{{ url('/admin/studio-settings') }}" class="s-btn">Storage Settings</a>
                 <a href="{{ route('obs.deck.show', ['studio' => $studio->slug]) }}" class="s-btn">Mobile Deck</a>
                 <a href="{{ route('knowledge-base') }}" class="s-btn">Knowledge Base</a>
@@ -2057,6 +2058,14 @@
                                 : 'Waiting for OBS Agent connection...') }}
                     </span>
                     <button type="button" class="s-btn s-btn-xs" id="install-check-status-btn">Check Now</button>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.65rem 0.85rem; border-radius: 0.65rem; border: 1px solid rgba(205, 173, 105, 0.36); background: rgba(205, 173, 105, 0.08);">
+                    <div>
+                        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold-light); font-weight: 600;">6-Digit Pairing Code</div>
+                        <div style="font-size: 0.74rem; color: var(--ink-muted);">Enter this in your local Agent UI (http://127.0.0.1:4458) — no terminal needed.</div>
+                    </div>
+                    <strong id="install-pairing-code" style="font-size: 1.25rem; letter-spacing: 0.14em; color: var(--gold-light); font-variant-numeric: tabular-nums;">{{ $installerPayload['pairing_code'] ?? '------' }}</strong>
                 </div>
 
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
@@ -4496,6 +4505,27 @@
                     }
                     if (installBanner) {
                         installBanner.hidden = true;
+                    }
+                });
+
+                document.getElementById('stop-agent-btn')?.addEventListener('click', async () => {
+                    if (!confirm('Stop the running OBS Agent process on your computer?')) return;
+                    const btn = document.getElementById('stop-agent-btn');
+                    if (btn) btn.disabled = true;
+                    try {
+                        const res = await fetch(@json(route('studio.agent.stop', ['studio' => $studio->slug], false)), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Accept: 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                            },
+                        });
+                        if (res.ok && btn) {
+                            btn.hidden = true;
+                        }
+                    } finally {
+                        if (btn) btn.disabled = false;
                     }
                 });
 

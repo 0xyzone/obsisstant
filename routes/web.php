@@ -69,6 +69,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/studio/{studio:slug}/preview-frame', [StudioControlCenterController::class, 'previewFrame'])->name('studio.preview-frame');
     Route::post('/studio/{studio:slug}/media/upload', [StudioControlCenterController::class, 'uploadMedia'])->name('studio.media-upload');
     Route::post('/studio/{studio:slug}/media/storage-path', [StudioControlCenterController::class, 'updateMediaStoragePath'])->name('studio.media-storage-path');
+    Route::post('/studio/{studio:slug}/agent/stop', [StudioControlCenterController::class, 'stopAgent'])->name('studio.agent.stop');
 
     // Unified Single-Browser Screen Collections, Views Builder & Remote Controls
     Route::post('/studio/{studio:slug}/control-mode', [ScreenCollectionController::class, 'updateControlMode'])->name('studio.control-mode');

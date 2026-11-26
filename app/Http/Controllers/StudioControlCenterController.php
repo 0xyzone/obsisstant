@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\ChangelogService;
 use App\Services\Obs\ObsAgentInstallerService;
 use App\Services\Obs\ObsCommandService;
+use App\Services\Obs\ObsLocalRelayService;
 use App\Services\Obs\ObsMediaStorageService;
 use App\Services\Obs\ScreenCollectionPresetService;
 use App\Services\Obs\ScreenCollectionService;
@@ -20,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class StudioControlCenterController extends Controller
@@ -380,6 +382,31 @@ class StudioControlCenterController extends Controller
         return response()->json([
             'ok' => true,
             'media_storage_path' => $cleanPath,
+        ]);
+    }
+
+    public function stopAgent(
+        Request $request,
+        ObsStudio $studio,
+        ObsCommandService $commandService,
+        ObsLocalRelayService $localRelay,
+    ): JsonResponse {
+        $user = $this->authorizeStudio($request, $studio);
+
+        $commandService->dispatch($studio, 'obsisstant.StopAgent', [], $user);
+        Cache::forget("obs_studio_agent_runtime_{$studio->id}");
+        $studio->update(['status' => 'offline']);
+
+        $localStopped = false;
+        if ($localRelay->status()['running']) {
+            $localRelay->stop();
+            $localStopped = true;
+        }
+
+        return response()->json([
+            'ok' => true,
+            'local_stopped' => $localStopped,
+            'message' => 'Stop signal sent to OBS Agent.',
         ]);
     }
 

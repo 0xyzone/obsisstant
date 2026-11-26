@@ -493,4 +493,40 @@ class AgentInstallerTest extends TestCase
             ->assertSee('const defaultStudioScopedInstaller = true;', false)
             ->assertSee('?studio='.urlencode($secondStudio->slug), false);
     }
+
+    public function test_six_digit_pairing_code_exchange_and_stop_agent_command_work(): void
+    {
+        $user = User::factory()->create(['relay_token' => 'usr_pair_code_token_999']);
+        $studio = ObsStudio::factory()->online()->for($user)->create(['name' => 'Pair Rig']);
+
+        $bootstrap = $this->actingAs($user)
+            ->postJson(route('agent-installer.bootstrap-token'), ['studio' => $studio->slug])
+            ->assertOk()
+            ->json();
+
+        $this->assertMatchesRegularExpression('/^\d{3}-\d{3}$/', (string) ($bootstrap['pairing_code'] ?? ''));
+
+        // Exchange 6-digit pairing code for relay credentials
+        $this->postJson(route('api.obs-agent.pair-code'), ['code' => $bootstrap['pairing_code']])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('relay_token', 'usr_pair_code_token_999')
+            ->assertJsonPath('studio_slug', $studio->slug);
+
+        // One-time code cannot be reused
+        $this->postJson(route('api.obs-agent.pair-code'), ['code' => $bootstrap['pairing_code']])
+            ->assertUnprocessable();
+
+        // Stop agent endpoint dispatches obsisstant.StopAgent and marks studio offline
+        $this->actingAs($user)
+            ->postJson(route('studio.agent.stop', ['studio' => $studio->slug]))
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $this->assertSame('offline', $studio->fresh()->status);
+        $this->assertDatabaseHas('obs_command_logs', [
+            'obs_studio_id' => $studio->id,
+            'request_type' => 'obsisstant.StopAgent',
+        ]);
+    }
 }
