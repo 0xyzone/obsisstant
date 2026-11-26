@@ -20,15 +20,18 @@
             </p>
         </div>
 
-        <div class="obs-kb-search-box">
-            <label for="kb-search" class="obs-kb-rail-label" style="padding: 0;">Search guides &amp; OBS requests</label>
-            <input
-                id="kb-search"
-                type="search"
-                class="obs-kb-search-input"
-                placeholder="Search SetCurrentProgramScene, audio, overlay, pairing..."
-                autocomplete="off"
-            >
+        <div style="display: flex; align-items: flex-end; gap: 0.85rem; flex-wrap: wrap;">
+            <div class="obs-kb-search-box">
+                <label for="kb-search" class="obs-kb-rail-label" style="padding: 0;">Search guides &amp; OBS requests</label>
+                <input
+                    id="kb-search"
+                    type="search"
+                    class="obs-kb-search-input"
+                    placeholder="Search SetCurrentProgramScene, audio, overlay, pairing..."
+                    autocomplete="off"
+                >
+            </div>
+            <x-obs-mascot mode="badge" greeting="Need a tip? Tap me!" />
         </div>
     </section>
 

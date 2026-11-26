@@ -1319,52 +1319,19 @@
                 </div>
 
                 {{-- Coded Interactive OBS Switcher & Overlay Monitor --}}
-                <aside class="console-frame" aria-label="Interactive broadcast switcher preview" data-enter style="--enter-order: 5;">
-                    <div class="console-bar">
-                        <span class="console-title">Program preview</span>
-                        <span class="console-badge" id="preview-status-chip">{{ $metrics['studios_online'] > 0 ? 'Live · Connected' : 'Ready · Standby' }}</span>
-                    </div>
-
-                    <div id="hero-monitor" class="monitor-stage">
-                        <div class="monitor-top">
-                            <span class="monitor-chip is-pgm" id="preview-scene-pill">Scene · Starting Soon</span>
-                            <span class="monitor-chip" id="preview-stream-chip">1080p60</span>
-                        </div>
-
-                        <div class="monitor-scene-stage">
-                            <span class="monitor-scene-meta" id="preview-scene-meta">Pre-show slate</span>
-                            <h2 class="monitor-scene-heading" id="preview-scene-heading">Starting Soon</h2>
-                        </div>
-
-                        <div class="monitor-hud" id="preview-lower-third">
-                            <div>
-                                <div class="hud-guest-name" id="preview-lt-name">Obsisstant Studio</div>
-                                <div class="hud-guest-role" id="preview-lt-role">Lower Thirds · Live Overlay</div>
-                            </div>
-                            <span class="hud-state-tag" id="preview-lt-state">On air</span>
-                        </div>
-                    </div>
-
-                    <div class="deck-pad-grid" role="group" aria-label="Test scene switcher buttons">
-                        <button type="button" class="pad-key" data-demo-scene="Starting Soon" data-demo-meta="Pre-show slate" aria-pressed="true">
-                            <span>Starting Soon</span>
-                            <span class="pad-sub">Scene 01</span>
-                        </button>
-                        <button type="button" class="pad-key" data-demo-scene="Main Camera" data-demo-meta="Main studio cam" aria-pressed="false">
-                            <span>Main Camera</span>
-                            <span class="pad-sub">Scene 02</span>
-                        </button>
-                        <button type="button" class="pad-key" data-demo-scene="Screen Share" data-demo-meta="Desktop capture" aria-pressed="false">
-                            <span>Screen Share</span>
-                            <span class="pad-sub">Scene 03</span>
-                        </button>
-                        <button type="button" class="pad-key" id="toggle-lt-pad" aria-pressed="true">
-                            <span>Lower Third</span>
-                            <span class="pad-sub" id="toggle-lt-sub">Overlay visible</span>
-                        </button>
-                    </div>
+                {{-- Interactive 3D Cute Broadcast Mascot --}}
+                <aside aria-label="Interactive 3D broadcast mascot" data-enter style="--enter-order: 5;">
+                    <x-obs-mascot mode="hero-guide" greeting="Hey! Tap me or scroll to explore." />
                 </aside>
             </section>
+
+            {{-- Scroll-Guided Flying 3D Mascot --}}
+            <div id="mascot-scroll-guide" class="mascot-scroll-guide" data-side="right" aria-hidden="true">
+                <div class="mascot-float-speech" data-mascot-float-speech>Hey! Scroll to see how it works.</div>
+                <div class="mascot-float-canvas-box">
+                    <canvas data-mascot-float-canvas aria-label="Floating 3D mascot guide — tap for animation"></canvas>
+                </div>
+            </div>
 
             {{-- Asymmetric Architecture Band --}}
             <section id="features" class="band" aria-labelledby="features-heading">
@@ -1436,73 +1403,131 @@
                 </div>
             </section>
 
-            {{-- Interactive Overlay Presets Explorer --}}
-            @php
-                $firstPreset = $presets[0] ?? [
-                    'key' => 'starting_soon',
-                    'label' => 'Starting Soon',
-                    'theme' => ['transparent_background' => false],
-                    'state' => [
-                        'badge_text' => 'LIVE SOON',
-                        'headline' => 'Stream Starting Soon',
-                        'subheadline' => 'Grab a drink — broadcast begins shortly.',
-                        'show_countdown' => true,
-                    ],
-                ];
-            @endphp
-
+            {{-- Practical Live Broadcast Toolkit --}}
             <section id="overlays" class="band" aria-labelledby="overlays-heading">
                 <div class="band-header" data-reveal>
-                    <span class="band-eyebrow">Overlays</span>
-                    <h2 id="overlays-heading" class="band-heading">Ready-made stage views.</h2>
+                    <span class="band-eyebrow">Live Toolkit</span>
+                    <h2 id="overlays-heading" class="band-heading">Everything you use live.</h2>
                     <p class="band-copy">
-                        Pick a preset to preview how your overlays look in OBS.
+                        Try the tools you actually control mid-stream—countdowns, lower thirds, scoreboards, and deck taps.
                     </p>
                 </div>
 
                 <div class="presets-split">
-                    <div class="preset-rail" role="tablist" aria-label="Overlay canvas presets" data-reveal>
-                        @foreach ($presets as $index => $preset)
-                            <button
-                                type="button"
-                                class="preset-tab"
-                                role="tab"
-                                id="preset-tab-{{ $preset['key'] }}"
-                                aria-controls="preset-tabpanel"
-                                aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
-                                data-preset-key="{{ $preset['key'] }}"
-                                data-preset='@json($preset)'
-                            >
-                                <span>{{ $preset['label'] }}</span>
-                                <span class="preset-tab-type">{{ ! empty($preset['theme']['transparent_background']) ? 'Overlay' : 'Slate' }}</span>
-                            </button>
-                        @endforeach
+                    <div class="preset-rail" role="tablist" aria-label="Live broadcast tools" data-reveal>
+                        <button type="button" class="preset-tab" role="tab" id="tool-tab-timer" aria-controls="tool-panel-timer" aria-selected="true" data-toolkit-tab="timer">
+                            <span>Starting Soon &amp; Countdown</span>
+                            <span class="preset-tab-type">Timer</span>
+                        </button>
+                        <button type="button" class="preset-tab" role="tab" id="tool-tab-l3" aria-controls="tool-panel-l3" aria-selected="false" data-toolkit-tab="l3">
+                            <span>Lower Thirds &amp; Alerts</span>
+                            <span class="preset-tab-type">Banners</span>
+                        </button>
+                        <button type="button" class="preset-tab" role="tab" id="tool-tab-score" aria-controls="tool-panel-score" aria-selected="false" data-toolkit-tab="score">
+                            <span>Scoreboard &amp; Ticker</span>
+                            <span class="preset-tab-type">Matches</span>
+                        </button>
+                        <button type="button" class="preset-tab" role="tab" id="tool-tab-deck" aria-controls="tool-panel-deck" aria-selected="false" data-toolkit-tab="deck">
+                            <span>Phone Deck &amp; Macros</span>
+                            <span class="preset-tab-type">Remote</span>
+                        </button>
                     </div>
 
-                    <div id="preset-tabpanel" class="preset-stage-card" role="tabpanel" aria-labelledby="preset-tab-{{ $firstPreset['key'] }}" data-reveal>
-                        <div class="preset-viewport" id="preset-stage-viewport">
-                            <div class="preset-viewport-bar">
-                                <span class="stage-tag is-gold" id="preset-badge">{{ $firstPreset['state']['badge_text'] ?? 'Live' }}</span>
-                                <span class="stage-tag" id="preset-bg-tag">{{ ! empty($firstPreset['theme']['transparent_background']) ? 'Transparent layer' : 'Full canvas' }}</span>
-                            </div>
-
-                            <div class="preset-copy-block" id="preset-copy-region">
-                                <h3 class="preset-headline" id="preset-headline">{{ $firstPreset['state']['headline'] ?? $firstPreset['label'] }}</h3>
-                                <p class="preset-subheadline" id="preset-subheadline">{{ $firstPreset['state']['subheadline'] ?? 'Updates live in OBS.' }}</p>
-                            </div>
-
-                            <div class="preset-lower-strip">
-                                <div>
-                                    <div class="hud-guest-name" id="preset-guest">{{ $firstPreset['state']['guest_name'] ?? 'Obsisstant Studio' }}</div>
-                                    <div class="hud-guest-role" id="preset-role">{{ $firstPreset['state']['guest_role'] ?? 'Live Overlay' }}</div>
+                    <div class="preset-stage-card" data-reveal>
+                        {{-- Tool 1: Starting Soon & Countdown --}}
+                        <div id="tool-panel-timer" role="tabpanel" aria-labelledby="tool-tab-timer" data-toolkit-panel="timer" style="display: grid; gap: 1rem;">
+                            <div class="preset-viewport" style="justify-content: center; align-items: center; text-align: center; gap: 0.75rem;">
+                                <span class="stage-tag is-gold" id="demo-timer-status">Starting Soon · Auto-switches at 00:00</span>
+                                <div id="demo-timer-digits" style="font-size: clamp(2.25rem, 1.5rem + 2.5vw, 3.5rem); font-weight: 200; font-variant-numeric: tabular-nums; color: #F4E185; line-height: 1.05;">05:00</div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
+                                    <button type="button" id="demo-timer-toggle" class="btn btn-primary" style="min-block-size: 2.25rem; padding: 0.25rem 0.9rem;">Start</button>
+                                    <button type="button" id="demo-timer-plus" class="btn btn-secondary" style="min-block-size: 2.25rem; padding: 0.25rem 0.9rem;">+1m</button>
+                                    <button type="button" id="demo-timer-reset" class="btn btn-secondary" style="min-block-size: 2.25rem; padding: 0.25rem 0.9rem;">Reset</button>
                                 </div>
-                                <span class="stage-tag is-gold" id="preset-extra">{{ ! empty($firstPreset['state']['show_countdown']) ? 'Timer active' : (! empty($firstPreset['state']['show_webcam_frame']) ? 'Cam frame' : 'Live sync') }}</span>
+                            </div>
+                            <div class="preset-meta-footer">
+                                <span>Runs on the server so phones and OBS stay synced to the exact second.</span>
+                                <a href="{{ route('studio.index') }}" style="color: var(--gold-light); text-decoration: none; font-weight: 500;">Open Studio &rarr;</a>
                             </div>
                         </div>
 
-                        <div class="preset-meta-footer">
-                            <span id="preset-side-type">Preset: {{ $firstPreset['key'] }}</span>
-                            <span id="preset-side-title">{{ $firstPreset['label'] }}</span>
+                        {{-- Tool 2: Lower Thirds & Alerts --}}
+                        <div id="tool-panel-l3" role="tabpanel" aria-labelledby="tool-tab-l3" data-toolkit-panel="l3" hidden style="display: grid; gap: 1rem;">
+                            <div class="preset-viewport" style="justify-content: space-between;">
+                                <div class="preset-viewport-bar">
+                                    <span class="stage-tag is-gold" id="demo-alert-badge" hidden>Alert · Live Update</span>
+                                    <span class="stage-tag">Transparent OBS Layer</span>
+                                </div>
+                                <div id="demo-l3-banner" class="preset-lower-strip">
+                                    <div>
+                                        <div class="hud-guest-name" id="demo-l3-name">Alex Rivera</div>
+                                        <div class="hud-guest-role" id="demo-l3-role">Guest Host · Main Desk</div>
+                                    </div>
+                                    <span class="stage-tag is-gold" id="demo-l3-pill">On air</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                    <button type="button" id="demo-l3-btn" class="btn btn-primary" style="min-block-size: 2.25rem; padding: 0.25rem 0.9rem;">Hide Lower Third</button>
+                                    <button type="button" id="demo-alert-btn" class="btn btn-secondary" style="min-block-size: 2.25rem; padding: 0.25rem 0.9rem;">Pop Alert</button>
+                                </div>
+                                <span style="font-size: 0.8125rem; color: var(--ink-muted);">Instant fade in/out over your camera</span>
+                            </div>
+                        </div>
+
+                        {{-- Tool 3: Scoreboard & Ticker --}}
+                        <div id="tool-panel-score" role="tabpanel" aria-labelledby="tool-tab-score" data-toolkit-panel="score" hidden style="display: grid; gap: 1rem;">
+                            <div class="preset-viewport" style="justify-content: center; gap: 1rem;">
+                                <div style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.75rem; text-align: center;">
+                                    <div class="preset-lower-strip" style="justify-content: center; flex-direction: column; gap: 0.25rem;">
+                                        <span style="font-size: 0.75rem; color: var(--ink-muted);">Team A</span>
+                                        <strong id="demo-sb-a" style="font-size: 2rem; font-weight: 300; color: var(--gold-light); font-variant-numeric: tabular-nums;">2</strong>
+                                        <button type="button" id="demo-sb-a-plus" class="btn btn-secondary" style="min-block-size: 1.9rem; padding: 0.15rem 0.7rem; font-size: 0.75rem;">+1 Point</button>
+                                    </div>
+                                    <span class="stage-tag is-gold">VS</span>
+                                    <div class="preset-lower-strip" style="justify-content: center; flex-direction: column; gap: 0.25rem;">
+                                        <span style="font-size: 0.75rem; color: var(--ink-muted);">Team B</span>
+                                        <strong id="demo-sb-b" style="font-size: 2rem; font-weight: 300; color: var(--gold-light); font-variant-numeric: tabular-nums;">1</strong>
+                                        <button type="button" id="demo-sb-b-plus" class="btn btn-secondary" style="min-block-size: 1.9rem; padding: 0.15rem 0.7rem; font-size: 0.75rem;">+1 Point</button>
+                                    </div>
+                                </div>
+                                <div class="preset-lower-strip" style="padding: 0.45rem 0.75rem; font-size: 0.78rem; color: var(--ink-secondary);">
+                                    <span class="stage-tag is-gold">LIVE</span>
+                                    <span>Grand Finals · Best of 5 · Map 3 starting shortly</span>
+                                </div>
+                            </div>
+                            <div class="preset-meta-footer">
+                                <span>Update scores from your phone without opening OBS.</span>
+                                <a href="{{ route('obs.deck.index') }}" style="color: var(--gold-light); text-decoration: none; font-weight: 500;">Open Deck &rarr;</a>
+                            </div>
+                        </div>
+
+                        {{-- Tool 4: Phone Deck & Macros --}}
+                        <div id="tool-panel-deck" role="tabpanel" aria-labelledby="tool-tab-deck" data-toolkit-panel="deck" hidden style="display: grid; gap: 1rem;">
+                            <div class="preset-viewport" style="justify-content: center; gap: 0.75rem;">
+                                <div class="deck-pad-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+                                    <button type="button" class="pad-key" data-demo-pad aria-pressed="true">
+                                        <span>Main Camera</span>
+                                        <span class="pad-sub">Cut Scene</span>
+                                    </button>
+                                    <button type="button" class="pad-key" data-demo-pad aria-pressed="false">
+                                        <span>Desktop Share</span>
+                                        <span class="pad-sub">Fade 450ms</span>
+                                    </button>
+                                    <button type="button" class="pad-key" data-demo-pad aria-pressed="false">
+                                        <span>Mic Mute</span>
+                                        <span class="pad-sub">Audio Toggle</span>
+                                    </button>
+                                    <button type="button" class="pad-key" data-demo-pad aria-pressed="false">
+                                        <span>Go Live Macro</span>
+                                        <span class="pad-sub">3-Step Cue</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="preset-meta-footer">
+                                <span>Customizable tile grid for phones and tablets.</span>
+                                <a href="{{ route('obs.deck.index') }}" style="color: var(--gold-light); text-decoration: none; font-weight: 500;">Try Mobile Deck &rarr;</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1688,146 +1713,94 @@
                     );
                 };
 
-                // Interactive Demo Scene Switcher
-                const sceneButtons = document.querySelectorAll('[data-demo-scene]');
-                const scenePill = document.getElementById('preview-scene-pill');
-                const sceneHeading = document.getElementById('preview-scene-heading');
-                const sceneMeta = document.getElementById('preview-scene-meta');
-
-                sceneButtons.forEach((button) => {
-                    button.addEventListener('click', () => {
-                        const sceneName = button.getAttribute('data-demo-scene') || '';
-                        const metaText = button.getAttribute('data-demo-meta') || 'Program output';
-
-                        sceneButtons.forEach((btn) => btn.setAttribute('aria-pressed', btn === button ? 'true' : 'false'));
-                        if (scenePill) {
-                            scenePill.textContent = `Scene · ${sceneName}`;
-                        }
-                        if (sceneMeta) {
-                            sceneMeta.textContent = metaText;
-                        }
-                        if (sceneHeading) {
-                            sceneHeading.textContent = sceneName;
-                            pulseElementChange(sceneHeading);
-                        }
+                // Practical Live Toolkit Tabs & Interactive Demos
+                const toolkitTabs = document.querySelectorAll('[data-toolkit-tab]');
+                const toolkitPanels = document.querySelectorAll('[data-toolkit-panel]');
+                toolkitTabs.forEach((tab) => {
+                    tab.addEventListener('click', () => {
+                        const target = tab.dataset.toolkitTab;
+                        toolkitTabs.forEach((t) => t.setAttribute('aria-selected', t === tab ? 'true' : 'false'));
+                        toolkitPanels.forEach((p) => {
+                            const show = p.dataset.toolkitPanel === target;
+                            p.hidden = !show;
+                            if (show) pulseElementChange(p);
+                        });
                     });
                 });
 
-                // Interactive Lower-Third HUD Toggle with Fallback for Discrete Display Exits
-                const ltToggleBtn = document.getElementById('toggle-lt-pad');
-                const ltToggleSub = document.getElementById('toggle-lt-sub');
-                const ltBanner = document.getElementById('preview-lower-third');
-                const ltStateTag = document.getElementById('preview-lt-state');
-
-                const hideHud = async (el) => {
-                    if (canTransitionDisplay()) {
-                        el.hidden = true;
-                    } else {
-                        el.setAttribute('data-closing', '');
-                    }
-
-                    const animations = el.getAnimations();
-                    if (animations.length > 0) {
-                        await Promise.race([
-                            Promise.allSettled(animations.map((a) => a.finished)),
-                            new Promise((resolve) => setTimeout(resolve, 1000)),
-                        ]);
-                    }
-
-                    if (el.hasAttribute('data-closing')) {
-                        el.removeAttribute('data-closing');
-                        el.hidden = true;
-                    }
+                let demoTimerSecs = 300;
+                let demoTimerHandle = null;
+                const demoTimerDigits = document.getElementById('demo-timer-digits');
+                const demoTimerToggle = document.getElementById('demo-timer-toggle');
+                const renderDemoTimer = () => {
+                    if (!demoTimerDigits) return;
+                    const mm = String(Math.floor(demoTimerSecs / 60)).padStart(2, '0');
+                    const ss = String(demoTimerSecs % 60).padStart(2, '0');
+                    demoTimerDigits.textContent = `${mm}:${ss}`;
                 };
-
-                const showHud = (el) => {
-                    el.removeAttribute('data-closing');
-                    el.hidden = false;
-                };
-
-                ltToggleBtn?.addEventListener('click', async () => {
-                    if (!ltBanner) {
-                        return;
-                    }
-
-                    const nextVisible = ltBanner.hidden || ltBanner.hasAttribute('data-closing');
-                    ltToggleBtn.setAttribute('aria-pressed', nextVisible ? 'true' : 'false');
-
-                    if (ltToggleSub) {
-                        ltToggleSub.textContent = nextVisible ? 'Overlay visible' : 'Overlay hidden';
-                    }
-                    if (ltStateTag) {
-                        ltStateTag.textContent = nextVisible ? 'On air' : 'Muted';
-                    }
-
-                    if (nextVisible) {
-                        showHud(ltBanner);
+                demoTimerToggle?.addEventListener('click', () => {
+                    if (demoTimerHandle) {
+                        clearInterval(demoTimerHandle);
+                        demoTimerHandle = null;
+                        demoTimerToggle.textContent = 'Start';
                     } else {
-                        await hideHud(ltBanner);
+                        demoTimerToggle.textContent = 'Pause';
+                        demoTimerHandle = setInterval(() => {
+                            demoTimerSecs = Math.max(0, demoTimerSecs - 1);
+                            renderDemoTimer();
+                            if (demoTimerSecs === 0) {
+                                clearInterval(demoTimerHandle);
+                                demoTimerHandle = null;
+                                demoTimerToggle.textContent = 'Start';
+                            }
+                        }, 1000);
                     }
                 });
+                document.getElementById('demo-timer-plus')?.addEventListener('click', () => {
+                    demoTimerSecs += 60;
+                    renderDemoTimer();
+                });
+                document.getElementById('demo-timer-reset')?.addEventListener('click', () => {
+                    clearInterval(demoTimerHandle);
+                    demoTimerHandle = null;
+                    demoTimerSecs = 300;
+                    if (demoTimerToggle) demoTimerToggle.textContent = 'Start';
+                    renderDemoTimer();
+                });
 
-                // Overlay Preset Explorer
-                const presetTabs = document.querySelectorAll('[data-preset-key]');
-                const presetTabpanel = document.getElementById('preset-tabpanel');
-                const presetCopyRegion = document.getElementById('preset-copy-region');
-                const pBadge = document.getElementById('preset-badge');
-                const pBgTag = document.getElementById('preset-bg-tag');
-                const pHeadline = document.getElementById('preset-headline');
-                const pSubheadline = document.getElementById('preset-subheadline');
-                const pGuest = document.getElementById('preset-guest');
-                const pRole = document.getElementById('preset-role');
-                const pExtra = document.getElementById('preset-extra');
-                const pSideType = document.getElementById('preset-side-type');
-                const pSideTitle = document.getElementById('preset-side-title');
+                const demoL3Btn = document.getElementById('demo-l3-btn');
+                const demoL3Banner = document.getElementById('demo-l3-banner');
+                const demoL3Pill = document.getElementById('demo-l3-pill');
+                demoL3Btn?.addEventListener('click', () => {
+                    if (!demoL3Banner) return;
+                    const nextShow = demoL3Banner.hidden;
+                    demoL3Banner.hidden = !nextShow;
+                    demoL3Btn.textContent = nextShow ? 'Hide Lower Third' : 'Show Lower Third';
+                    if (demoL3Pill) demoL3Pill.textContent = nextShow ? 'On air' : 'Hidden';
+                });
+                const demoAlertBadge = document.getElementById('demo-alert-badge');
+                document.getElementById('demo-alert-btn')?.addEventListener('click', () => {
+                    if (!demoAlertBadge) return;
+                    demoAlertBadge.hidden = !demoAlertBadge.hidden;
+                });
 
-                presetTabs.forEach((tab) => {
-                    tab.addEventListener('click', () => {
-                        const raw = tab.getAttribute('data-preset');
-                        if (!raw) {
-                            return;
-                        }
+                let scoreA = 2;
+                let scoreB = 1;
+                document.getElementById('demo-sb-a-plus')?.addEventListener('click', () => {
+                    scoreA++;
+                    const el = document.getElementById('demo-sb-a');
+                    if (el) { el.textContent = String(scoreA); pulseElementChange(el); }
+                });
+                document.getElementById('demo-sb-b-plus')?.addEventListener('click', () => {
+                    scoreB++;
+                    const el = document.getElementById('demo-sb-b');
+                    if (el) { el.textContent = String(scoreB); pulseElementChange(el); }
+                });
 
-                        const data = JSON.parse(raw);
-                        const state = data.state || {};
-                        const theme = data.theme || {};
-
-                        presetTabs.forEach((btn) => btn.setAttribute('aria-selected', btn === tab ? 'true' : 'false'));
-                        if (presetTabpanel && tab.id) {
-                            presetTabpanel.setAttribute('aria-labelledby', tab.id);
-                        }
-
-                        if (pBadge) {
-                            pBadge.textContent = state.badge_text || 'Live';
-                        }
-                        if (pBgTag) {
-                            pBgTag.textContent = theme.transparent_background ? 'Transparent layer' : 'Full canvas';
-                        }
-                        if (pHeadline) {
-                            pHeadline.textContent = state.headline || data.label || '';
-                        }
-                        if (pSubheadline) {
-                            pSubheadline.textContent = state.subheadline || '';
-                        }
-                        if (pGuest) {
-                            pGuest.textContent = state.guest_name || 'Obsisstant Studio';
-                        }
-                        if (pRole) {
-                            pRole.textContent = state.guest_role || 'Real-Time Overlay';
-                        }
-                        if (pExtra) {
-                            pExtra.textContent = state.show_countdown
-                                ? 'Timer active'
-                                : (state.show_webcam_frame ? 'Cam frame' : 'Reverb sync');
-                        }
-                        if (pSideType) {
-                            pSideType.textContent = `Preset key: ${data.key || 'custom'}`;
-                        }
-                        if (pSideTitle) {
-                            pSideTitle.textContent = data.label || 'Custom Overlay';
-                        }
-
-                        pulseElementChange(presetCopyRegion);
+                document.querySelectorAll('[data-demo-pad]').forEach((pad) => {
+                    pad.addEventListener('click', () => {
+                        const pressed = pad.getAttribute('aria-pressed') === 'true';
+                        pad.setAttribute('aria-pressed', pressed ? 'false' : 'true');
                     });
                 });
             })();

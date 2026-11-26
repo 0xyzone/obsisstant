@@ -740,10 +740,13 @@
                             </p>
                         </div>
 
-                        <div class="semver-legend" aria-label="Semantic versioning legend">
-                            <span class="legend-chip"><code>X.0.0</code> Major</span>
-                            <span class="legend-chip"><code>X.Y.0</code> Minor</span>
-                            <span class="legend-chip"><code>X.Y.Z</code> Macro</span>
+                        <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+                            <div class="semver-legend" aria-label="Semantic versioning legend">
+                                <span class="legend-chip"><code>X.0.0</code> Major</span>
+                                <span class="legend-chip"><code>X.Y.0</code> Minor</span>
+                                <span class="legend-chip"><code>X.Y.Z</code> Macro</span>
+                            </div>
+                            <x-obs-mascot mode="badge" greeting="Fresh releases!" />
                         </div>
                     </div>
 

@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.19.0] - 2026-11-26 | type: minor
+
+> Added Lumi, an interactive 3D metallic-gold and obsidian mascot across the homepage (with scroll-guided flying & pointing animations), Knowledge Base, Changelog, and Filament Login, and replaced the homepage preset list with a practical interactive Live Toolkit.
+
+### Added
+- Added `public/js/obs-mascot.js` and `<x-obs-mascot />` featuring a Three.js 3D metallic-gold & obsidian mascot with cursor/touch eye tracking, natural blinking, orbiting golden sparkles, and interactive reactions (Wave, Spin, Cheer, Dance, Peek), plus a responsive scroll-guided floating companion on the homepage.
+- Replaced the homepage preset explorer with an interactive 4-tool Live Toolkit (`Starting Soon & Countdown`, `Lower Thirds & Alerts`, `Scoreboard & Ticker`, and `Phone Deck & Macros`) with live hands-on demo controls.
+
 ## [v1.18.0] - 2026-11-26 | type: minor
 
 > Extended the shiny metallic gold and frosted glassmorphism theme across the homepage, Knowledge Base, and Filament Admin Panel, and redesigned the homepage with minimal, human-friendly copy and large thin Poppins headings.
