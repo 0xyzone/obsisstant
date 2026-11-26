@@ -118,9 +118,13 @@
                 inset-block-start: var(--space-4);
             }
 
-            :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+            :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
                 outline: 2px solid var(--gold-light);
                 outline-offset: 2px;
+            }
+
+            [hidden] {
+                display: none !important;
             }
 
             /* Main Page Container */
@@ -1057,15 +1061,111 @@
 
             .preset-viewport {
                 position: relative;
-                aspect-ratio: 16 / 9;
+                min-block-size: 17rem;
                 border-radius: var(--radius-inner);
                 border: 1px solid var(--hairline);
-                background-color: #0D0D0B;
+                background:
+                    radial-gradient(circle at 50% 0%, rgba(205, 173, 105, 0.1), transparent 55%),
+                    #0D0D0B;
                 padding: clamp(var(--space-4), 3vw, var(--space-6));
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
                 overflow: hidden;
+            }
+
+            /* Features Showcase Grid & FAQ Accordion */
+            .showcase-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(min(100%, 17.5rem), 1fr));
+                gap: var(--space-4);
+            }
+
+            .showcase-card {
+                background: linear-gradient(165deg, rgba(24, 22, 18, 0.72) 0%, rgba(12, 11, 9, 0.84) 100%);
+                -webkit-backdrop-filter: blur(18px) saturate(140%);
+                backdrop-filter: blur(18px) saturate(140%);
+                border: 1px solid var(--hairline);
+                border-radius: var(--radius-card);
+                padding: var(--space-5);
+                display: grid;
+                gap: 0.45rem;
+                align-content: start;
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.14);
+                transition: border-color 160ms var(--ease-out), transform 160ms var(--ease-out);
+            }
+
+            .showcase-card:hover {
+                border-color: var(--hairline-strong);
+                transform: translateY(-2px);
+            }
+
+            .showcase-icon {
+                display: inline-grid;
+                place-items: center;
+                inline-size: 2.25rem;
+                block-size: 2.25rem;
+                border-radius: 0.65rem;
+                background: rgba(205, 173, 105, 0.14);
+                border: 1px solid rgba(244, 225, 133, 0.34);
+                color: var(--gold-light);
+                margin-block-end: 0.25rem;
+            }
+
+            .faq-list {
+                display: grid;
+                gap: var(--space-3);
+            }
+
+            .faq-item {
+                background: rgba(18, 17, 14, 0.74);
+                -webkit-backdrop-filter: blur(18px) saturate(140%);
+                backdrop-filter: blur(18px) saturate(140%);
+                border: 1px solid var(--hairline);
+                border-radius: var(--radius-inner);
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.12);
+                overflow: hidden;
+            }
+
+            .faq-item[open] {
+                border-color: var(--hairline-strong);
+            }
+
+            .faq-item summary {
+                list-style: none;
+                cursor: pointer;
+                padding: 1rem 1.25rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+                font-size: 0.95rem;
+                font-weight: 500;
+                color: var(--ink-primary);
+            }
+
+            .faq-item summary::-webkit-details-marker {
+                display: none;
+            }
+
+            .faq-plus {
+                color: var(--gold-light);
+                font-size: 1.15rem;
+                font-weight: 400;
+                transition: transform 180ms var(--ease-out);
+                flex-shrink: 0;
+            }
+
+            .faq-item[open] .faq-plus {
+                transform: rotate(45deg);
+            }
+
+            .faq-answer {
+                padding: 0 1.25rem 1rem;
+                margin: 0;
+                font-size: 0.875rem;
+                color: var(--ink-secondary);
+                max-inline-size: 70ch;
             }
 
             .preset-viewport-bar {
@@ -1530,6 +1630,117 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            {{-- Features Showcase --}}
+            <section id="features-showcase" class="band" aria-labelledby="showcase-heading">
+                <div class="band-header" data-reveal>
+                    <span class="band-eyebrow">Features</span>
+                    <h2 id="showcase-heading" class="band-heading">Made for real broadcasts.</h2>
+                    <p class="band-copy">
+                        Every control stays in sync between your desktop, your phone, and OBS Studio.
+                    </p>
+                </div>
+
+                <div class="showcase-grid" data-reveal>
+                    <article class="showcase-card">
+                        <span class="showcase-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18M3 9h18"/></svg>
+                        </span>
+                        <h3 class="capability-title">Visual Canvas Builder</h3>
+                        <p class="capability-desc">Drag camera cutouts, text, color shapes, timers, and scoreboards onto a 16:9 stage with undo/redo.</p>
+                    </article>
+
+                    <article class="showcase-card">
+                        <span class="showcase-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+                        </span>
+                        <h3 class="capability-title">Custom Mobile Deck</h3>
+                        <p class="capability-desc">Arrange big touch tiles on your phone to switch views, adjust audio, or fire macros.</p>
+                    </article>
+
+                    <article class="showcase-card">
+                        <span class="showcase-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>
+                        </span>
+                        <h3 class="capability-title">Timer End Actions</h3>
+                        <p class="capability-desc">Pick what happens at 00:00—switch views, show a lower third, start your stream, or run a macro.</p>
+                    </article>
+
+                    <article class="showcase-card">
+                        <span class="showcase-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17l6-6-6-6M12 19h8"/></svg>
+                        </span>
+                        <h3 class="capability-title">One Browser Source</h3>
+                        <p class="capability-desc">Push a single URL into OBS Studio and switch between all your views with smooth transitions.</p>
+                    </article>
+
+                    <article class="showcase-card">
+                        <span class="showcase-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4"/></svg>
+                        </span>
+                        <h3 class="capability-title">Live Audio Mixer</h3>
+                        <p class="capability-desc">Mute mics or adjust source volumes remotely without leaving your show screen.</p>
+                    </article>
+
+                    <article class="showcase-card">
+                        <span class="showcase-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+                        </span>
+                        <h3 class="capability-title">Zero Port Forwarding</h3>
+                        <p class="capability-desc">The desktop helper connects outward over TLS so your local OBS port stays private.</p>
+                    </article>
+                </div>
+            </section>
+
+            {{-- Frequently Asked Questions --}}
+            <section id="faqs" class="band" aria-labelledby="faq-heading">
+                <div class="band-header" data-reveal>
+                    <span class="band-eyebrow">FAQs</span>
+                    <h2 id="faq-heading" class="band-heading">Common questions.</h2>
+                </div>
+
+                <div class="faq-list" data-reveal>
+                    <details class="faq-item" open>
+                        <summary>
+                            <span>Do I need to open ports on my router?</span>
+                            <span class="faq-plus" aria-hidden="true">+</span>
+                        </summary>
+                        <p class="faq-answer">No. The small helper app on your computer connects outward over HTTPS/WebSocket to Obsisstant and talks to OBS locally on port 4455.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary>
+                            <span>How many OBS scenes do I need for overlays?</span>
+                            <span class="faq-plus" aria-hidden="true">+</span>
+                        </summary>
+                        <p class="faq-answer">Just one. Push your Unified Stage URL into a single OBS Browser Source and switch between Starting Soon, Gameplay, BRB, and Dual Cam views cleanly.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary>
+                            <span>Can I control OBS from my phone on another Wi-Fi or cellular network?</span>
+                            <span class="faq-plus" aria-hidden="true">+</span>
+                        </summary>
+                        <p class="faq-answer">Yes. Open the Mobile Deck on any phone or tablet browser, sign in, and every tap reaches your studio in under a second.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary>
+                            <span>What happens when a countdown timer reaches 00:00?</span>
+                            <span class="faq-plus" aria-hidden="true">+</span>
+                        </summary>
+                        <p class="faq-answer">You can set it to switch to another screen view, pop an alert or lower third, hide the timer, loop automatically, or start/stop OBS streaming.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary>
+                            <span>Does it work on both Mac and Windows?</span>
+                            <span class="faq-plus" aria-hidden="true">+</span>
+                        </summary>
+                        <p class="faq-answer">Yes. One-click installers are built into Studio for both macOS and Windows.</p>
+                    </details>
                 </div>
             </section>
 

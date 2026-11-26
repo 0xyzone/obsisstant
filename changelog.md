@@ -7,6 +7,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.20.0] - 2026-11-27 | type: minor
+
+> Redesigned the 3D mascot to a cute black-and-gold chibi silhouette with floating body, teardrop arms, halo antenna, and glossy eyes, fixed the homepage Live Toolkit tab visibility, and added Features Showcase and FAQs sections.
+
+### Added
+- Added a 6-card **Features Showcase** (`Made for real broadcasts.`) and an interactive **FAQs** accordion (`Common questions.`) to the homepage (`welcome.blade.php`), plus corresponding scroll-guide stops for Lumi.
+
+### Changed
+- Rebuilt `public/js/obs-mascot.js` into the cute black-and-gold chibi silhouette (obsidian shell, warm pearl oval face, glossy black eyes with catchlights, cute smile, floating mini body with gold chest button, floating teardrop arms, and gold halo antenna).
+
+### Fixed
+- Fixed `[hidden]` being overridden by inline `display: grid` on `#overlays` Live Toolkit tab panels in `welcome.blade.php` so tabs switch cleanly instead of stacking.
+
 ## [v1.19.0] - 2026-11-26 | type: minor
 
 > Added Lumi, an interactive 3D metallic-gold and obsidian mascot across the homepage (with scroll-guided flying & pointing animations), Knowledge Base, Changelog, and Filament Login, and replaced the homepage preset list with a practical interactive Live Toolkit.

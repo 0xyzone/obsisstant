@@ -49,6 +49,8 @@ class ObsidianUiThemeTest extends TestCase
             ->assertSee('data-obs-mascot', false)
             ->assertSee('obs-mascot.js', false)
             ->assertSee('Everything you use live.')
+            ->assertSee('Made for real broadcasts.')
+            ->assertSee('Common questions.')
             ->assertSee('/admin/obs-control-deck')
             ->assertSee(route('obs.deck.index'))
             ->assertSee(route('changelog'))
