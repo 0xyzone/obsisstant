@@ -13,6 +13,7 @@ use App\Services\Obs\ScreenCollectionPresetService;
 use App\Services\Obs\ScreenCollectionService;
 use App\Services\Obs\ServerMediaCleanerService;
 use App\Services\ReverbStatusService;
+use App\Services\Saas\EntitlementService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -148,6 +149,7 @@ class ScreenCollectionController extends Controller
     {
         $user = $this->authorizeStudio($request, $studio);
         $this->authorizeCollection($user, $collection);
+        abort_unless(app(EntitlementService::class)->hasFeature($user, 'canvas_builder'), 403, 'Canvas Builder is not enabled on your current package.');
 
         $requestedViewId = $request->integer('view') ?: null;
         $initialViewId = $requestedViewId !== null && $collection->views()->whereKey($requestedViewId)->exists()

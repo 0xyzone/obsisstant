@@ -6,7 +6,9 @@ use App\Filament\Resources\ObsStudios\Pages\CreateObsStudio;
 use App\Filament\Resources\ObsStudios\Pages\EditObsStudio;
 use App\Filament\Resources\ObsStudios\Pages\ListObsStudios;
 use App\Models\ObsStudio;
+use App\Models\User;
 use App\Services\Obs\ObsAgentInstallerService;
+use App\Services\Saas\EntitlementService;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -46,6 +48,20 @@ class ObsStudioResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->ownedBy(auth()->user());
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return app(EntitlementService::class)->canCreate(
+            $user,
+            'max_studios',
+            ObsStudio::query()->ownedBy($user)->count(),
+        );
     }
 
     public static function form(Schema $schema): Schema

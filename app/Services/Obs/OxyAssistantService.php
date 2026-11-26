@@ -8,6 +8,7 @@ use App\Models\ScreenCollection;
 use App\Models\ScreenView;
 use App\Models\User;
 use App\Services\KnowledgeBaseService;
+use App\Services\Saas\EntitlementService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -106,6 +107,10 @@ class OxyAssistantService
     ): ?array {
         $apiKey = trim((string) config('services.gemini.key', ''));
         if ($apiKey === '') {
+            return null;
+        }
+
+        if (! app(EntitlementService::class)->consumeOxyAiQuota($user)) {
             return null;
         }
 

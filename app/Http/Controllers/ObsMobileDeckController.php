@@ -11,6 +11,7 @@ use App\Services\Obs\ObsCommandService;
 use App\Services\Obs\ScreenCollectionPresetService;
 use App\Services\Obs\ScreenCollectionService;
 use App\Services\ReverbStatusService;
+use App\Services\Saas\EntitlementService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -148,6 +149,7 @@ class ObsMobileDeckController extends Controller
     {
         $user = $request->user();
         abort_if(! $user instanceof User || (int) $studio->user_id !== $user->id, 403);
+        abort_unless(app(EntitlementService::class)->hasFeature($user, 'mobile_deck'), 403, 'Mobile Control Deck is not enabled on your current package.');
 
         return $user;
     }

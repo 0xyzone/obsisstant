@@ -8,6 +8,8 @@ use App\Filament\Resources\ScreenCollections\Pages\ListScreenCollections;
 use App\Filament\Resources\ScreenCollections\Schemas\ScreenCollectionForm;
 use App\Filament\Resources\ScreenCollections\Tables\ScreenCollectionsTable;
 use App\Models\ScreenCollection;
+use App\Models\User;
+use App\Services\Saas\EntitlementService;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -33,6 +35,26 @@ class ScreenCollectionResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->ownedBy(auth()->user());
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && app(EntitlementService::class)->hasFeature($user, 'unified_stage');
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        $entitlements = app(EntitlementService::class);
+
+        return $entitlements->hasFeature($user, 'unified_stage')
+            && $entitlements->canCreate($user, 'max_collections', ScreenCollection::query()->ownedBy($user)->count());
     }
 
     public static function form(Schema $schema): Schema

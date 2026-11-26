@@ -10,11 +10,12 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'username', 'email', 'contact_number', 'current_address', 'password', 'relay_token', 'media_storage_path'])]
+#[Fillable(['name', 'username', 'email', 'is_super_admin', 'contact_number', 'current_address', 'password', 'relay_token', 'media_storage_path'])]
 #[Hidden(['password', 'remember_token', 'relay_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -32,7 +33,21 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
+        if ($panel->getId() === 'superadmin') {
+            return (bool) $this->is_super_admin;
+        }
+
         return $panel->getId() === 'admin';
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function latestSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)->latestOfMany('id');
     }
 
     public function obsStudios(): HasMany
@@ -91,6 +106,7 @@ class User extends Authenticatable implements FilamentUser
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_super_admin' => 'boolean',
             'password' => 'hashed',
         ];
     }

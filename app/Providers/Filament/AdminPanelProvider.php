@@ -3,7 +3,6 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
-use App\Filament\Pages\Auth\Register;
 use App\Filament\Widgets\ObsStatsOverview;
 use App\Filament\Widgets\ObsStudioWorkspaceWidget;
 use App\Services\ReverbStatusService;
@@ -39,7 +38,6 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('2.25rem')
             ->favicon(fn (): string => asset(app()->isProduction() ? 'favicon-prod.svg' : 'favicon-local.svg'))
             ->login(Login::class)
-            ->registration(Register::class)
             ->darkMode(true, isForced: true)
             ->font('Poppins')
             ->monoFont('Poppins')
@@ -115,6 +113,12 @@ class AdminPanelProvider extends PanelProvider
                     ->url('/', shouldOpenInNewTab: true)
                     ->icon(Heroicon::OutlinedGlobeAlt)
                     ->sort(3),
+                NavigationItem::make('Super Admin HQ')
+                    ->group('Documentation')
+                    ->url('/hq')
+                    ->icon(Heroicon::OutlinedShieldCheck)
+                    ->visible(fn (): bool => (bool) auth()->user()?->is_super_admin)
+                    ->sort(4),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

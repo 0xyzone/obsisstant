@@ -8,8 +8,10 @@ use App\Filament\Resources\ObsMacros\Pages\ListObsMacros;
 use App\Models\ObsMacro;
 use App\Models\ObsScreen;
 use App\Models\ObsStudio;
+use App\Models\User;
 use App\Services\Obs\ObsCommandService;
 use App\Services\Obs\ObsRequestCatalog;
+use App\Services\Saas\EntitlementService;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -53,6 +55,26 @@ class ObsMacroResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->ownedBy(auth()->user());
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && app(EntitlementService::class)->hasFeature($user, 'macros');
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        $entitlements = app(EntitlementService::class);
+
+        return $entitlements->hasFeature($user, 'macros')
+            && $entitlements->canCreate($user, 'max_macros', ObsMacro::query()->ownedBy($user)->count());
     }
 
     public static function form(Schema $schema): Schema

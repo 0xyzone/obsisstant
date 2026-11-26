@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.23.0] - 2026-11-27 | type: minor
+
+> Added SaaS foundation with purchase-only user provisioning (public self-signup disabled), a dedicated Super Admin panel (`/hq`), modular Packages with feature toggles and numeric quotas, per-client Subscriptions with overrides, and central `EntitlementService` enforcement.
+
+### Added
+- **Super Admin Panel (`/hq`)**: Added `SuperAdminPanelProvider` gated by `User::is_super_admin`, with Filament resources for **Customers & Users** (including optional initial package assignment on create), **Packages** (modular feature toggles + numeric quotas), and **Subscriptions** (status, expiry, and per-client feature/limit overrides).
+- **Packages, Subscriptions & `EntitlementService`**: Created `packages` and `subscriptions` tables/models, `PackageSeeder` (`Starter`, `Pro Studio`, `Agency Unlimited`), and `EntitlementService` enforcing module access (`obs_control`, `unified_stage`, `canvas_builder`, `mobile_deck`, `macros`, `audio_mixer`, `oxy_gemini_ai`) and numeric caps (`max_studios`, `max_collections`, `max_views`, `max_macros`, `max_storage_mb`, `oxy_daily_messages`).
+
+### Changed
+- **Disabled Public Self-Registration**: Removed `->registration(Register::class)` from `AdminPanelProvider` so only Super Admins can create customer accounts.
+
 ## [v1.22.5] - 2026-11-27 | type: macro
 
 > Made Oxy smoothly fly to and dock in the bottom-right corner alongside the speech-bubble chat whenever "Ask Oxy" is opened (returning to the hero or scroll position when closed), and eliminated per-frame layout reflow for lag-free motion.
