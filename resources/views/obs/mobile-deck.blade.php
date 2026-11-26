@@ -125,44 +125,6 @@
                 text-decoration: none;
             }
 
-            .obs-reverb-pill {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.4rem;
-                padding: 0.22rem 0.6rem;
-                border-radius: 9999px;
-                font-size: 0.72rem;
-                font-weight: 500;
-                white-space: nowrap;
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                background: rgba(255, 255, 255, 0.04);
-                color: #C8C0AF;
-            }
-
-            .obs-reverb-dot {
-                inline-size: 0.42rem;
-                block-size: 0.42rem;
-                flex-shrink: 0;
-                border-radius: 50%;
-                background-color: #8E8777;
-            }
-
-            .obs-reverb-pill.is-active {
-                border-color: rgba(76, 195, 138, 0.34);
-                background-color: rgba(76, 195, 138, 0.08);
-                color: #9EE6C3;
-            }
-
-            .obs-reverb-pill.is-active .obs-reverb-dot { background-color: var(--positive); }
-
-            .obs-reverb-pill.is-offline {
-                border-color: rgba(229, 72, 77, 0.32);
-                background-color: rgba(229, 72, 77, 0.08);
-                color: #F4A3A6;
-            }
-
-            .obs-reverb-pill.is-offline .obs-reverb-dot { background-color: var(--danger); }
-
             .status-pill {
                 display: inline-flex;
                 align-items: center;
@@ -893,7 +855,6 @@
                 </div>
 
                 <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
-                    <x-reverb-status-pill />
                     <span id="studio-status" class="status-pill {{ $studio->status === 'streaming' ? 'status-pill--streaming' : ($studio->isOnline() ? 'status-pill--online' : '') }}">
                         {{ strtoupper($studio->status) }}
                     </span>
@@ -1287,6 +1248,21 @@
             </div>
         </dialog>
 
+        {{-- Native Confirmation Dialog for Tile Remove & Reset Actions --}}
+        <dialog id="deck-confirm-dialog" class="tile-dialog" aria-labelledby="deck-confirm-title">
+            <div class="dialog-inner">
+                <div class="dialog-head">
+                    <h2 id="deck-confirm-title" style="margin: 0; font-size: 0.95rem; font-weight: 600;">Confirm Action</h2>
+                    <button type="button" id="deck-confirm-close" class="deck-pill-btn">Close</button>
+                </div>
+                <p id="deck-confirm-copy" style="margin: 0; font-size: 0.82rem; line-height: 1.5; color: var(--muted);"></p>
+                <div style="display: flex; justify-content: flex-end; gap: 0.45rem; padding-block-start: 0.4rem; border-block-start: 1px solid var(--hairline);">
+                    <button type="button" id="deck-confirm-cancel" class="deck-pill-btn is-outline">Cancel</button>
+                    <button type="button" id="deck-confirm-ok" class="deck-pill-btn is-danger">Remove</button>
+                </div>
+            </div>
+        </dialog>
+
         <div id="toast" class="toast" role="status" hidden></div>
 
         <script src="/js/filament/filament/echo.js"></script>
@@ -1353,6 +1329,44 @@
                     toast.hidden = false;
                     toastTimer = setTimeout(() => { toast.hidden = true; }, isError ? 3400 : 2100);
                 };
+
+                const confirmDeckAction = ({ title = 'Confirm Action', message = 'Are you sure?', confirmLabel = 'Remove' }) => new Promise((resolve) => {
+                    const dialog = document.getElementById('deck-confirm-dialog');
+                    if (!dialog || typeof dialog.showModal !== 'function') {
+                        resolve(window.confirm(message));
+                        return;
+                    }
+                    const titleEl = document.getElementById('deck-confirm-title');
+                    const copyEl = document.getElementById('deck-confirm-copy');
+                    const okBtn = document.getElementById('deck-confirm-ok');
+                    const cancelBtn = document.getElementById('deck-confirm-cancel');
+                    const closeBtn = document.getElementById('deck-confirm-close');
+                    if (titleEl) titleEl.textContent = title;
+                    if (copyEl) copyEl.textContent = message;
+                    if (okBtn) okBtn.textContent = confirmLabel;
+
+                    let settled = false;
+                    const finish = (accepted) => {
+                        if (settled) return;
+                        settled = true;
+                        okBtn?.removeEventListener('click', onOk);
+                        cancelBtn?.removeEventListener('click', onCancel);
+                        closeBtn?.removeEventListener('click', onCancel);
+                        dialog.removeEventListener('cancel', onCancel);
+                        if (dialog.open) dialog.close();
+                        resolve(accepted);
+                    };
+                    const onOk = () => finish(true);
+                    const onCancel = (ev) => {
+                        if (ev && ev.type === 'cancel') ev.preventDefault();
+                        finish(false);
+                    };
+                    okBtn?.addEventListener('click', onOk);
+                    cancelBtn?.addEventListener('click', onCancel);
+                    closeBtn?.addEventListener('click', onCancel);
+                    dialog.addEventListener('cancel', onCancel);
+                    dialog.showModal();
+                });
 
                 const requestJson = async (method, url, body = null) => {
                     const res = await fetch(url, {
@@ -2172,7 +2186,13 @@
                             delBtn.className = 'tile-mini-btn tile-mini-btn--danger';
                             delBtn.textContent = '×';
                             delBtn.title = 'Remove tile';
-                            delBtn.addEventListener('click', () => {
+                            delBtn.addEventListener('click', async () => {
+                                const ok = await confirmDeckAction({
+                                    title: 'Remove Deck Tile',
+                                    message: `Remove tile "${tile.label || 'Tile'}" from this Mobile Deck layout?`,
+                                    confirmLabel: 'Remove Tile',
+                                });
+                                if (!ok) return;
                                 const next = tiles.filter((_, i) => i !== idx);
                                 persistDeckLayout({ columns: fixedCols, tiles: next }, 'Tile removed');
                             });
@@ -2681,6 +2701,13 @@
                     const col = getActiveCollection();
                     if (!col || editingTileIndex === null) return;
                     const layout = col.deck_layout || { columns: 0, tiles: [] };
+                    const targetTile = (layout.tiles || [])[editingTileIndex];
+                    const ok = await confirmDeckAction({
+                        title: 'Remove Deck Tile',
+                        message: `Remove tile "${targetTile?.label || 'Tile'}" from this Mobile Deck layout?`,
+                        confirmLabel: 'Remove Tile',
+                    });
+                    if (!ok) return;
                     const nextTiles = (layout.tiles || []).filter((_, i) => i !== editingTileIndex);
                     tileDialog?.close();
                     await persistDeckLayout({ columns: layout.columns || 0, tiles: nextTiles }, 'Tile removed');
@@ -2872,6 +2899,12 @@
                 });
 
                 document.getElementById('deck-reset-tiles-btn')?.addEventListener('click', async () => {
+                    const ok = await confirmDeckAction({
+                        title: 'Reset Deck Tiles',
+                        message: 'Reset all custom Mobile Deck tiles back to the default layout generated from this collection\'s views?',
+                        confirmLabel: 'Reset Defaults',
+                    });
+                    if (!ok) return;
                     await persistDeckLayout({ reset: true }, 'Reset tiles to collection defaults');
                 });
 

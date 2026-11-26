@@ -203,50 +203,6 @@
                 gap: var(--space-3);
             }
 
-            /* Live Reverb Status Pill */
-            .obs-reverb-pill {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.4375rem;
-                padding: var(--space-1) 0.625rem;
-                border-radius: 9999px;
-                font-size: 0.75rem;
-                font-weight: 500;
-                line-height: 1.3;
-                white-space: nowrap;
-                border: 1px solid var(--hairline-neutral);
-                background-color: var(--bg-raised);
-                color: var(--ink-secondary);
-            }
-
-            .obs-reverb-dot {
-                inline-size: 0.4375rem;
-                block-size: 0.4375rem;
-                flex-shrink: 0;
-                border-radius: 50%;
-                background-color: var(--ink-muted);
-            }
-
-            .obs-reverb-pill.is-active {
-                border-color: rgba(76, 195, 138, 0.34);
-                background-color: rgba(76, 195, 138, 0.08);
-                color: var(--status-live-ink);
-            }
-
-            .obs-reverb-pill.is-active .obs-reverb-dot {
-                background-color: var(--status-live);
-            }
-
-            .obs-reverb-pill.is-offline {
-                border-color: rgba(229, 72, 77, 0.32);
-                background-color: rgba(229, 72, 77, 0.08);
-                color: var(--status-offline-ink);
-            }
-
-            .obs-reverb-pill.is-offline .obs-reverb-dot {
-                background-color: var(--status-offline);
-            }
-
             /* Site Navigation (Narrow Popover Default -> Wide Inline) */
             .site-nav {
                 display: flex;
@@ -438,11 +394,6 @@
             }
 
             @media (max-width: 32rem) {
-                .obs-reverb-pill {
-                    padding: 0.1875rem var(--space-2);
-                    font-size: 0.6875rem;
-                }
-
                 .brand-lockup span {
                     font-size: 0.9375rem;
                 }
@@ -1236,7 +1187,6 @@
                 .preset-viewport,
                 .preset-lower-strip,
                 .closing-panel,
-                .obs-reverb-pill,
                 .obs-brand-version-pill {
                     background: Canvas;
                     color: CanvasText;
@@ -1272,8 +1222,6 @@
                 </div>
 
                 <div class="header-end">
-                    <x-reverb-status-pill />
-
                     <nav class="site-nav" aria-label="Primary">
                         <button
                             id="menu-trigger"

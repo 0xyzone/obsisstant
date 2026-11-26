@@ -4,8 +4,12 @@ namespace App\Filament\Pages;
 
 use App\Models\ObsCommandLog;
 use App\Models\ObsStudio;
+use App\Models\ScreenAsset;
+use App\Models\User;
 use App\Services\Obs\ObsCommandService;
+use App\Services\Obs\ServerMediaCleanerService;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -14,15 +18,15 @@ use UnitEnum;
 
 class StudioSettings extends Page
 {
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFolderOpen;
 
-    protected static string|UnitEnum|null $navigationGroup = 'OBS Studio';
+    protected static string|UnitEnum|null $navigationGroup = 'Studio & Automation';
 
-    protected static ?string $navigationLabel = 'Storage Settings';
+    protected static ?string $navigationLabel = 'Storage & Cleaner';
 
-    protected static ?string $title = 'OBS Media & Local Storage Settings';
+    protected static ?string $title = 'OBS Media & Storage Settings';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 3;
 
     protected string $view = 'filament.pages.studio-settings';
 
@@ -31,6 +35,9 @@ class StudioSettings extends Page
     public ?int $selectedStudioId = null;
 
     public ?string $pendingPickerCommandUuid = null;
+
+    /** @var array<int, int|string> */
+    public array $selectedUnusedAssetIds = [];
 
     public function mount(): void
     {
@@ -179,5 +186,172 @@ class StudioSettings extends Page
             $this->mediaStoragePath = $pickedPath;
             $this->save();
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getStorageAudit(): array
+    {
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return [
+                'total_assets_count' => 0,
+                'total_assets_formatted' => '0 B',
+                'used_assets_count' => 0,
+                'unused_assets' => [],
+                'unused_assets_count' => 0,
+                'unused_assets_formatted' => '0 B',
+                'orphaned_files' => [],
+                'orphaned_files_count' => 0,
+                'orphaned_files_formatted' => '0 B',
+                'stale_staging_files' => [],
+                'stale_staging_count' => 0,
+                'stale_staging_formatted' => '0 B',
+                'reclaimable_count' => 0,
+                'reclaimable_bytes' => 0,
+                'reclaimable_formatted' => '0 B',
+            ];
+        }
+
+        return app(ServerMediaCleanerService::class)->inspectForUser($user);
+    }
+
+    public function selectAllUnusedAssets(): void
+    {
+        $audit = $this->getStorageAudit();
+        $this->selectedUnusedAssetIds = array_values(array_map(
+            static fn (array $item): int => (int) $item['id'],
+            $audit['unused_assets'] ?? [],
+        ));
+    }
+
+    public function clearUnusedSelection(): void
+    {
+        $this->selectedUnusedAssetIds = [];
+    }
+
+    public function deleteSingleUnusedAsset(int $assetId): void
+    {
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return;
+        }
+
+        $asset = ScreenAsset::query()->ownedBy($user)->find($assetId);
+        if (! $asset instanceof ScreenAsset) {
+            return;
+        }
+
+        $cleaner = app(ServerMediaCleanerService::class);
+        if ($cleaner->isAssetReferenced($user, $asset->id)) {
+            Notification::make()
+                ->warning()
+                ->title('Asset is currently in use')
+                ->body('Remove it from your collection theme or screen view before deleting.')
+                ->send();
+
+            return;
+        }
+
+        $assetName = $asset->name;
+        $asset->delete();
+
+        $this->selectedUnusedAssetIds = array_values(array_filter(
+            $this->selectedUnusedAssetIds,
+            static fn (int|string $id): bool => (int) $id !== $assetId,
+        ));
+
+        Notification::make()
+            ->success()
+            ->title('Server file deleted')
+            ->body("Removed \"{$assetName}\" from database and server storage.")
+            ->send();
+    }
+
+    public function cleanSelectedUnusedAssets(): void
+    {
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return;
+        }
+
+        $ids = array_values(array_unique(array_filter(
+            array_map(static fn (int|string $id): int => (int) $id, $this->selectedUnusedAssetIds),
+            static fn (int $id): bool => $id > 0,
+        )));
+
+        if ($ids === []) {
+            Notification::make()
+                ->warning()
+                ->title('No unused files selected')
+                ->body('Select one or more unused files first, or use Clean All Unused Files.')
+                ->send();
+
+            return;
+        }
+
+        $result = app(ServerMediaCleanerService::class)->cleanUnusedForUser(
+            user: $user,
+            onlyAssetIds: $ids,
+            includeOrphans: false,
+            includeStaleStaging: false,
+        );
+
+        $this->selectedUnusedAssetIds = [];
+
+        Notification::make()
+            ->success()
+            ->title('Selected unused files deleted')
+            ->body("Removed {$result['deleted_assets']} file(s) and freed {$result['freed_formatted']} of server storage.")
+            ->send();
+    }
+
+    public function cleanAllUnusedMedia(): void
+    {
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return;
+        }
+
+        $result = app(ServerMediaCleanerService::class)->cleanUnusedForUser(
+            user: $user,
+            onlyAssetIds: null,
+            includeOrphans: true,
+            includeStaleStaging: true,
+        );
+
+        $this->selectedUnusedAssetIds = [];
+
+        if ($result['total_deleted'] === 0) {
+            Notification::make()
+                ->info()
+                ->title('Server storage is already clean')
+                ->body('No unused uploads, orphaned disk files, or expired staging files were found.')
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->success()
+            ->title('Bulk media cleanup complete')
+            ->body("Deleted {$result['total_deleted']} unused/orphaned file(s) and reclaimed {$result['freed_formatted']}.")
+            ->send();
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('cleanAllUnusedMediaAction')
+                ->label('Bulk Clean Unused Files')
+                ->icon(Heroicon::OutlinedTrash)
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Clean All Unused & Orphaned Server Files?')
+                ->modalDescription('This permanently deletes all uploaded media assets not referenced by any collection, view, or layer, plus any orphaned disk files and expired staging files. Active files currently used on stage will NOT be touched.')
+                ->modalSubmitActionLabel('Delete Unused Files')
+                ->action(fn () => $this->cleanAllUnusedMedia()),
+        ];
     }
 }

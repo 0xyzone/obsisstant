@@ -7,6 +7,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.15.0] - 2026-11-26 | type: minor
+
+> Fixed excessive OBS WebSocket traffic and frequent disconnections, added confirmation dialogs to every delete/remove action, added automatic server file deletion on delete/replace plus a bulk unused & orphaned media cleaner, restricted Reverb status exclusively to Filament Admin Panel, and reorganized Filament navigation into clean grouped categories.
+
+### Added
+- Added ServerMediaCleanerService, Filament Storage & Cleaner bulk unused/orphaned file manager, and Canvas Builder Clean Unused Assets button with Unused tags and confirmation prompts.
+- Added native confirmation dialogs to all remaining delete, remove, and reset controls across Canvas Builder (views, assets, layers, bulk cleanup), Studio Control Center (remove source from scene), and Mobile Deck (tile remove, modal delete, reset defaults).
+
+### Changed
+- Removed Reverb status pills and unused CSS from all public, Studio, Mobile Deck, Changelog, and Knowledge Base pages so Reverb status is shown exclusively inside Filament Admin Panel.
+- Reorganized Filament Admin Panel navigation into ordered categories (Live Control, Stage & Overlays, Studio & Automation, Documentation) with clean labels and zero sort collisions.
+
+### Fixed
+- Fixed excessive OBS WebSocket chatter and frequent disconnections by replacing EventSubscription.All + High-Volume SceneItemTransformChanged with minimal low-volume subscriptions, batching full OBS hydration into 3 callBatch frames instead of 30-60 individual RPC calls, skipping non-audio inputs for mute/volume queries, adding 25s RFC 6455 WebSocket keepalive pings, debouncing volume/refresh bursts, raising stats/heartbeat intervals with a 95s lease TTL, and preventing dual-agent contention across both relay and single-studio modes.
+- Fixed server storage leaks by deleting physical files automatically via ScreenAsset and ScreenCollection deleting hooks, auto-pruning unreferenced replaced background/stinger/layer files on update or view delete, and cleaning direct offline upload staging files immediately.
+
 ## [v1.14.0] - 2026-11-26 | type: minor
 
 > Added the transformable Color Box canvas element (rectangle, square, circle) and full per-element styling controls for text, timers, scoreboards, lower thirds, tickers, glass cards, assets, cutouts, and embeds.

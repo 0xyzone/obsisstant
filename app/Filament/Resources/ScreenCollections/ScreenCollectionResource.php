@@ -22,11 +22,11 @@ class ScreenCollectionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static string|UnitEnum|null $navigationGroup = 'OBS Studio';
+    protected static string|UnitEnum|null $navigationGroup = 'Stage & Overlays';
 
     protected static ?string $navigationLabel = 'Screen Collections';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'name';
 

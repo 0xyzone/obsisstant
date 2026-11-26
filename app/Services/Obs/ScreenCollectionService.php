@@ -39,6 +39,12 @@ class ScreenCollectionService
             ->latest('id')
             ->get();
 
+        $referencedIds = [];
+        $owner = $collection->user;
+        if ($owner instanceof User) {
+            $referencedIds = array_flip(app(ServerMediaCleanerService::class)->collectReferencedAssetIds($owner));
+        }
+
         $assetsMap = [];
         $serializedAssets = [];
         foreach ($userAssets as $asset) {
@@ -49,6 +55,7 @@ class ScreenCollectionService
                 'type' => $asset->type,
                 'mime_type' => $asset->mime_type,
                 'size_bytes' => $asset->size_bytes,
+                'in_use' => isset($referencedIds[$asset->id]),
                 'url' => $asset->getUrl(false),
                 'absolute_url' => $asset->getUrl(true),
             ];

@@ -76,7 +76,7 @@ class StudioControlCenterTest extends TestCase
             ->assertSee('Obsisstant')
             ->assertSee('Broadcast A')
             ->assertSee($versionTag)
-            ->assertSee('Reverb active')
+            ->assertDontSee('obs-reverb-pill', false)
             ->assertSee('favicon-local.svg', false)
             ->assertSee('scene-collection-select')
             ->assertSee('create-collection-dialog')
@@ -492,7 +492,7 @@ class StudioControlCenterTest extends TestCase
             ->assertJsonPath('live_state.sceneItemsByScene.New Scene.0.sceneItemTransform.positionY', 337);
 
         $agentJs = file_get_contents(base_path('obs-agent/src/index.js')) ?: '';
-        $this->assertStringContainsString('EventSubscription.All | EventSubscription.SceneItemTransformChanged', $agentJs);
+        $this->assertStringContainsString('REQUIRED_EVENT_SUBSCRIPTIONS', $agentJs);
         $this->assertStringContainsString('syncIncrementalCommandState', $agentJs);
 
         $bladeJs = file_get_contents(resource_path('views/studio/control-center.blade.php')) ?: '';

@@ -38,11 +38,13 @@ class ObsScreenResource extends Resource
 {
     protected static ?string $model = ObsScreen::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedComputerDesktop;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSparkles;
 
-    protected static string|UnitEnum|null $navigationGroup = 'OBS Studio';
+    protected static string|UnitEnum|null $navigationGroup = 'Stage & Overlays';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationLabel = 'Overlay Screens';
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'name';
 

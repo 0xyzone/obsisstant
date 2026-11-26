@@ -61,6 +61,12 @@ class ScreenCollection extends Model
                 $collection->runtime_state = ScreenCollectionPresetService::defaultRuntimeState();
             }
         });
+
+        static::deleting(function (ScreenCollection $collection): void {
+            $collection->assets()->get()->each(static function (ScreenAsset $asset): void {
+                $asset->delete();
+            });
+        });
     }
 
     /**

@@ -11,6 +11,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
@@ -83,23 +84,37 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn () => view('filament.components.mobile-bottom-dock'),
             )
+            ->navigationGroups([
+                NavigationGroup::make('Live Control')
+                    ->collapsible(false),
+                NavigationGroup::make('Stage & Overlays')
+                    ->collapsible(false),
+                NavigationGroup::make('Studio & Automation')
+                    ->collapsible(false),
+                NavigationGroup::make('Documentation')
+                    ->collapsed(false),
+            ])
             ->navigationItems([
                 NavigationItem::make('Studio Control Center')
+                    ->group('Live Control')
                     ->url('/studio')
                     ->icon(Heroicon::OutlinedComputerDesktop)
-                    ->sort(0),
+                    ->sort(1),
                 NavigationItem::make('Mobile Deck')
+                    ->group('Live Control')
                     ->url('/deck', shouldOpenInNewTab: true)
                     ->icon(Heroicon::OutlinedDevicePhoneMobile)
-                    ->sort(97),
-                NavigationItem::make('Public Showcase')
-                    ->url('/', shouldOpenInNewTab: true)
-                    ->icon(Heroicon::OutlinedGlobeAlt)
-                    ->sort(98),
+                    ->sort(2),
                 NavigationItem::make('Changelog')
+                    ->group('Documentation')
                     ->url('/changelog', shouldOpenInNewTab: true)
                     ->icon(Heroicon::OutlinedDocumentText)
-                    ->sort(99),
+                    ->sort(2),
+                NavigationItem::make('Public Showcase')
+                    ->group('Documentation')
+                    ->url('/', shouldOpenInNewTab: true)
+                    ->icon(Heroicon::OutlinedGlobeAlt)
+                    ->sort(3),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

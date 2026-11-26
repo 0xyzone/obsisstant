@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'user_id',
@@ -35,6 +36,23 @@ class ScreenAsset extends Model
                 $asset->user_id = $asset->screen_collection_id
                     ? ScreenCollection::query()->whereKey($asset->screen_collection_id)->value('user_id')
                     : Auth::id();
+            }
+        });
+
+        static::deleting(function (ScreenAsset $asset): void {
+            if (! is_string($asset->path) || $asset->path === '') {
+                return;
+            }
+
+            $diskName = $asset->disk ?: 'public';
+            $isShared = static::query()
+                ->whereKeyNot($asset->id)
+                ->where('disk', $diskName)
+                ->where('path', $asset->path)
+                ->exists();
+
+            if (! $isShared && Storage::disk($diskName)->exists($asset->path)) {
+                Storage::disk($diskName)->delete($asset->path);
             }
         });
     }

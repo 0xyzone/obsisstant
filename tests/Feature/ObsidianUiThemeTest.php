@@ -36,7 +36,7 @@ class ObsidianUiThemeTest extends TestCase
         $response->assertOk()
             ->assertSee('Obsisstant')
             ->assertSee($versionTag)
-            ->assertSee('Reverb active')
+            ->assertDontSee('obs-reverb-pill', false)
             ->assertSee('Control every OBS frame')
             ->assertSee('Starting Soon')
             ->assertSee('Lower Thirds')
@@ -55,7 +55,7 @@ class ObsidianUiThemeTest extends TestCase
             ->assertDontSee('ambient-grid', false);
     }
 
-    public function test_reverb_status_pill_and_version_pill_appear_across_app_and_filament_panels(): void
+    public function test_reverb_status_pill_appears_only_in_filament_panel_while_version_pill_stays_app_wide(): void
     {
         $user = User::factory()->create();
         $studio = ObsStudio::factory()->online()->for($user)->create(['name' => 'Studio Alpha']);
@@ -65,8 +65,8 @@ class ObsidianUiThemeTest extends TestCase
 
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('obs-reverb-pill is-offline', false)
-            ->assertSee('Reverb offline');
+            ->assertDontSee('obs-reverb-pill', false)
+            ->assertDontSee('Reverb offline');
 
         $this->get('/admin/login')
             ->assertOk()
@@ -79,8 +79,8 @@ class ObsidianUiThemeTest extends TestCase
 
         $this->get('/changelog')
             ->assertOk()
-            ->assertSee('obs-reverb-pill', false)
-            ->assertSee('Reverb active')
+            ->assertDontSee('obs-reverb-pill', false)
+            ->assertDontSee('data-reverb-status=', false)
             ->assertSee($versionTag);
 
         $this->actingAs($user)
@@ -88,8 +88,8 @@ class ObsidianUiThemeTest extends TestCase
             ->assertOk()
             ->assertSee('obs-brand-version-pill', false)
             ->assertSee($versionTag)
-            ->assertSee('obs-reverb-pill', false)
-            ->assertSee('Reverb active');
+            ->assertDontSee('obs-reverb-pill', false)
+            ->assertDontSee('Reverb active');
 
         $this->actingAs($user)
             ->get('/admin')

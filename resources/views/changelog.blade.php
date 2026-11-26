@@ -196,49 +196,6 @@
                 color: var(--gold-100);
             }
 
-            .obs-reverb-pill {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.4375rem;
-                padding: 0.3125rem 0.6875rem;
-                border-radius: var(--radius-pill);
-                font-size: 0.75rem;
-                font-weight: 500;
-                line-height: 1.3;
-                white-space: nowrap;
-                border: 1px solid var(--border-subtle);
-                background: rgba(27, 26, 23, 0.9);
-                color: var(--text-secondary);
-            }
-
-            .obs-reverb-dot {
-                inline-size: 0.4375rem;
-                block-size: 0.4375rem;
-                flex-shrink: 0;
-                border-radius: 50%;
-                background-color: var(--text-muted);
-            }
-
-            .obs-reverb-pill.is-active {
-                border-color: rgba(76, 195, 138, 0.34);
-                background-color: rgba(76, 195, 138, 0.08);
-                color: #9EE6C3;
-            }
-
-            .obs-reverb-pill.is-active .obs-reverb-dot {
-                background-color: #4CC38A;
-            }
-
-            .obs-reverb-pill.is-offline {
-                border-color: rgba(229, 72, 77, 0.32);
-                background-color: rgba(229, 72, 77, 0.08);
-                color: #F4A3A6;
-            }
-
-            .obs-reverb-pill.is-offline .obs-reverb-dot {
-                background-color: #E5484D;
-            }
-
             .nav-link {
                 display: inline-flex;
                 align-items: center;
@@ -760,7 +717,6 @@
                 </div>
 
                 <nav class="nav-actions" aria-label="Changelog navigation">
-                    <x-reverb-status-pill />
                     <a class="nav-link" href="{{ url('/') }}">Home</a>
                     <a class="nav-link" href="{{ route('knowledge-base') }}">Knowledge Base</a>
                     <a class="nav-link" href="{{ url('/admin') }}">Admin Panel</a>

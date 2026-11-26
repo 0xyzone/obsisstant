@@ -20,13 +20,13 @@ class ObsControlDeck extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTv;
 
-    protected static string|UnitEnum|null $navigationGroup = 'OBS Studio';
+    protected static string|UnitEnum|null $navigationGroup = 'Live Control';
 
-    protected static ?string $navigationLabel = 'Control Deck';
+    protected static ?string $navigationLabel = 'OBS Control Deck';
 
     protected static ?string $title = 'OBS Live Control Deck';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 3;
 
     protected string $view = 'filament.pages.obs-control-deck';
 

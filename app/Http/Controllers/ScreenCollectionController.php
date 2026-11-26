@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\ChangelogService;
 use App\Services\Obs\ScreenCollectionPresetService;
 use App\Services\Obs\ScreenCollectionService;
+use App\Services\Obs\ServerMediaCleanerService;
 use App\Services\ReverbStatusService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -171,9 +172,13 @@ class ScreenCollectionController extends Controller
         ObsStudio $studio,
         ScreenCollection $collection,
         ScreenCollectionService $collectionService,
+        ServerMediaCleanerService $mediaCleaner,
     ): JsonResponse {
         $user = $this->authorizeStudio($request, $studio);
         $this->authorizeCollection($user, $collection);
+
+        $previousThemeBgId = (int) (($collection->theme['background_asset_id'] ?? null) ?: 0);
+        $previousStingerId = (int) (($collection->default_transition['stinger_asset_id'] ?? null) ?: 0);
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:120'],
@@ -222,10 +227,23 @@ class ScreenCollectionController extends Controller
         }
 
         $collection->forceFill($updates)->save();
+
+        $replacedAssetIds = [];
+        $nextThemeBgId = (int) (($collection->theme['background_asset_id'] ?? null) ?: 0);
+        if ($previousThemeBgId > 0 && $previousThemeBgId !== $nextThemeBgId) {
+            $replacedAssetIds[] = $previousThemeBgId;
+        }
+        $nextStingerId = (int) (($collection->default_transition['stinger_asset_id'] ?? null) ?: 0);
+        if ($previousStingerId > 0 && $previousStingerId !== $nextStingerId) {
+            $replacedAssetIds[] = $previousStingerId;
+        }
+        $prunedAssetIds = $mediaCleaner->pruneReplacedAssets($user, $replacedAssetIds);
+
         $collectionService->broadcast($collection);
 
         return response()->json([
             'ok' => true,
+            'pruned_asset_ids' => $prunedAssetIds,
             'collection' => ScreenCollectionService::buildStagePayload($collection->fresh(['views', 'assets']) ?? $collection),
         ]);
     }
@@ -439,10 +457,14 @@ class ScreenCollectionController extends Controller
         ScreenCollection $collection,
         ScreenView $view,
         ScreenCollectionService $collectionService,
+        ServerMediaCleanerService $mediaCleaner,
     ): JsonResponse {
         $user = $this->authorizeStudio($request, $studio);
         $this->authorizeCollection($user, $collection);
         $this->authorizeView($collection, $view);
+
+        $previousBgAssetId = (int) ($view->background_asset_id ?? 0);
+        $previousLayerAssetIds = $mediaCleaner->extractAssetIdsFromLayers($view->layers);
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:120'],
@@ -479,10 +501,20 @@ class ScreenCollectionController extends Controller
         }
 
         $view->forceFill($validated)->save();
+
+        $nextBgAssetId = (int) ($view->background_asset_id ?? 0);
+        $nextLayerAssetIds = $mediaCleaner->extractAssetIdsFromLayers($view->layers);
+        $candidateReplacedIds = array_values(array_diff($previousLayerAssetIds, $nextLayerAssetIds));
+        if ($previousBgAssetId > 0 && $previousBgAssetId !== $nextBgAssetId) {
+            $candidateReplacedIds[] = $previousBgAssetId;
+        }
+        $prunedAssetIds = $mediaCleaner->pruneReplacedAssets($user, $candidateReplacedIds);
+
         $collectionService->broadcast($collection);
 
         return response()->json([
             'ok' => true,
+            'pruned_asset_ids' => $prunedAssetIds,
             'collection' => ScreenCollectionService::buildStagePayload($collection->fresh(['views', 'assets']) ?? $collection),
         ]);
     }
@@ -569,6 +601,7 @@ class ScreenCollectionController extends Controller
         ScreenCollection $collection,
         ScreenView $view,
         ScreenCollectionService $collectionService,
+        ServerMediaCleanerService $mediaCleaner,
     ): JsonResponse {
         $user = $this->authorizeStudio($request, $studio);
         $this->authorizeCollection($user, $collection);
@@ -581,8 +614,15 @@ class ScreenCollectionController extends Controller
             ], 422);
         }
 
+        $candidateAssetIds = $mediaCleaner->extractAssetIdsFromLayers($view->layers);
+        if (! empty($view->background_asset_id)) {
+            $candidateAssetIds[] = (int) $view->background_asset_id;
+        }
+
         $wasActive = (int) $collection->active_view_id === $view->id;
         $view->delete();
+
+        $prunedAssetIds = $mediaCleaner->pruneReplacedAssets($user, $candidateAssetIds);
 
         if ($wasActive) {
             $fallback = $collection->views()->first();
@@ -593,6 +633,7 @@ class ScreenCollectionController extends Controller
 
         return response()->json([
             'ok' => true,
+            'pruned_asset_ids' => $prunedAssetIds,
             'collection' => ScreenCollectionService::buildStagePayload($collection->fresh(['views', 'assets']) ?? $collection),
         ]);
     }
@@ -602,6 +643,7 @@ class ScreenCollectionController extends Controller
         ObsStudio $studio,
         ScreenCollection $collection,
         ScreenCollectionService $collectionService,
+        ServerMediaCleanerService $mediaCleaner,
     ): JsonResponse {
         $user = $this->authorizeStudio($request, $studio);
         $this->authorizeCollection($user, $collection);
@@ -610,6 +652,7 @@ class ScreenCollectionController extends Controller
             'file' => ['required', 'file', 'max:51200', 'mimes:png,jpg,jpeg,webp,gif,svg,mp4,webm,mp3,wav,ogg'],
             'name' => ['nullable', 'string', 'max:120'],
             'type' => ['nullable', 'string', 'in:image,video,stinger,audio'],
+            'replace_asset_id' => ['nullable', 'integer'],
         ]);
 
         $file = $request->file('file');
@@ -635,6 +678,10 @@ class ScreenCollectionController extends Controller
             'original_filename' => $file->getClientOriginalName(),
         ]);
 
+        if (! empty($validated['replace_asset_id'])) {
+            $mediaCleaner->pruneReplacedAssets($user, [(int) $validated['replace_asset_id']]);
+        }
+
         $collectionService->broadcast($collection);
 
         return response()->json([
@@ -650,11 +697,45 @@ class ScreenCollectionController extends Controller
         ], 201);
     }
 
+    public function cleanupAssets(
+        Request $request,
+        ObsStudio $studio,
+        ScreenCollection $collection,
+        ServerMediaCleanerService $mediaCleaner,
+        ScreenCollectionService $collectionService,
+    ): JsonResponse {
+        $user = $this->authorizeStudio($request, $studio);
+        $this->authorizeCollection($user, $collection);
+
+        $validated = $request->validate([
+            'asset_ids' => ['nullable', 'array'],
+            'asset_ids.*' => ['integer'],
+            'include_orphans' => ['nullable', 'boolean'],
+        ]);
+
+        $summary = $mediaCleaner->cleanUnusedForUser(
+            user: $user,
+            collection: $collection,
+            onlyAssetIds: $validated['asset_ids'] ?? null,
+            includeOrphans: (bool) ($validated['include_orphans'] ?? true),
+            includeStaleStaging: false,
+        );
+
+        $collectionService->broadcast($collection);
+
+        return response()->json([
+            'ok' => true,
+            'summary' => $summary,
+            'collection' => ScreenCollectionService::buildStagePayload($collection->fresh(['views', 'assets']) ?? $collection),
+        ]);
+    }
+
     public function destroyAsset(
         Request $request,
         ObsStudio $studio,
         ScreenAsset $asset,
         ScreenCollectionService $collectionService,
+        ServerMediaCleanerService $mediaCleaner,
     ): JsonResponse {
         $user = $this->authorizeStudio($request, $studio);
         abort_if((int) $asset->user_id !== $user->id, 403);
@@ -663,10 +744,7 @@ class ScreenCollectionController extends Controller
             ? ScreenCollection::query()->find($asset->screen_collection_id)
             : null;
 
-        if ($asset->path && Storage::disk($asset->disk ?: 'public')->exists($asset->path)) {
-            Storage::disk($asset->disk ?: 'public')->delete($asset->path);
-        }
-
+        $mediaCleaner->detachAssetReferences($asset);
         $asset->delete();
 
         if ($collection instanceof ScreenCollection) {

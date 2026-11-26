@@ -123,48 +123,6 @@
                 gap: 0.625rem;
             }
 
-            .obs-reverb-pill {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.4375rem;
-                padding: 0.25rem 0.625rem;
-                border-radius: 9999px;
-                font-size: 0.75rem;
-                font-weight: 500;
-                line-height: 1.3;
-                white-space: nowrap;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                background-color: var(--bg-raised);
-                color: var(--ink-secondary);
-            }
-
-            .obs-reverb-dot {
-                inline-size: 0.4375rem;
-                block-size: 0.4375rem;
-                border-radius: 50%;
-                background-color: var(--ink-muted);
-            }
-
-            .obs-reverb-pill.is-active {
-                border-color: rgba(76, 195, 138, 0.34);
-                background-color: rgba(76, 195, 138, 0.08);
-                color: #9EE6C3;
-            }
-
-            .obs-reverb-pill.is-active .obs-reverb-dot {
-                background-color: #4CC38A;
-            }
-
-            .obs-reverb-pill.is-offline {
-                border-color: rgba(229, 72, 77, 0.32);
-                background-color: rgba(229, 72, 77, 0.08);
-                color: #F4A3A6;
-            }
-
-            .obs-reverb-pill.is-offline .obs-reverb-dot {
-                background-color: #E5484D;
-            }
-
             .header-nav {
                 display: flex;
                 flex-wrap: wrap;
@@ -220,8 +178,6 @@
                 </div>
 
                 <div class="header-end">
-                    <x-reverb-status-pill />
-
                     <nav class="header-nav" aria-label="Knowledge Base navigation">
                         <a href="{{ route('home') }}">Overview</a>
                         <a href="{{ route('knowledge-base') }}" aria-current="page">Knowledge Base</a>

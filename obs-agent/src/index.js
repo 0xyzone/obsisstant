@@ -6,7 +6,34 @@ import { promisify } from 'node:util';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import OBSWebSocket, { EventSubscription } from 'obs-websocket-js';
+import OBSWebSocket, { EventSubscription, RequestBatchExecutionType } from 'obs-websocket-js';
+
+// Subscribe ONLY to low-volume OBS event categories actually handled by Obsisstant.
+// Never subscribe to High-Volume events (like SceneItemTransformChanged) or unused categories.
+const REQUIRED_EVENT_SUBSCRIPTIONS =
+    EventSubscription.General |
+    EventSubscription.Config |
+    EventSubscription.Scenes |
+    EventSubscription.Inputs |
+    EventSubscription.Outputs |
+    EventSubscription.SceneItems;
+
+// Visual/structural OBS input kinds that never expose audio controls (avoids OBS error 604 spam).
+const NON_AUDIO_INPUT_KINDS = new Set([
+    'image_source',
+    'color_source',
+    'color_source_v2',
+    'color_source_v3',
+    'text_gdiplus',
+    'text_gdiplus_v2',
+    'text_gdiplus_v3',
+    'text_ft2_source',
+    'text_ft2_source_v2',
+    'slideshow',
+    'slideshow_v2',
+    'scene',
+    'group',
+]);
 
 const execFileAsync = promisify(execFile);
 import Pusher from 'pusher-js';
@@ -158,15 +185,20 @@ class StudioWorker {
         this.stopped = false;
         this.reconnectTimer = null;
         this.statsTimer = null;
+        this.keepaliveTimer = null;
+        this._boundPongHandler = null;
+        this.wsPongAlive = true;
         this.refreshDebounceTimer = null;
         this.refreshInFlight = false;
         this.refreshQueued = false;
+        this.lastFullRefreshAt = 0;
         this.partialPushTimer = null;
+        this.volumePushTimer = null;
         this.previewTimer = null;
         this.previewInFlight = false;
         this.lastPreviewHash = null;
         this.lastPreviewUploadedAt = 0;
-        this.lastStatsSignature = '';
+        this.lastPushedStats = null;
         this.lastHeartbeatAt = 0;
         this.previewConfig = {
             active: false,
@@ -235,8 +267,63 @@ class StudioWorker {
         }
     }
 
+    startObsKeepalive() {
+        this.stopObsKeepalive();
+        const socket = this.obs?.socket;
+        if (!socket || typeof socket.ping !== 'function') {
+            return;
+        }
+        this.wsPongAlive = true;
+        const onPong = () => {
+            this.wsPongAlive = true;
+        };
+        this._boundPongHandler = onPong;
+        if (typeof socket.on === 'function') {
+            socket.on('pong', onPong);
+        }
+        // RFC 6455 transport ping keeps LAN/Wi-Fi sockets alive with 0 OBS RPC messages
+        this.keepaliveTimer = setInterval(() => {
+            if (this.stopped || !this.obsConnected || !this.obs?.socket) {
+                this.stopObsKeepalive();
+                return;
+            }
+            if (!this.wsPongAlive) {
+                console.warn(`${this.logPrefix()} OBS WebSocket unresponsive to keepalive ping — resetting stale socket...`);
+                try {
+                    this.obs.socket.terminate?.();
+                } catch {
+                    this.obs.disconnect().catch(() => {});
+                }
+                return;
+            }
+            this.wsPongAlive = false;
+            try {
+                this.obs.socket.ping();
+            } catch {
+                // ConnectionClosed will handle dead sockets
+            }
+        }, 25000);
+    }
+
+    stopObsKeepalive() {
+        if (this.keepaliveTimer) {
+            clearInterval(this.keepaliveTimer);
+            this.keepaliveTimer = null;
+        }
+        if (this._boundPongHandler && this.obs?.socket && typeof this.obs.socket.off === 'function') {
+            try {
+                this.obs.socket.off('pong', this._boundPongHandler);
+            } catch {
+                // Socket already closed
+            }
+        }
+        this._boundPongHandler = null;
+        this.wsPongAlive = true;
+    }
+
     async yieldToRemoteOwner(reason = 'active on another PC') {
         this.remoteAgentOnline = true;
+        this.stopObsKeepalive();
         if (!this.loggedRemoteStandby) {
             this.loggedRemoteStandby = true;
             console.log(`${this.logPrefix()} Standing by — studio is already ${reason}.`);
@@ -248,7 +335,7 @@ class StudioWorker {
         } else {
             this.releaseLocalEndpoint();
         }
-        this.scheduleObsReconnect(30000);
+        this.scheduleObsReconnect(45000);
     }
 
     nextReconnectDelayMs(error = null) {
@@ -276,8 +363,8 @@ class StudioWorker {
                 payload.status = statusOverride;
             }
             const res = await apiRequest('/api/obs-agent/state', 'POST', payload);
-            if (res?.ignored_duplicate_relay) {
-                await this.yieldToRemoteOwner('owned by another relay PC');
+            if (res?.ignored_duplicate_relay || res?.ignored_duplicate_agent) {
+                await this.yieldToRemoteOwner('owned by another active agent');
                 return;
             }
             if (statusOverride === 'offline') {
@@ -302,8 +389,8 @@ class StudioWorker {
                 agent_instance_id: AGENT_INSTANCE_ID,
                 status,
             });
-            if (res?.ignored_duplicate_relay) {
-                await this.yieldToRemoteOwner('owned by another relay PC');
+            if (res?.ignored_duplicate_relay || res?.ignored_duplicate_agent) {
+                await this.yieldToRemoteOwner('owned by another active agent');
                 return res;
             }
             this.remoteAgentOnline = Boolean(res?.active_on_other_agent);
@@ -565,64 +652,102 @@ class StudioWorker {
         }
     }
 
-    async hydrateAllScenesItems(scenes) {
-        const entries = await Promise.all(
-            scenes
-                .map((scene) => scene?.sceneName)
-                .filter(Boolean)
-                .map(async (sName) => [sName, await this.hydrateSceneItems(sName)])
-        );
-
-        return Object.fromEntries(entries);
+    extractBatchResult(results, index) {
+        const entry = Array.isArray(results) ? results[index] : null;
+        if (!entry || !entry.requestStatus?.result) {
+            return null;
+        }
+        return entry.responseData ?? {};
     }
 
-    async hydrateInputsMetadata() {
-        if (!this.obsConnected) {
-            return { allInputs: [], audioInputs: [], inputKinds: [] };
+    async hydrateAllScenesItems(scenes) {
+        const sceneNames = scenes.map((scene) => scene?.sceneName).filter(Boolean);
+        if (!this.obsConnected || sceneNames.length === 0) {
+            return {};
         }
 
         try {
-            const [{ inputs }, kindsRes] = await Promise.all([
-                this.obs.call('GetInputList'),
-                this.obs.call('GetInputKindList', { unversioned: false }).catch(() => ({ inputKinds: [] })),
-            ]);
-
-            const allInputs = inputs.map((input) => ({
-                inputName: input.inputName,
-                inputKind: input.inputKind,
-            }));
-
-            const audioResults = await Promise.all(
-                inputs.map(async (input) => {
-                    try {
-                        const [{ inputMuted }, vol] = await Promise.all([
-                            this.obs.call('GetInputMute', { inputName: input.inputName }),
-                            this.obs.call('GetInputVolume', { inputName: input.inputName }),
-                        ]);
-                        return {
-                            inputName: input.inputName,
-                            inputKind: input.inputKind,
-                            inputMuted: Boolean(inputMuted),
-                            inputVolumeMul: Number(vol.inputVolumeMul ?? 1),
-                            inputVolumeDb: Number(vol.inputVolumeDb ?? 0),
-                        };
-                    } catch {
-                        return null;
-                    }
-                })
+            const results = await this.obs.callBatch(
+                sceneNames.map((sceneName) => ({
+                    requestType: 'GetSceneItemList',
+                    requestData: { sceneName },
+                })),
+                {
+                    executionType: RequestBatchExecutionType.SerialRealtime,
+                    haltOnFailure: false,
+                }
             );
 
-            return {
-                allInputs,
-                audioInputs: audioResults.filter(Boolean),
-                inputKinds: Array.isArray(kindsRes?.inputKinds) ? kindsRes.inputKinds : [],
-            };
+            const byScene = {};
+            sceneNames.forEach((sName, idx) => {
+                const data = this.extractBatchResult(results, idx);
+                const list = Array.isArray(data?.sceneItems) ? data.sceneItems : [];
+                byScene[sName] = list.map((item) => ({
+                    sceneItemId: item.sceneItemId,
+                    sourceName: item.sourceName,
+                    sourceType: item.sourceType ?? null,
+                    inputKind: item.inputKind ?? null,
+                    sceneItemIndex: item.sceneItemIndex ?? 0,
+                    sceneItemEnabled: Boolean(item.sceneItemEnabled),
+                    sceneItemLocked: Boolean(item.sceneItemLocked),
+                    sceneItemTransform: item.sceneItemTransform ?? {},
+                }));
+            });
+
+            return byScene;
         } catch {
-            return { allInputs: [], audioInputs: [], inputKinds: [] };
+            return {};
         }
     }
 
-    async refreshAllState() {
+    async hydrateInputsAudio(inputs = []) {
+        if (!this.obsConnected || !Array.isArray(inputs) || inputs.length === 0) {
+            return [];
+        }
+
+        const candidates = inputs.filter((input) => {
+            const kind = String(input?.inputKind || '').toLowerCase();
+            return Boolean(input?.inputName) && !NON_AUDIO_INPUT_KINDS.has(kind);
+        });
+
+        if (candidates.length === 0) {
+            return [];
+        }
+
+        try {
+            const batch = [];
+            for (const input of candidates) {
+                batch.push({ requestType: 'GetInputMute', requestData: { inputName: input.inputName } });
+                batch.push({ requestType: 'GetInputVolume', requestData: { inputName: input.inputName } });
+            }
+
+            const results = await this.obs.callBatch(batch, {
+                executionType: RequestBatchExecutionType.SerialRealtime,
+                haltOnFailure: false,
+            });
+
+            const audioInputs = [];
+            for (let i = 0; i < candidates.length; i++) {
+                const muteRes = this.extractBatchResult(results, i * 2);
+                const volRes = this.extractBatchResult(results, i * 2 + 1);
+                if (muteRes && volRes) {
+                    audioInputs.push({
+                        inputName: candidates[i].inputName,
+                        inputKind: candidates[i].inputKind,
+                        inputMuted: Boolean(muteRes.inputMuted),
+                        inputVolumeMul: Number(volRes.inputVolumeMul ?? 1),
+                        inputVolumeDb: Number(volRes.inputVolumeDb ?? 0),
+                    });
+                }
+            }
+
+            return audioInputs;
+        } catch {
+            return [];
+        }
+    }
+
+    async refreshAllState(force = false) {
         if (!this.obsConnected || this.stopped) {
             return;
         }
@@ -631,44 +756,75 @@ class StudioWorker {
             return;
         }
 
+        const elapsedSinceLast = Date.now() - this.lastFullRefreshAt;
+        if (!force && elapsedSinceLast < 2500) {
+            this.scheduleRefreshAllState(2500 - elapsedSinceLast);
+            return;
+        }
+
         this.refreshInFlight = true;
         try {
-            const [version, sceneList, collectionList, studioMode, streamStatus, recordStatus, stats, videoSettings] = await Promise.all([
-                this.obs.call('GetVersion'),
-                this.obs.call('GetSceneList'),
-                this.obs.call('GetSceneCollectionList').catch(() => ({ currentSceneCollectionName: null, sceneCollections: [] })),
-                this.obs.call('GetStudioModeEnabled'),
-                this.obs.call('GetStreamStatus'),
-                this.obs.call('GetRecordStatus'),
-                this.obs.call('GetStats'),
-                this.obs.call('GetVideoSettings').catch(() => null),
-            ]);
+            // Batch 1 (1 WS frame): Core OBS metadata, outputs, stats, and input list
+            const coreResults = await this.obs.callBatch(
+                [
+                    { requestType: 'GetVersion' },
+                    { requestType: 'GetSceneList' },
+                    { requestType: 'GetSceneCollectionList' },
+                    { requestType: 'GetStudioModeEnabled' },
+                    { requestType: 'GetStreamStatus' },
+                    { requestType: 'GetRecordStatus' },
+                    { requestType: 'GetStats' },
+                    { requestType: 'GetVideoSettings' },
+                    { requestType: 'GetInputList' },
+                    { requestType: 'GetInputKindList', requestData: { unversioned: false } },
+                    { requestType: 'GetVirtualCamStatus' },
+                    { requestType: 'GetReplayBufferStatus' },
+                ],
+                {
+                    executionType: RequestBatchExecutionType.SerialRealtime,
+                    haltOnFailure: false,
+                }
+            );
 
-            let virtualCam = false;
-            let replayBuffer = false;
-            try {
-                const vc = await this.obs.call('GetVirtualCamStatus');
-                virtualCam = Boolean(vc.outputActive);
-            } catch {
-                // Optional on some setups
-            }
-            try {
-                const rb = await this.obs.call('GetReplayBufferStatus');
-                replayBuffer = Boolean(rb.outputActive);
-            } catch {
-                // Replay buffer may be disabled
-            }
+            const version = this.extractBatchResult(coreResults, 0) ?? {};
+            const sceneList = this.extractBatchResult(coreResults, 1) ?? {};
+            const collectionList = this.extractBatchResult(coreResults, 2) ?? {};
+            const studioMode = this.extractBatchResult(coreResults, 3) ?? {};
+            const streamStatus = this.extractBatchResult(coreResults, 4) ?? {};
+            const recordStatus = this.extractBatchResult(coreResults, 5) ?? {};
+            const stats = this.extractBatchResult(coreResults, 6) ?? {};
+            const videoSettings = this.extractBatchResult(coreResults, 7);
+            const inputListRes = this.extractBatchResult(coreResults, 8) ?? {};
+            const kindsRes = this.extractBatchResult(coreResults, 9) ?? {};
+            const vcRes = this.extractBatchResult(coreResults, 10);
+            const rbRes = this.extractBatchResult(coreResults, 11);
 
-            const scenes = sceneList.scenes ?? [];
+            const virtualCam = Boolean(vcRes?.outputActive);
+            const replayBuffer = Boolean(rbRes?.outputActive);
+            const scenes = Array.isArray(sceneList.scenes) ? sceneList.scenes : [];
             const programScene = sceneList.currentProgramSceneName ?? null;
-            const [sceneItemsByScene, inputMeta] = await Promise.all([
-                this.hydrateAllScenesItems(scenes),
-                this.hydrateInputsMetadata(),
-            ]);
+            const rawInputs = Array.isArray(inputListRes.inputs) ? inputListRes.inputs : [];
+            const allInputs = rawInputs.map((input) => ({
+                inputName: input.inputName,
+                inputKind: input.inputKind,
+            }));
+
+            // Batch 2 & Batch 3 (at most 2 WS frames total)
+            const sceneItemsByScene = await this.hydrateAllScenesItems(scenes);
+            const audioInputs = await this.hydrateInputsAudio(rawInputs);
+
+            const nextStats = {
+                activeFps: Number((stats.activeFps ?? 0).toFixed(1)),
+                cpuUsage: Number((stats.cpuUsage ?? 0).toFixed(1)),
+                memoryUsage: Number((stats.memoryUsage ?? 0).toFixed(1)),
+                renderSkippedFrames: stats.renderSkippedFrames ?? 0,
+                outputSkippedFrames: stats.outputSkippedFrames ?? 0,
+            };
+            this.lastPushedStats = nextStats;
 
             this.liveState = {
-                obsVersion: version.obsVersion,
-                websocketVersion: version.obsWebSocketVersion,
+                obsVersion: version.obsVersion ?? null,
+                websocketVersion: version.obsWebSocketVersion ?? null,
                 currentSceneCollection: collectionList?.currentSceneCollectionName ?? null,
                 sceneCollections: Array.isArray(collectionList?.sceneCollections) ? collectionList.sceneCollections : [],
                 currentProgramScene: programScene,
@@ -681,9 +837,9 @@ class StudioWorker {
                 scenes,
                 sceneItems: programScene ? (sceneItemsByScene[programScene] ?? []) : [],
                 sceneItemsByScene,
-                audioInputs: inputMeta.audioInputs,
-                allInputs: inputMeta.allInputs,
-                inputKinds: inputMeta.inputKinds,
+                audioInputs,
+                allInputs,
+                inputKinds: Array.isArray(kindsRes?.inputKinds) ? kindsRes.inputKinds : [],
                 outputs: {
                     streaming: Boolean(streamStatus.outputActive),
                     streamTimecode: streamStatus.outputTimecode ?? null,
@@ -693,13 +849,7 @@ class StudioWorker {
                     virtualCam,
                     replayBuffer,
                 },
-                stats: {
-                    activeFps: Number((stats.activeFps ?? 0).toFixed(1)),
-                    cpuUsage: Number((stats.cpuUsage ?? 0).toFixed(1)),
-                    memoryUsage: Number((stats.memoryUsage ?? 0).toFixed(1)),
-                    renderSkippedFrames: stats.renderSkippedFrames ?? 0,
-                    outputSkippedFrames: stats.outputSkippedFrames ?? 0,
-                },
+                stats: nextStats,
                 agentHost: {
                     platform: process.platform,
                     homeDir: os.homedir(),
@@ -707,6 +857,7 @@ class StudioWorker {
                 },
             };
 
+            this.lastFullRefreshAt = Date.now();
             await this.pushState(this.liveState);
             this.lastPreviewHash = null;
             if (this.previewConfig.active) {
@@ -718,12 +869,12 @@ class StudioWorker {
             this.refreshInFlight = false;
             if (this.refreshQueued) {
                 this.refreshQueued = false;
-                this.scheduleRefreshAllState(120);
+                this.scheduleRefreshAllState(650);
             }
         }
     }
 
-    scheduleRefreshAllState(delayMs = 150) {
+    scheduleRefreshAllState(delayMs = 650) {
         if (this.stopped || !this.obsConnected) {
             return;
         }
@@ -732,7 +883,7 @@ class StudioWorker {
         }
         this.refreshDebounceTimer = setTimeout(() => {
             this.refreshDebounceTimer = null;
-            this.refreshAllState();
+            this.refreshAllState(false);
         }, delayMs);
     }
 
@@ -1133,9 +1284,9 @@ class StudioWorker {
                       }))
                     : [];
                 responseData = await this.obs.callBatch(batch);
-                deferBackgroundSync = () => this.refreshAllState();
+                deferBackgroundSync = () => this.scheduleRefreshAllState(500);
             } else if (requestType === 'obsisstant.RefreshAllState') {
-                await this.refreshAllState();
+                await this.refreshAllState(true);
                 responseData = { refreshed: true };
             } else {
                 responseData = (await this.obs.call(requestType, normalizedData)) ?? {};
@@ -1173,7 +1324,7 @@ class StudioWorker {
                 if (incrementalEventCommands.has(requestType)) {
                     deferBackgroundSync = () => this.syncIncrementalCommandState(requestType, normalizedData);
                 } else {
-                    deferBackgroundSync = () => this.scheduleRefreshAllState(180);
+                    deferBackgroundSync = () => this.scheduleRefreshAllState(650);
                 }
             }
 
@@ -1259,28 +1410,25 @@ class StudioWorker {
             await this.pushState({ studioModeEnabled: this.liveState.studioModeEnabled });
         });
 
-        this.obs.on('SceneListChanged', async () => {
-            this.scheduleRefreshAllState(160);
+        this.obs.on('SceneListChanged', () => {
+            this.scheduleRefreshAllState(650);
         });
 
         this.obs.on('CurrentSceneCollectionChanged', () => {
-            this.scheduleRefreshAllState(350);
+            this.scheduleRefreshAllState(850);
         });
 
         this.obs.on('SceneCollectionListChanged', () => {
-            this.scheduleRefreshAllState(250);
+            this.scheduleRefreshAllState(800);
         });
 
-        this.obs.on('SceneNameChanged', async () => {
-            this.scheduleRefreshAllState(160);
+        this.obs.on('SceneNameChanged', () => {
+            this.scheduleRefreshAllState(650);
         });
 
-        this.obs.on('SceneItemCreated', () => this.scheduleRefreshAllState(160));
-        this.obs.on('SceneItemRemoved', () => this.scheduleRefreshAllState(160));
-        this.obs.on('SceneItemListReindexed', () => this.scheduleRefreshAllState(160));
-        this.obs.on('SceneItemTransformChanged', ({ sceneName, sceneItemId, sceneItemTransform }) => {
-            this.patchSceneItemTransform(sceneName, sceneItemId, sceneItemTransform);
-        });
+        this.obs.on('SceneItemCreated', () => this.scheduleRefreshAllState(650));
+        this.obs.on('SceneItemRemoved', () => this.scheduleRefreshAllState(650));
+        this.obs.on('SceneItemListReindexed', () => this.scheduleRefreshAllState(650));
         this.obs.on('SceneItemLockStateChanged', async ({ sceneName, sceneItemId, sceneItemLocked }) => {
             const currentList = this.liveState.sceneItemsByScene[sceneName] || [];
             const existing = currentList.find((item) => Number(item.sceneItemId) === Number(sceneItemId));
@@ -1291,9 +1439,9 @@ class StudioWorker {
                 await this.flushSceneItemsPush(sceneName, false);
             }
         });
-        this.obs.on('InputCreated', () => this.scheduleRefreshAllState(180));
-        this.obs.on('InputRemoved', () => this.scheduleRefreshAllState(180));
-        this.obs.on('InputNameChanged', () => this.scheduleRefreshAllState(180));
+        this.obs.on('InputCreated', () => this.scheduleRefreshAllState(650));
+        this.obs.on('InputRemoved', () => this.scheduleRefreshAllState(650));
+        this.obs.on('InputNameChanged', () => this.scheduleRefreshAllState(650));
         this.obs.on('InputSettingsChanged', () => {
             this.lastPreviewHash = null;
             if (this.previewConfig.active) {
@@ -1319,11 +1467,19 @@ class StudioWorker {
             await this.pushState({ audioInputs: this.liveState.audioInputs });
         });
 
-        this.obs.on('InputVolumeChanged', async ({ inputName, inputVolumeMul, inputVolumeDb }) => {
+        this.obs.on('InputVolumeChanged', ({ inputName, inputVolumeMul, inputVolumeDb }) => {
             this.liveState.audioInputs = this.liveState.audioInputs.map((inp) =>
                 inp.inputName === inputName ? { ...inp, inputVolumeMul, inputVolumeDb } : inp
             );
-            await this.pushState({ audioInputs: this.liveState.audioInputs });
+            if (this.volumePushTimer) {
+                clearTimeout(this.volumePushTimer);
+            }
+            this.volumePushTimer = setTimeout(() => {
+                this.volumePushTimer = null;
+                if (!this.stopped && this.obsConnected) {
+                    this.pushState({ audioInputs: this.liveState.audioInputs });
+                }
+            }, 400);
         });
 
         this.obs.on('StreamStateChanged', async ({ outputActive }) => {
@@ -1349,6 +1505,7 @@ class StudioWorker {
         this.obs.on('ConnectionClosed', (err) => {
             const wasConnected = this.obsConnected;
             this.obsConnected = false;
+            this.stopObsKeepalive();
             this.releaseLocalEndpoint();
             if (this.stopped || !wasConnected) {
                 return;
@@ -1374,15 +1531,15 @@ class StudioWorker {
             return;
         }
 
-        // In multi-PC Workspace Relay mode, never dial local OBS for a studio already active on another PC
-        if (IS_RELAY_TOKEN && this.remoteAgentOnline) {
+        // Never dial OBS if this studio is already actively leased on another PC (both relay and single-studio modes)
+        if (this.remoteAgentOnline) {
             const res = await this.pushHeartbeat('offline');
             if (res?.active_on_other_agent) {
                 if (!this.loggedRemoteStandby) {
                     this.loggedRemoteStandby = true;
                     console.log(`${this.logPrefix()} Standing by — studio is active on another PC.`);
                 }
-                this.scheduleObsReconnect(30000);
+                this.scheduleObsReconnect(45000);
                 return;
             }
             this.remoteAgentOnline = false;
@@ -1398,7 +1555,7 @@ class StudioWorker {
                 this.loggedEndpointStandby = true;
                 console.log(`${this.logPrefix()} Standing by — ${endpointKey} is already claimed on this PC by Studio #${ownerStudioId}.`);
             }
-            this.scheduleObsReconnect(30000);
+            this.scheduleObsReconnect(45000);
             return;
         }
 
@@ -1411,30 +1568,32 @@ class StudioWorker {
 
         try {
             await this.obs.connect(wsUrl, password, {
-                eventSubscriptions: EventSubscription.All | EventSubscription.SceneItemTransformChanged,
+                eventSubscriptions: REQUIRED_EVENT_SUBSCRIPTIONS,
                 rpcVersion: 1,
             });
             this.obsConnected = true;
             this.remoteAgentOnline = false;
             this.loggedRemoteStandby = false;
             this.reconnectAttempts = 0;
+            this.startObsKeepalive();
             console.log(`${this.logPrefix()} Connected to OBS Studio at ${wsUrl}`);
         } catch (error) {
             this.obsConnected = false;
+            this.stopObsKeepalive();
             this.releaseLocalEndpoint();
             const delayMs = this.nextReconnectDelayMs(error);
             if (this.reconnectAttempts <= 2 || this.reconnectAttempts % 5 === 0) {
                 console.warn(`${this.logPrefix()} Waiting for OBS at ${wsUrl}: ${error.message} (retry in ${Math.round(delayMs / 1000)}s)`);
             }
             await this.pushHeartbeat('offline');
-            this.scheduleObsReconnect(this.remoteAgentOnline ? 30000 : delayMs);
+            this.scheduleObsReconnect(this.remoteAgentOnline ? 45000 : delayMs);
             return;
         } finally {
             this.connecting = false;
         }
 
         if (this.obsConnected && !this.stopped) {
-            await this.refreshAllState();
+            await this.refreshAllState(true);
         }
     }
 
@@ -1485,20 +1644,26 @@ class StudioWorker {
                     };
                     this.liveState.stats = nextStats;
 
-                    const sig = `${Math.round(nextStats.activeFps)}:${Math.round(nextStats.cpuUsage)}:${nextStats.renderSkippedFrames}:${nextStats.outputSkippedFrames}`;
-                    if (sig !== this.lastStatsSignature) {
-                        this.lastStatsSignature = sig;
+                    const prev = this.lastPushedStats;
+                    const significantDelta = !prev
+                        || Math.abs(nextStats.activeFps - prev.activeFps) >= 2
+                        || Math.abs(nextStats.cpuUsage - prev.cpuUsage) >= 5
+                        || nextStats.renderSkippedFrames !== prev.renderSkippedFrames
+                        || nextStats.outputSkippedFrames !== prev.outputSkippedFrames;
+
+                    if (significantDelta) {
+                        this.lastPushedStats = nextStats;
                         await this.pushState({ stats: nextStats });
-                    } else if (Date.now() - this.lastHeartbeatAt >= 24000) {
+                    } else if (Date.now() - this.lastHeartbeatAt >= 45000) {
                         await this.pushHeartbeat('online');
                     }
                 } catch {
                     // Ignore transient stat poll errors
                 }
-            } else if (!this.waitingForEndpointKey && !this.remoteAgentOnline && Date.now() - this.lastHeartbeatAt >= 20000) {
+            } else if (!this.waitingForEndpointKey && !this.remoteAgentOnline && Date.now() - this.lastHeartbeatAt >= 45000) {
                 await this.pushHeartbeat('offline');
             }
-        }, 12000);
+        }, 30000);
     }
 
     async updateConfig(entry) {
@@ -1522,6 +1687,7 @@ class StudioWorker {
                 clearTimeout(this.reconnectTimer);
                 this.reconnectTimer = null;
             }
+            this.stopObsKeepalive();
             if (this.obsConnected) {
                 this.obsConnected = false;
                 this.releaseLocalEndpoint();
@@ -1540,6 +1706,7 @@ class StudioWorker {
     async stop() {
         this.stopped = true;
         this.stopPreviewLoop();
+        this.stopObsKeepalive();
         this.releaseLocalEndpoint();
         if (this.refreshDebounceTimer) {
             clearTimeout(this.refreshDebounceTimer);
@@ -1548,6 +1715,10 @@ class StudioWorker {
         if (this.partialPushTimer) {
             clearTimeout(this.partialPushTimer);
             this.partialPushTimer = null;
+        }
+        if (this.volumePushTimer) {
+            clearTimeout(this.volumePushTimer);
+            this.volumePushTimer = null;
         }
         if (this.reconnectTimer) {
             clearTimeout(this.reconnectTimer);
@@ -1659,7 +1830,7 @@ function schedulePendingPoll() {
         pendingPollTimer = null;
     }
 
-    const delayMs = pusherConnected ? 15000 : 2000;
+    const delayMs = pusherConnected ? 30000 : 3000;
     pendingPollTimer = setTimeout(async () => {
         pendingPollTimer = null;
         await pollPendingCommands().catch(() => {});

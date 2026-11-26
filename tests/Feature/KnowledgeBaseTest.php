@@ -48,7 +48,7 @@ class KnowledgeBaseTest extends TestCase
             ->assertOk()
             ->assertSee('Obsisstant Knowledge Base')
             ->assertSee($versionTag)
-            ->assertSee('Reverb active')
+            ->assertDontSee('obs-reverb-pill', false)
             ->assertSee('Getting Started & Relay Pairing')
             ->assertSee('OBS WebSocket v5 Request Reference')
             ->assertSee('SetCurrentProgramScene')

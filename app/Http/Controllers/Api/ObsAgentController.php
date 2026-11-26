@@ -21,7 +21,7 @@ use Throwable;
 
 class ObsAgentController extends Controller
 {
-    private const ONLINE_LEASE_TTL_SECONDS = 75;
+    private const ONLINE_LEASE_TTL_SECONDS = 95;
 
     public function bootstrap(Request $request): JsonResponse
     {
@@ -197,16 +197,17 @@ class ObsAgentController extends Controller
 
             $this->clearOnlineLease($studio);
         } else {
-            if ($isRelayMode && $this->isOwnedByAnotherAgent($studio, $agentInstanceId)) {
+            if ($this->isBlockedByAnotherAgentLease($studio, $agentInstanceId, $isRelayMode)) {
                 return response()->json([
                     'ok' => true,
                     'status' => $studio->status,
                     'active_on_other_agent' => true,
                     'ignored_duplicate_relay' => true,
+                    'ignored_duplicate_agent' => true,
                 ]);
             }
 
-            $this->refreshOnlineLease($studio, $agentInstanceId);
+            $this->refreshOnlineLease($studio, $agentInstanceId, $isRelayMode);
         }
 
         $studio->update([
@@ -311,17 +312,18 @@ class ObsAgentController extends Controller
 
             $this->clearOnlineLease($studio);
         } else {
-            if ($isRelayMode && $this->isOwnedByAnotherAgent($studio, $agentInstanceId)) {
+            if ($this->isBlockedByAnotherAgentLease($studio, $agentInstanceId, $isRelayMode)) {
                 return response()->json([
                     'ok' => true,
                     'status' => $studio->status,
                     'active_on_other_agent' => true,
                     'ignored_duplicate_relay' => true,
+                    'ignored_duplicate_agent' => true,
                     'server_time' => now()->toIso8601String(),
                 ]);
             }
 
-            $this->refreshOnlineLease($studio, $agentInstanceId);
+            $this->refreshOnlineLease($studio, $agentInstanceId, $isRelayMode);
         }
 
         $studio->update([
@@ -541,12 +543,31 @@ class ObsAgentController extends Controller
         return true;
     }
 
-    private function refreshOnlineLease(ObsStudio $studio, ?string $agentInstanceId): void
+    private function isBlockedByAnotherAgentLease(ObsStudio $studio, ?string $agentInstanceId, bool $isRelayMode): bool
+    {
+        if (! $this->isOwnedByAnotherAgent($studio, $agentInstanceId)) {
+            return false;
+        }
+
+        if ($isRelayMode) {
+            return true;
+        }
+
+        // A dedicated studio-scoped agent may cleanly take over from a generic workspace relay,
+        // but two dedicated studio agents on different PCs must not fight over the same studio.
+        $lease = Cache::get($this->onlineLeaseKey($studio));
+        $leaseMode = is_array($lease) ? ($lease['mode'] ?? 'studio') : 'studio';
+
+        return $leaseMode !== 'relay';
+    }
+
+    private function refreshOnlineLease(ObsStudio $studio, ?string $agentInstanceId, bool $isRelayMode = false): void
     {
         Cache::put(
             $this->onlineLeaseKey($studio),
             [
                 'agent_id' => $agentInstanceId,
+                'mode' => $isRelayMode ? 'relay' : 'studio',
                 'at' => now()->timestamp,
             ],
             now()->addSeconds(self::ONLINE_LEASE_TTL_SECONDS),

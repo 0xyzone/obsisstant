@@ -12,13 +12,13 @@ class KnowledgeBase extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
 
-    protected static string|UnitEnum|null $navigationGroup = 'OBS Studio';
+    protected static string|UnitEnum|null $navigationGroup = 'Documentation';
 
     protected static ?string $navigationLabel = 'Knowledge Base';
 
     protected static ?string $title = 'Operator Knowledge Base & OBS Reference';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 1;
 
     protected string $view = 'filament.pages.knowledge-base';
 

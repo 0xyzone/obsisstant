@@ -132,48 +132,6 @@
                 background-color: var(--hairline);
             }
 
-            .obs-reverb-pill {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.4375rem;
-                padding: 0.25rem 0.625rem;
-                border-radius: 9999px;
-                font-size: 0.75rem;
-                font-weight: 500;
-                line-height: 1.3;
-                white-space: nowrap;
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                background-color: var(--bg-raised);
-                color: var(--ink-secondary);
-            }
-
-            .obs-reverb-dot {
-                inline-size: 0.4375rem;
-                block-size: 0.4375rem;
-                border-radius: 50%;
-                background-color: var(--ink-muted);
-            }
-
-            .obs-reverb-pill.is-active {
-                border-color: rgba(76, 195, 138, 0.34);
-                background-color: rgba(76, 195, 138, 0.08);
-                color: #9EE6C3;
-            }
-
-            .obs-reverb-pill.is-active .obs-reverb-dot {
-                background-color: var(--positive);
-            }
-
-            .obs-reverb-pill.is-offline {
-                border-color: rgba(229, 72, 77, 0.32);
-                background-color: rgba(229, 72, 77, 0.08);
-                color: #F4A3A6;
-            }
-
-            .obs-reverb-pill.is-offline .obs-reverb-dot {
-                background-color: var(--danger);
-            }
-
             /* Controls & Buttons */
             .s-input,
             .s-select,
@@ -857,7 +815,6 @@
                 .layer-row,
                 .audio-item,
                 dialog.obs-dialog,
-                .obs-reverb-pill,
                 .obs-brand-version-pill,
                 .view-pad-btn {
                     background: Canvas;
@@ -1274,7 +1231,6 @@
             </div>
 
             <div class="studio-bar-right">
-                <x-reverb-status-pill />
                 <button type="button" id="open-install-agent-btn" class="s-btn" commandfor="install-agent-dialog" command="show-modal">Install Agent</button>
                 <a href="{{ url('/admin/studio-settings') }}" class="s-btn">Storage Settings</a>
                 <a href="{{ route('obs.deck.show', ['studio' => $studio->slug]) }}" class="s-btn">Mobile Deck</a>
@@ -1907,6 +1863,21 @@
             </div>
         </dialog>
 
+        {{-- Native Declarative Modal: Confirm Remove Source from Current Scene --}}
+        <dialog id="remove-scene-item-dialog" class="obs-dialog" aria-labelledby="remove-scene-item-title">
+            <div class="dialog-inner">
+                <div class="dialog-head">
+                    <h2 id="remove-scene-item-title" class="dialog-title">Remove Source from Scene</h2>
+                    <button type="button" class="s-btn s-btn-xs" commandfor="remove-scene-item-dialog" command="close">Close</button>
+                </div>
+                <p id="remove-scene-item-copy" style="margin: 0; color: var(--ink-secondary);"></p>
+                <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                    <button type="button" class="s-btn" commandfor="remove-scene-item-dialog" command="close">Cancel</button>
+                    <button type="button" id="confirm-remove-scene-item-btn" class="s-btn s-btn-danger">Remove from Scene</button>
+                </div>
+            </div>
+        </dialog>
+
         {{-- Native Declarative Modal: Confirm Permanent Source Delete --}}
         <dialog id="delete-source-dialog" class="obs-dialog" aria-labelledby="delete-source-title">
             <div class="dialog-inner">
@@ -2120,6 +2091,7 @@
                 let lastEchoStateAt = 0;
                 let pendingDeleteScene = null;
                 let pendingDeleteSourceName = null;
+                let pendingRemoveSceneItem = null;
                 let loadedSettingsKey = null;
                 let settingsLoadSeq = 0;
                 let currentLoadedSettings = {};
@@ -3474,16 +3446,14 @@
                         rmBtn.textContent = 'Remove';
                         rmBtn.title = 'Remove from this scene';
                         rmBtn.setAttribute('aria-label', `Remove ${sourceLabel} from scene`);
-                        rmBtn.addEventListener('click', async () => {
-                            rmBtn.disabled = true;
-                            if (selectedSceneItemId === itemId) {
-                                selectedSceneItemId = null;
-                                loadedSettingsKey = null;
+                        rmBtn.addEventListener('click', () => {
+                            if (!editingScene) return;
+                            pendingRemoveSceneItem = { sceneName: editingScene, sceneItemId: itemId, sourceName: sourceLabel };
+                            const copyEl = document.getElementById('remove-scene-item-copy');
+                            if (copyEl) {
+                                copyEl.textContent = `Remove "${sourceLabel}" from scene "${editingScene}"? The source itself will stay available in other OBS scenes.`;
                             }
-                            await sendObsCommand('RemoveSceneItem', {
-                                sceneName: editingScene,
-                                sceneItemId: itemId,
-                            });
+                            openDialog(document.getElementById('remove-scene-item-dialog'));
                         });
 
                         const delBtn = document.createElement('button');
@@ -3994,16 +3964,34 @@
                     }
                 });
 
-                document.getElementById('btn-remove-scene-item')?.addEventListener('click', async () => {
+                document.getElementById('btn-remove-scene-item')?.addEventListener('click', () => {
                     const item = getItemsForEditingScene().find((i) => Number(i.sceneItemId) === selectedSceneItemId);
                     if (!item || !editingScene) return;
                     const itemId = Number(item.sceneItemId);
-                    selectedSceneItemId = null;
-                    loadedSettingsKey = null;
-                    await sendObsCommand('RemoveSceneItem', {
-                        sceneName: editingScene,
-                        sceneItemId: itemId,
+                    const sourceLabel = item.sourceName || `Source #${itemId}`;
+                    pendingRemoveSceneItem = { sceneName: editingScene, sceneItemId: itemId, sourceName: sourceLabel };
+                    const copyEl = document.getElementById('remove-scene-item-copy');
+                    if (copyEl) {
+                        copyEl.textContent = `Remove "${sourceLabel}" from scene "${editingScene}"? The source itself will stay available in other OBS scenes.`;
+                    }
+                    openDialog(document.getElementById('remove-scene-item-dialog'));
+                });
+
+                document.getElementById('confirm-remove-scene-item-btn')?.addEventListener('click', async () => {
+                    if (!pendingRemoveSceneItem) return;
+                    const target = pendingRemoveSceneItem;
+                    pendingRemoveSceneItem = null;
+                    if (selectedSceneItemId === target.sceneItemId) {
+                        selectedSceneItemId = null;
+                        loadedSettingsKey = null;
+                    }
+                    const res = await sendObsCommand('RemoveSceneItem', {
+                        sceneName: target.sceneName,
+                        sceneItemId: target.sceneItemId,
                     });
+                    if (res?.settled?.status !== 'failed') {
+                        closeDialog(document.getElementById('remove-scene-item-dialog'));
+                    }
                 });
 
                 document.getElementById('btn-delete-source-forever')?.addEventListener('click', () => {

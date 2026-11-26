@@ -77,6 +77,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/studio/{studio:slug}/collections/{collection}/views/{view}/duplicate', [ScreenCollectionController::class, 'duplicateView'])->name('studio.collections.views.duplicate');
     Route::delete('/studio/{studio:slug}/collections/{collection}/views/{view}', [ScreenCollectionController::class, 'destroyView'])->name('studio.collections.views.destroy');
     Route::post('/studio/{studio:slug}/collections/{collection}/assets', [ScreenCollectionController::class, 'storeAsset'])->name('studio.collections.assets.store');
+    Route::post('/studio/{studio:slug}/collections/{collection}/assets/cleanup', [ScreenCollectionController::class, 'cleanupAssets'])->name('studio.collections.assets.cleanup');
     Route::delete('/studio/{studio:slug}/collections/assets/{asset}', [ScreenCollectionController::class, 'destroyAsset'])->name('studio.collections.assets.destroy');
 
     Route::get('/deck', [ObsMobileDeckController::class, 'index'])->name('obs.deck.index');

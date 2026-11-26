@@ -42,9 +42,11 @@ class ObsMacroResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBolt;
 
-    protected static string|UnitEnum|null $navigationGroup = 'OBS Studio';
+    protected static string|UnitEnum|null $navigationGroup = 'Studio & Automation';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?string $navigationLabel = 'Broadcast Macros';
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -20,6 +20,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 
 class StudioControlCenterController extends Controller
 {
@@ -316,6 +317,9 @@ class StudioControlCenterController extends Controller
 
         if (! $studio->isOnline() && is_string($prepared['direct_saved_path'])) {
             ObsCommandService::previewCacheStore()->forget("obs.media.upload.{$prepared['token']}");
+            if (! empty($prepared['storage_path']) && Storage::disk('local')->exists((string) $prepared['storage_path'])) {
+                Storage::disk('local')->delete((string) $prepared['storage_path']);
+            }
 
             return response()->json([
                 'ok' => true,

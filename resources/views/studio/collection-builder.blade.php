@@ -396,6 +396,59 @@
                 text-align: center;
             }
 
+            .unused-tag {
+                font-size: 0.625rem;
+                font-weight: 500;
+                padding: 0.1rem 0.35rem;
+                border-radius: 999px;
+                border: 1px solid rgba(205, 173, 105, 0.32);
+                background: rgba(205, 173, 105, 0.1);
+                color: var(--gold-light);
+                flex-shrink: 0;
+            }
+
+            .obs-dialog {
+                inline-size: min(26rem, calc(100vw - 2rem));
+                padding: 0;
+                border: 1px solid var(--hairline-strong);
+                border-radius: 0.85rem;
+                background: var(--bg-panel);
+                color: var(--ink-primary);
+                box-shadow: 0 24px 64px rgba(0, 0, 0, 0.72);
+            }
+            .obs-dialog::backdrop {
+                background: rgba(5, 5, 7, 0.72);
+                backdrop-filter: blur(4px);
+            }
+            .obs-dialog-inner {
+                padding: 1rem 1.15rem;
+                display: grid;
+                gap: 0.85rem;
+            }
+            .obs-dialog-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.5rem;
+            }
+            .obs-dialog-title {
+                margin: 0;
+                font-size: 0.95rem;
+                font-weight: 600;
+                color: var(--ink-primary);
+            }
+            .obs-dialog-copy {
+                margin: 0;
+                font-size: 0.8rem;
+                line-height: 1.5;
+                color: var(--ink-secondary);
+            }
+            .obs-dialog-actions {
+                display: flex;
+                justify-content: flex-end;
+                gap: 0.5rem;
+            }
+
             .toast {
                 position: fixed;
                 inset-block-end: 1rem;
@@ -456,7 +509,7 @@
                 <div id="left-tab-assets" class="stack" hidden>
                     <div class="panel-head">
                         <h2 class="panel-title">Collection Assets</h2>
-                        <span class="sub-label">PNG / SVG / MP4 / WebM</span>
+                        <button type="button" id="btn-clean-unused-assets" class="s-btn s-btn-xs s-btn-danger" title="Delete unused files and orphaned uploads from server storage">Clean Unused</button>
                     </div>
                     <div class="stack">
                         <select id="asset-upload-type" class="s-select" aria-label="Asset type">
@@ -758,6 +811,21 @@
             </aside>
         </main>
 
+        {{-- Native Confirmation Dialog for all delete / remove / bulk cleanup actions --}}
+        <dialog id="builder-confirm-dialog" class="obs-dialog" aria-labelledby="builder-confirm-title">
+            <div class="obs-dialog-inner">
+                <div class="obs-dialog-head">
+                    <h2 id="builder-confirm-title" class="obs-dialog-title">Confirm Action</h2>
+                    <button type="button" id="builder-confirm-close" class="s-btn s-btn-xs">Close</button>
+                </div>
+                <p id="builder-confirm-copy" class="obs-dialog-copy"></p>
+                <div class="obs-dialog-actions">
+                    <button type="button" id="builder-confirm-cancel" class="s-btn">Cancel</button>
+                    <button type="button" id="builder-confirm-ok" class="s-btn s-btn-danger">Delete</button>
+                </div>
+            </div>
+        </dialog>
+
         <div id="builder-toast" class="toast" role="status" hidden></div>
 
         @php
@@ -771,6 +839,7 @@
                 'duplicateViewTpl' => route('studio.collections.views.duplicate', ['studio' => $studio->slug, 'collection' => $collection->id, 'view' => '__VIEW__'], false),
                 'deleteViewTpl' => route('studio.collections.views.destroy', ['studio' => $studio->slug, 'collection' => $collection->id, 'view' => '__VIEW__'], false),
                 'uploadAsset' => route('studio.collections.assets.store', ['studio' => $studio->slug, 'collection' => $collection->id], false),
+                'cleanupAssets' => route('studio.collections.assets.cleanup', ['studio' => $studio->slug, 'collection' => $collection->id], false),
                 'deleteAssetTpl' => route('studio.collections.assets.destroy', ['studio' => $studio->slug, 'asset' => '__ASSET__'], false),
             ];
         @endphp
@@ -803,6 +872,44 @@
                     clearTimeout(el._timer);
                     el._timer = setTimeout(() => { el.hidden = true; }, 2600);
                 };
+
+                const confirmBuilderAction = ({ title = 'Confirm Delete', message = 'Are you sure?', confirmLabel = 'Delete' }) => new Promise((resolve) => {
+                    const dialog = document.getElementById('builder-confirm-dialog');
+                    if (!dialog || typeof dialog.showModal !== 'function') {
+                        resolve(window.confirm(message));
+                        return;
+                    }
+                    const titleEl = document.getElementById('builder-confirm-title');
+                    const copyEl = document.getElementById('builder-confirm-copy');
+                    const okBtn = document.getElementById('builder-confirm-ok');
+                    const cancelBtn = document.getElementById('builder-confirm-cancel');
+                    const closeBtn = document.getElementById('builder-confirm-close');
+                    if (titleEl) titleEl.textContent = title;
+                    if (copyEl) copyEl.textContent = message;
+                    if (okBtn) okBtn.textContent = confirmLabel;
+
+                    let settled = false;
+                    const finish = (accepted) => {
+                        if (settled) return;
+                        settled = true;
+                        okBtn?.removeEventListener('click', onOk);
+                        cancelBtn?.removeEventListener('click', onCancel);
+                        closeBtn?.removeEventListener('click', onCancel);
+                        dialog.removeEventListener('cancel', onCancel);
+                        if (dialog.open) dialog.close();
+                        resolve(accepted);
+                    };
+                    const onOk = () => finish(true);
+                    const onCancel = (ev) => {
+                        if (ev && ev.type === 'cancel') ev.preventDefault();
+                        finish(false);
+                    };
+                    okBtn?.addEventListener('click', onOk);
+                    cancelBtn?.addEventListener('click', onCancel);
+                    closeBtn?.addEventListener('click', onCancel);
+                    dialog.addEventListener('cancel', onCancel);
+                    dialog.showModal();
+                });
 
                 const apiJson = async (url, method = 'POST', body = {}) => {
                     const res = await fetch(url, {
@@ -1247,6 +1354,12 @@
                         delBtn.textContent = '×';
                         delBtn.disabled = views.length <= 1;
                         delBtn.addEventListener('click', async () => {
+                            const ok = await confirmBuilderAction({
+                                title: 'Delete Screen View',
+                                message: `Permanently delete view "${v.name}"? Any uploaded files used exclusively by this view will also be removed from server storage.`,
+                                confirmLabel: 'Delete View',
+                            });
+                            if (!ok) return;
                             const res = await apiJson(endpoints.deleteViewTpl.replace('__VIEW__', v.id), 'DELETE', {});
                             colData = res.collection;
                             selectedViewId = Number(colData.active_view_id || colData.views?.[0]?.id || 0);
@@ -1307,6 +1420,12 @@
                         }
                     }
 
+                    const cleanUnusedBtn = document.getElementById('btn-clean-unused-assets');
+                    const unusedCount = assets.filter((a) => a.in_use === false).length;
+                    if (cleanUnusedBtn) {
+                        cleanUnusedBtn.textContent = unusedCount > 0 ? `Clean Unused (${unusedCount})` : 'Clean Unused';
+                    }
+
                     list.innerHTML = assets.length === 0 ? '<div class="empty-hint">Upload images, video loops, or .webm stingers above.</div>' : '';
                     assets.forEach((a) => {
                         const row = document.createElement('div');
@@ -1332,7 +1451,14 @@
                         lbl.textContent = a.name;
 
                         const btns = document.createElement('div');
-                        btns.style.cssText = 'display:flex;gap:0.2rem;';
+                        btns.style.cssText = 'display:flex;align-items:center;gap:0.2rem;';
+
+                        if (a.in_use === false) {
+                            const unusedTag = document.createElement('span');
+                            unusedTag.className = 'unused-tag';
+                            unusedTag.textContent = 'Unused';
+                            btns.appendChild(unusedTag);
+                        }
 
                         const addBtn = document.createElement('button');
                         addBtn.type = 'button';
@@ -1376,6 +1502,12 @@
                         rmBtn.className = 's-btn s-btn-xs s-btn-danger';
                         rmBtn.textContent = '×';
                         rmBtn.addEventListener('click', async () => {
+                            const ok = await confirmBuilderAction({
+                                title: 'Delete Asset File',
+                                message: `Permanently delete "${a.name}" from server storage? This cannot be undone.`,
+                                confirmLabel: 'Delete File',
+                            });
+                            if (!ok) return;
                             await apiJson(endpoints.deleteAssetTpl.replace('__ASSET__', a.id), 'DELETE', {});
                             colData.assets = (colData.assets || []).filter((x) => x.id !== a.id);
                             if (Number(colData.theme?.background_asset_id) === Number(a.id)) {
@@ -1392,7 +1524,7 @@
                             });
                             renderAssetsList();
                             renderCanvas();
-                            showToast('Asset deleted');
+                            showToast('Asset deleted from server');
                         });
 
                         btns.append(addBtn, rmBtn);
@@ -2071,13 +2203,45 @@
                     });
                 });
 
-                document.getElementById('lp-delete-btn').addEventListener('click', () => {
+                document.getElementById('lp-delete-btn').addEventListener('click', async () => {
                     const view = getCurrentView();
                     if (!view || !selectedLayerId) return;
+                    const targetLayer = (view.layers || []).find((l) => String(l.id) === String(selectedLayerId));
+                    const ok = await confirmBuilderAction({
+                        title: 'Remove Canvas Layer',
+                        message: `Remove layer "${targetLayer?.name || targetLayer?.type || 'Selected Layer'}" from "${view.name}"? Saving the view will also delete any media file used only by this layer.`,
+                        confirmLabel: 'Remove Layer',
+                    });
+                    if (!ok) return;
                     view.layers = (view.layers || []).filter((l) => String(l.id) !== String(selectedLayerId));
                     selectedLayerId = null;
                     setDirty(true);
                     renderAll();
+                });
+
+                document.getElementById('btn-clean-unused-assets')?.addEventListener('click', async () => {
+                    const unusedCount = (colData.assets || []).filter((a) => a.in_use === false).length;
+                    const ok = await confirmBuilderAction({
+                        title: 'Clean Unused Server Files',
+                        message: unusedCount > 0
+                            ? `Permanently delete ${unusedCount} unused asset(s) and any orphaned upload files on server storage? Files currently used in any collection or view will be kept.`
+                            : 'Scan and permanently delete any unused assets or orphaned upload files on server storage? Files currently in use will be kept.',
+                        confirmLabel: 'Clean Unused Files',
+                    });
+                    if (!ok) return;
+                    try {
+                        const res = await apiJson(endpoints.cleanupAssets, 'POST', { include_orphans: true });
+                        if (res.collection) {
+                            colData = res.collection;
+                            renderAssetsList();
+                            renderCanvas();
+                        }
+                        const deleted = Number(res.summary?.total_deleted || 0);
+                        const freed = res.summary?.freed_formatted || '0 B';
+                        showToast(deleted > 0 ? `Cleaned ${deleted} unused file(s) · freed ${freed}` : 'No unused or orphaned files found');
+                    } catch (err) {
+                        showToast(`Cleanup failed: ${err.message}`);
+                    }
                 });
 
                 document.getElementById('btn-fit-layer').addEventListener('click', () => {
