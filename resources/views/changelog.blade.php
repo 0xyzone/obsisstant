@@ -701,17 +701,7 @@
             <header class="app-bar">
                 <div class="brand-cluster">
                     <a href="{{ route('home') }}" class="brand-link">
-                        <div class="brand-mark" aria-hidden="true">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="9"/>
-                                <path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
-                                <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
-                            </svg>
-                        </div>
-                        <div class="brand-text">
-                            <span class="brand-title">Obsisstant</span>
-                            <span class="brand-subtitle">Release Ledger</span>
-                        </div>
+                        <x-brand-logo :showVersion="false" />
                     </a>
                     <span class="version-pill" title="Current active release">v{{ $currentVersion }}</span>
                 </div>

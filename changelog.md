@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.24.0] - 2026-11-27 | type: minor
+
+> Added public Pricing & Demo Application page (`/pricing`, `POST /demo-requests`, and `/hq/demo-requests`), a metallic animated Obsisstant brand logo across the app, and matching brushed silver (local) & metallic gold (production) favicons.
+
+### Added
+- **Pricing & Demo Application (`/pricing`)**: Lists all active NPR packages with modular feature checkmarks, numeric quotas, and a Demo Request form backed by `demo_requests` (`DemoRequest`, `PricingController`) and manageable in `/hq/demo-requests` (`DemoRequestResource`).
+- **Animated Metallic Brand Logo & Matching Favicons**: Added `<x-brand-logo />` with an animated orbital gold aperture emblem and shimmering `Obsisstant` foil typography across public pages and Filament panels, paired with matching brushed silver (`public/favicon-local.svg`) and metallic gold (`public/favicon-prod.svg`) favicons.
+
 ## [v1.23.1] - 2026-11-27 | type: macro
 
 > Distinguished the Studio vs. Super Admin HQ login pages, switched default package pricing to NPR (Nepalese Rupee), added Super Admin dashboard widgets, and configured all Create/Edit/View actions in `/hq` to open as `7xl` slide-over modals.

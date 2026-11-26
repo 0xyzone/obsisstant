@@ -1339,12 +1339,7 @@
             <div class="header-inner">
                 <div class="brand-cluster">
                     <a href="{{ route('home') }}" class="brand-lockup" aria-current="page">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#CDAD69" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="12" r="9"/>
-                            <path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
-                            <circle cx="12" cy="12" r="2.5" fill="#CDAD69"/>
-                        </svg>
-                        <span>Obsisstant</span>
+                        <x-brand-logo :showVersion="false" />
                     </a>
                     <a href="{{ route('changelog') }}" class="obs-brand-version-pill" title="View changelog">v{{ $currentVersion }}</a>
                 </div>
@@ -1372,6 +1367,7 @@
                             <li><a href="{{ route('home') }}" aria-current="page">Overview</a></li>
                             <li><a href="#features">Architecture</a></li>
                             <li><a href="#overlays">Overlays</a></li>
+                            <li><a href="{{ route('pricing') }}">Pricing</a></li>
                             <li><a href="{{ route('knowledge-base') }}">Knowledge Base</a></li>
                             <li><a href="{{ route('changelog') }}">Changelog</a></li>
                             <li><a href="{{ route('studio.index') }}" class="nav-cta">Control Center</a></li>
@@ -1742,11 +1738,12 @@
                     <div>
                         <h2 id="closing-heading" class="closing-title">Ready when you go live.</h2>
                         <p class="closing-sub">
-                            Open Studio to design your views, or jump straight to your Mobile Deck.
+                            Explore our modular packages or apply for a guided live demo for your studio.
                         </p>
                     </div>
                     <div class="hero-actions" style="margin-block-start: 0;">
-                        <a href="{{ route('studio.index') }}" class="btn btn-primary">Open Studio</a>
+                        <a href="{{ route('pricing') }}#apply-demo" class="btn btn-primary">Apply for Demo</a>
+                        <a href="{{ route('pricing') }}" class="btn btn-secondary">View Pricing</a>
                         <a href="{{ url('/admin/obs-control-deck') }}" class="btn btn-secondary">Admin Panel</a>
                     </div>
                 </div>

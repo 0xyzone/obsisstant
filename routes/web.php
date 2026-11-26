@@ -7,6 +7,7 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ObsMobileDeckController;
 use App\Http\Controllers\ObsOverlayController;
 use App\Http\Controllers\OxyAssistantController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ScreenCollectionController;
 use App\Http\Controllers\StagePlayerController;
 use App\Http\Controllers\StudioControlCenterController;
@@ -15,6 +16,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', LandingController::class)->name('home');
 
 Route::get('/changelog', ChangelogController::class)->name('changelog');
+
+Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
+Route::post('/demo-requests', [PricingController::class, 'storeDemo'])
+    ->middleware('throttle:10,1')
+    ->name('demo-requests.store');
 
 Route::get('/knowledge-base', KnowledgeBaseController::class)->name('knowledge-base');
 

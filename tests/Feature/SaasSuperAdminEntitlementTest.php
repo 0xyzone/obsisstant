@@ -166,4 +166,52 @@ class SaasSuperAdminEntitlementTest extends TestCase
         $this->get(route('obs.deck.show', ['studio' => $studio->slug]))->assertForbidden();
         $this->get(route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => $collection->id]))->assertForbidden();
     }
+
+    public function test_pricing_page_demo_submission_animated_logo_and_hq_demo_requests(): void
+    {
+        $package = Package::factory()->create([
+            'name' => 'Pro Studio',
+            'slug' => 'pro-studio-public',
+            'price_cents' => 350000,
+            'currency' => 'NPR',
+            'is_active' => true,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('obs-iconic-brand', false)
+            ->assertSee('favicon-local.svg', false)
+            ->assertSee(route('pricing'));
+
+        $this->get(route('pricing'))
+            ->assertOk()
+            ->assertSee('Pro Studio')
+            ->assertSee('NPR 3,500/mo')
+            ->assertSee('Apply for a live demo')
+            ->assertSee('obs-iconic-brand', false)
+            ->assertSee('data-obs-mascot', false);
+
+        $this->postJson(route('demo-requests.store'), [
+            'name' => 'Suman Shrestha',
+            'email' => 'suman@example.com',
+            'phone' => '+977 9800000000',
+            'channel_or_org' => 'Nepal Esports Arena',
+            'package_id' => $package->id,
+            'message' => 'Need 2 studios and unified stage overlays.',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('ok', true);
+
+        $this->assertDatabaseHas('demo_requests', [
+            'email' => 'suman@example.com',
+            'package_id' => $package->id,
+            'status' => 'pending',
+        ]);
+
+        $customer = User::factory()->create();
+        $superAdmin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($customer)->get('/hq/demo-requests')->assertForbidden();
+        $this->actingAs($superAdmin)->get('/hq/demo-requests')->assertOk()->assertSee('Suman Shrestha');
+    }
 }
