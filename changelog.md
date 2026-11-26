@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.21.0] - 2026-11-27 | type: minor
+
+> Turned Lumi into Obsisstant's built-in smart AI assistant across the app (including Filament panels, Studio Control Center, Mobile Deck, Knowledge Base, and Changelog), slowed Lumi's flight motion for buttery-smooth tracking, and refined speech bubbles to appear briefly on section arrivals and interactions with crisp, readable sizing on mobile and desktop.
+
+### Added
+- **Built-in Smart AI Assistant (`POST /lumi/ask`)**: Added `LumiAssistantService` and `LumiAssistantController` with a frosted-glass + metallic-gold Lumi chat drawer so visitors and operators can ask OBS & Obsisstant questions (powered by the Knowledge Base & OBS Request Catalog), generate lower-third/ticker copy ideas, and—when signed in—run live Studio/OBS actions (timers, lower thirds, scoreboards, screen switches, OBS stream/record/scene commands, and status checks) without external API keys.
+- **App-Wide Mascot Presence**: Added `<x-obs-mascot mode="floating-assistant" />` across Filament panels (including Login), Studio Control Center, Mobile Deck, Knowledge Base, and Changelog while keeping Canvas Builder and Stage Player distraction-free.
+
+### Improved
+- **Buttery Flight & Auto-Hiding Speech Bubbles**: Slowed Lumi's follow lerp (`2.4`), breathing, and banking in `public/js/obs-mascot.js`, restricted speech bubbles to brief 3.2s pop-ins on section changes or interactions, and counter-scaled `.obs-mascot-bubble` and `.obs-mascot-ask-pill` so text stays crisp and readable on both mobile and desktop.
+
 ## [v1.20.2] - 2026-11-27 | type: macro
 
 > Unified the homepage 3D mascot into a single non-clipping, GPU-composited floating buddy that flies out of the hero on scroll and can be dragged anywhere (holding for 5 seconds before returning).

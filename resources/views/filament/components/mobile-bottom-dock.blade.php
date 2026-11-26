@@ -44,4 +44,5 @@
             <span>Macros</span>
         </a>
     </nav>
+    <x-obs-mascot mode="floating-assistant" />
 @endif

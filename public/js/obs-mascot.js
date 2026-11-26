@@ -4,7 +4,7 @@ import { RoomEnvironment } from 'https://esm.sh/three@0.186.0/examples/jsm/envir
 const REACTIONS = ['wave', 'spin', 'cheer', 'dance', 'peek'];
 
 const REACTION_LINES = {
-    wave: 'Hey! Drag me anywhere or tap me!',
+    wave: 'Hey! Tap Ask Lumi or drag me anywhere.',
     spin: 'Wheee! Everything stays synced live.',
     cheer: 'Looking sharp! Ready to go live.',
     dance: 'Vibing with your stream setup!',
@@ -38,7 +38,6 @@ function createMascotInstance(canvas, options = {}) {
     scene.environment = envTex;
     scene.environmentIntensity = 1.25;
 
-    // Generous camera distance so antenna, sparkles & bounce never clip
     const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 40);
     camera.position.set(0, 0.1, 5.75);
 
@@ -51,7 +50,6 @@ function createMascotInstance(canvas, options = {}) {
     fillLight.position.set(2.4, -1.0, 2.6);
     scene.add(hemi, keyLight, rimLight, fillLight);
 
-    // Black & Gold Chibi Materials
     const obsidianShellMat = new THREE.MeshPhysicalMaterial({
         color: 0x141311,
         metalness: 0.24,
@@ -99,7 +97,6 @@ function createMascotInstance(canvas, options = {}) {
     const floatGroup = new THREE.Group();
     root.add(floatGroup);
 
-    // 1. Oversized Chubby Teardrop / Onion Head
     const headGroup = new THREE.Group();
     headGroup.position.set(0, 0.28, 0);
     floatGroup.add(headGroup);
@@ -163,7 +160,6 @@ function createMascotInstance(canvas, options = {}) {
     rightCheek.position.set(0.36, -0.07, -0.02);
     faceFeatures.add(leftCheek, rightCheek);
 
-    // 2. Top Antenna with Floating Gold Halo Ring & Glossy Gold Bobble
     const antennaGroup = new THREE.Group();
     antennaGroup.position.set(0, 0.76, 0);
     headGroup.add(antennaGroup);
@@ -181,7 +177,6 @@ function createMascotInstance(canvas, options = {}) {
     antennaBobble.position.y = 0.32;
     antennaGroup.add(antennaBobble);
 
-    // 3. Cute Detached Floating Pear-Shaped Body + Gold Chest Button
     const bodyGroup = new THREE.Group();
     bodyGroup.position.set(0, -0.76, 0);
     floatGroup.add(bodyGroup);
@@ -195,7 +190,6 @@ function createMascotInstance(canvas, options = {}) {
     chestButton.position.set(0, 0.03, 0.29);
     bodyGroup.add(chestButton);
 
-    // 4. Two Cute Detached Floating Teardrop Arms/Flippers
     const armGeo = new THREE.SphereGeometry(0.14, 20, 16);
     const leftArmGroup = new THREE.Group();
     leftArmGroup.position.set(-0.5, -0.66, 0.08);
@@ -213,7 +207,6 @@ function createMascotInstance(canvas, options = {}) {
     rightArmGroup.add(rightArm);
     floatGroup.add(rightArmGroup);
 
-    // 5. Orbiting Tiny Gold Sparkles
     const sparklesGroup = new THREE.Group();
     root.add(sparklesGroup);
     const sparkleMeshes = [];
@@ -223,7 +216,7 @@ function createMascotInstance(canvas, options = {}) {
         sp.userData = {
             angle: (i / 5) * Math.PI * 2,
             radius: 1.12 + (i % 2) * 0.16,
-            speed: 0.65 + (i % 3) * 0.22,
+            speed: 0.42 + (i % 3) * 0.14,
             yOffset: (i - 2) * 0.18,
         };
         sparklesGroup.add(sp);
@@ -234,29 +227,29 @@ function createMascotInstance(canvas, options = {}) {
     const pointerCurrent = new THREE.Vector2(0, 0);
     let activeReaction = null;
     let reactionElapsed = 0;
-    let reactionDuration = 1.4;
+    let reactionDuration = 1.6;
     let reactionIndex = 0;
-    let blinkTimer = 2.4;
+    let blinkTimer = 2.6;
     let blinkProgress = -1;
     let pointDirection = 0;
     let flightBankZ = 0;
-    let onSpeechCallback = typeof options.onSpeech === 'function' ? options.onSpeech : null;
-    let onFrameCallback = typeof options.onFrame === 'function' ? options.onFrame : null;
+    const onSpeechCallback = typeof options.onSpeech === 'function' ? options.onSpeech : null;
+    const onFrameCallback = typeof options.onFrame === 'function' ? options.onFrame : null;
 
     const triggerReaction = (name = null, customLine = null) => {
         const chosen = name || REACTIONS[reactionIndex % REACTIONS.length];
         reactionIndex++;
         activeReaction = chosen;
         reactionElapsed = 0;
-        reactionDuration = chosen === 'spin' ? 1.15 : (chosen === 'dance' ? 1.85 : 1.45);
-        if (onSpeechCallback) {
+        reactionDuration = chosen === 'spin' ? 1.4 : (chosen === 'dance' ? 2.1 : 1.65);
+        if (onSpeechCallback && customLine !== false) {
             onSpeechCallback(customLine || REACTION_LINES[chosen] || REACTION_LINES.wave, chosen);
         }
     };
 
     const setPointDirection = (dir, bank = 0) => {
         pointDirection = Math.max(-1, Math.min(1, Number(dir || 0)));
-        flightBankZ = Math.max(-0.35, Math.min(0.35, Number(bank || 0)));
+        flightBankZ = Math.max(-0.22, Math.min(0.22, Number(bank || 0)));
     };
 
     const handlePointerMove = (ev) => {
@@ -299,37 +292,38 @@ function createMascotInstance(canvas, options = {}) {
             onFrameCallback(delta, elapsed);
         }
 
-        pointerCurrent.lerp(pointerTarget, Math.min(1, delta * 7));
+        // Smooth, unhurried head/eye tracking
+        pointerCurrent.lerp(pointerTarget, Math.min(1, delta * 4.5));
 
-        let bobY = reducedMotion ? 0 : Math.sin(elapsed * 2.4) * 0.08;
-        let rotY = pointerCurrent.x * 0.34;
-        let rotX = -pointerCurrent.y * 0.14;
+        let bobY = reducedMotion ? 0 : Math.sin(elapsed * 1.45) * 0.07;
+        let rotY = pointerCurrent.x * 0.3;
+        let rotX = -pointerCurrent.y * 0.12;
         let rotZ = flightBankZ;
-        let headTiltZ = -pointerCurrent.x * 0.1;
-        let lArmY = -0.66 + (reducedMotion ? 0 : Math.sin(elapsed * 2.4 + 0.5) * 0.05);
-        let rArmY = -0.66 + (reducedMotion ? 0 : Math.sin(elapsed * 2.4 + 0.5) * 0.05);
+        let headTiltZ = -pointerCurrent.x * 0.08;
+        let lArmY = -0.66 + (reducedMotion ? 0 : Math.sin(elapsed * 1.45 + 0.5) * 0.045);
+        let rArmY = -0.66 + (reducedMotion ? 0 : Math.sin(elapsed * 1.45 + 0.5) * 0.045);
         let lArmZ = 0;
         let rArmZ = 0;
         let eyeScaleY = 1;
         let sparkleBoost = 1;
 
         if (pointDirection < -0.2) {
-            lArmY = -0.44;
-            lArmZ = 0.85;
-            rotY -= 0.25;
+            lArmY = -0.46;
+            lArmZ = 0.78;
+            rotY -= 0.22;
         } else if (pointDirection > 0.2) {
-            rArmY = -0.44;
-            rArmZ = -0.85;
-            rotY += 0.25;
+            rArmY = -0.46;
+            rArmZ = -0.78;
+            rotY += 0.22;
         }
 
         blinkTimer -= delta;
         if (blinkTimer <= 0 && blinkProgress < 0) {
             blinkProgress = 0;
-            blinkTimer = 2.2 + Math.random() * 2.6;
+            blinkTimer = 2.5 + Math.random() * 2.8;
         }
         if (blinkProgress >= 0) {
-            blinkProgress += delta * 7.8;
+            blinkProgress += delta * 6.5;
             eyeScaleY = Math.max(0.1, Math.abs(Math.cos(blinkProgress * Math.PI)));
             if (blinkProgress >= 1) blinkProgress = -1;
         }
@@ -340,34 +334,35 @@ function createMascotInstance(canvas, options = {}) {
             const env = Math.sin(t * Math.PI);
 
             if (activeReaction === 'wave') {
-                rArmY = -0.35;
-                rArmZ = -1.25 + Math.sin(elapsed * 18) * 0.35;
-                headTiltZ = 0.18 * env;
+                rArmY = -0.36;
+                rArmZ = -1.2 + Math.sin(elapsed * 13) * 0.32;
+                headTiltZ = 0.16 * env;
                 eyeScaleY = 0.45 + 0.55 * (1 - env);
-                blushMat.opacity = 0.32 + 0.45 * env;
+                blushMat.opacity = 0.32 + 0.42 * env;
             } else if (activeReaction === 'spin') {
-                rotY += t * Math.PI * 2;
-                bobY += Math.sin(t * Math.PI) * 0.32;
-                sparkleBoost = 3.0;
-            } else if (activeReaction === 'cheer') {
-                lArmY = -0.34;
-                rArmY = -0.34;
-                lArmZ = 1.3 * env;
-                rArmZ = -1.3 * env;
-                bobY += Math.abs(Math.sin(t * Math.PI * 3)) * 0.2;
-                eyeScaleY = 0.36;
-                blushMat.opacity = 0.78;
+                const eased = 0.5 - 0.5 * Math.cos(t * Math.PI);
+                rotY += eased * Math.PI * 2;
+                bobY += Math.sin(t * Math.PI) * 0.26;
                 sparkleBoost = 2.4;
+            } else if (activeReaction === 'cheer') {
+                lArmY = -0.35;
+                rArmY = -0.35;
+                lArmZ = 1.22 * env;
+                rArmZ = -1.22 * env;
+                bobY += Math.abs(Math.sin(t * Math.PI * 2.5)) * 0.18;
+                eyeScaleY = 0.36;
+                blushMat.opacity = 0.75;
+                sparkleBoost = 2.0;
             } else if (activeReaction === 'dance') {
-                rotZ += Math.sin(elapsed * 9) * 0.16 * env;
-                rotY += Math.sin(elapsed * 4.5) * 0.35 * env;
-                lArmY = -0.5 + Math.sin(elapsed * 9) * 0.16;
-                rArmY = -0.5 - Math.sin(elapsed * 9) * 0.16;
-                sparkleBoost = 2.2;
+                rotZ += Math.sin(elapsed * 6.5) * 0.14 * env;
+                rotY += Math.sin(elapsed * 3.2) * 0.3 * env;
+                lArmY = -0.52 + Math.sin(elapsed * 6.5) * 0.14;
+                rArmY = -0.52 - Math.sin(elapsed * 6.5) * 0.14;
+                sparkleBoost = 1.8;
             } else if (activeReaction === 'peek') {
-                bobY -= 0.24 * env;
-                rotX += 0.24 * env;
-                headTiltZ = 0.22 * env;
+                bobY -= 0.22 * env;
+                rotX += 0.2 * env;
+                headTiltZ = 0.18 * env;
             }
 
             if (t >= 1) {
@@ -381,12 +376,12 @@ function createMascotInstance(canvas, options = {}) {
         floatGroup.position.y = bobY;
         floatGroup.rotation.set(rotX, rotY, rotZ);
 
-        headGroup.rotation.y = pointerCurrent.x * 0.25;
-        headGroup.rotation.x = -pointerCurrent.y * 0.18;
+        headGroup.rotation.y = pointerCurrent.x * 0.22;
+        headGroup.rotation.x = -pointerCurrent.y * 0.16;
         headGroup.rotation.z = headTiltZ;
 
-        faceFeatures.position.x = pointerCurrent.x * 0.05;
-        faceFeatures.position.y = -0.02 + pointerCurrent.y * 0.04;
+        faceFeatures.position.x = pointerCurrent.x * 0.045;
+        faceFeatures.position.y = -0.02 + pointerCurrent.y * 0.035;
 
         leftEyeGroup.scale.y = eyeScaleY;
         rightEyeGroup.scale.y = eyeScaleY;
@@ -397,19 +392,19 @@ function createMascotInstance(canvas, options = {}) {
         rightArmGroup.position.y = rArmY;
         rightArmGroup.rotation.z = rArmZ;
 
-        antennaGroup.rotation.z = -rotZ * 0.75 + Math.sin(elapsed * 4.2) * 0.08;
-        antennaHalo.rotation.z = elapsed * 1.4;
+        antennaGroup.rotation.z = -rotZ * 0.7 + Math.sin(elapsed * 2.8) * 0.06;
+        antennaHalo.rotation.z = elapsed * 0.95;
 
         sparkleMeshes.forEach((sp, idx) => {
             sp.userData.angle += delta * sp.userData.speed * sparkleBoost;
             const a = sp.userData.angle;
             sp.position.set(
                 Math.cos(a) * sp.userData.radius,
-                sp.userData.yOffset + Math.sin(elapsed * 2.5 + idx) * 0.1,
-                Math.sin(a) * sp.userData.radius * 0.58,
+                sp.userData.yOffset + Math.sin(elapsed * 1.8 + idx) * 0.08,
+                Math.sin(a) * sp.userData.radius * 0.56,
             );
-            sp.rotation.y = elapsed * 2;
-            sp.rotation.x = elapsed * 1.4;
+            sp.rotation.y = elapsed * 1.4;
+            sp.rotation.x = elapsed * 1.0;
         });
 
         renderer.render(scene, camera);
@@ -431,241 +426,341 @@ function createMascotInstance(canvas, options = {}) {
     };
 }
 
+function wireAssistantDrawer(host, instance, showBriefSpeech) {
+    const drawer = host.querySelector('[data-lumi-drawer]');
+    const toggleBtn = host.querySelector('[data-lumi-toggle]');
+    const closeBtn = host.querySelector('[data-lumi-close]');
+    const form = host.querySelector('[data-lumi-form]');
+    const input = host.querySelector('[data-lumi-input]');
+    const log = host.querySelector('[data-lumi-log]');
+    if (!drawer || !form || !input || !log) return;
+
+    const askUrl = host.dataset.lumiUrl || '/lumi/ask';
+    const studioSlug = host.dataset.studioSlug || '';
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    const setOpen = (open) => {
+        drawer.hidden = !open;
+        if (toggleBtn) toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) {
+            setTimeout(() => input.focus(), 40);
+        }
+    };
+
+    toggleBtn?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        setOpen(drawer.hidden);
+    });
+
+    closeBtn?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        setOpen(false);
+    });
+
+    const appendMsg = (text, role, links = []) => {
+        const bubble = document.createElement('div');
+        bubble.className = `lumi-msg lumi-msg--${role}`;
+        bubble.textContent = text;
+        if (Array.isArray(links) && links.length > 0) {
+            const linkRow = document.createElement('div');
+            linkRow.className = 'lumi-msg-links';
+            links.forEach((lnk) => {
+                const a = document.createElement('a');
+                a.href = lnk.url;
+                a.textContent = lnk.label;
+                linkRow.appendChild(a);
+            });
+            bubble.appendChild(linkRow);
+        }
+        log.appendChild(bubble);
+        log.scrollTop = log.scrollHeight;
+    };
+
+    const sendQuestion = async (text) => {
+        const q = String(text || '').trim();
+        if (!q) return;
+        appendMsg(q, 'user');
+        input.value = '';
+        input.disabled = true;
+
+        try {
+            const res = await fetch(askUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+                },
+                body: JSON.stringify({
+                    message: q,
+                    studio_slug: studioSlug || null,
+                }),
+            });
+            const data = await res.json().catch(() => null);
+            const replyText = data?.reply || 'Could not reach Lumi right now—try again in a moment.';
+            appendMsg(replyText, 'bot', data?.links || []);
+            instance?.triggerReaction(data?.reaction || 'wave', false);
+            if (drawer.hidden) {
+                showBriefSpeech(replyText.split('\n')[0]);
+            }
+        } catch {
+            appendMsg('Connection hiccup—please try again.', 'bot');
+        } finally {
+            input.disabled = false;
+            input.focus();
+        }
+    };
+
+    form.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        sendQuestion(input.value);
+    });
+
+    host.querySelectorAll('[data-lumi-prompt]').forEach((btn) => {
+        btn.addEventListener('click', () => sendQuestion(btn.dataset.lumiPrompt));
+    });
+
+    return { setOpen, isOpen: () => !drawer.hidden };
+}
+
 function initMascots() {
     document.querySelectorAll('[data-obs-mascot]').forEach((host) => {
         if (host.dataset.mascotReady === '1') return;
         host.dataset.mascotReady = '1';
 
-        const mode = host.dataset.mascotMode || 'badge';
+        const mode = host.dataset.mascotMode || 'floating-assistant';
         const canvas = host.querySelector('[data-mascot-canvas]');
         const speechEl = host.querySelector('[data-mascot-speech]');
-        if (!canvas) return;
+        const flyerEl = host.querySelector('[data-mascot-flyer]');
+        if (!canvas || !flyerEl) return;
 
-        // Single-instance hero + scroll-flying + mouse-draggable mascot
-        if (mode === 'hero-guide') {
-            const anchorEl = host.querySelector('[data-mascot-anchor]');
-            const flyerEl = host.querySelector('[data-mascot-flyer]');
-            const controlsEl = host.querySelector('[data-mascot-controls]');
-            if (!anchorEl || !flyerEl) return;
+        let speechTimer = null;
+        const showBriefSpeech = (msg, durationMs = 3200) => {
+            if (!speechEl || !msg) return;
+            speechEl.textContent = msg;
+            speechEl.classList.add('is-visible');
+            clearTimeout(speechTimer);
+            speechTimer = setTimeout(() => {
+                speechEl.classList.remove('is-visible');
+            }, durationMs);
+        };
 
-            const stops = [
-                { id: 'features', xPct: 0.84, yPct: 0.62, dir: -1, line: 'Taps reach OBS in under a second!', reaction: 'wave' },
-                { id: 'overlays', xPct: 0.12, yPct: 0.56, dir: 1, line: 'Try these live controls right here!', reaction: 'cheer' },
-                { id: 'features-showcase', xPct: 0.86, yPct: 0.42, dir: -1, line: 'Everything built for smooth streams!', reaction: 'dance' },
-                { id: 'faqs', xPct: 0.14, yPct: 0.52, dir: 1, line: 'Got questions? Quick answers here.', reaction: 'peek' },
-                { id: 'closing-heading', xPct: 0.84, yPct: 0.66, dir: -1, line: 'Ready? Open Studio or Mobile Deck!', reaction: 'spin' },
-            ];
+        const isHeroGuide = mode === 'hero-guide';
+        const anchorEl = host.querySelector('[data-mascot-anchor]');
+        const controlsEl = host.querySelector('[data-mascot-controls]');
 
-            const baseSize = 320;
-            let curX = 0;
-            let curY = 0;
-            let curScale = 1;
-            let targetX = 0;
-            let targetY = 0;
-            let targetScale = 1;
-            let initializedPos = false;
+        const stops = [
+            { id: 'features', xPct: 0.85, yPct: 0.62, dir: -1, line: 'Taps reach OBS in under a second!', reaction: 'wave' },
+            { id: 'overlays', xPct: 0.12, yPct: 0.56, dir: 1, line: 'Try these live controls right here!', reaction: 'cheer' },
+            { id: 'features-showcase', xPct: 0.86, yPct: 0.44, dir: -1, line: 'Everything built for smooth streams!', reaction: 'dance' },
+            { id: 'faqs', xPct: 0.14, yPct: 0.52, dir: 1, line: 'Got questions? Quick answers here.', reaction: 'peek' },
+            { id: 'closing-heading', xPct: 0.85, yPct: 0.66, dir: -1, line: 'Ready? Open Studio or Mobile Deck!', reaction: 'spin' },
+        ];
 
-            let isDragging = false;
-            let dragMoved = false;
-            let dragStartX = 0;
-            let dragStartY = 0;
-            let dragOriginX = 0;
-            let dragOriginY = 0;
-            let pinnedUntil = 0;
-            let pinnedX = 0;
-            let pinnedY = 0;
-            let wasPinned = false;
-            let lastStopId = null;
+        const baseSize = 320;
+        let curX = 0;
+        let curY = 0;
+        let curScale = 1;
+        let targetX = 0;
+        let targetY = 0;
+        let targetScale = 1;
+        let initializedPos = false;
 
-            const showSpeech = (msg) => {
-                if (!speechEl || !msg) return;
-                speechEl.textContent = msg;
-                speechEl.hidden = false;
-            };
+        let isDragging = false;
+        let dragMoved = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let dragOriginX = 0;
+        let dragOriginY = 0;
+        let pinnedUntil = 0;
+        let pinnedX = 0;
+        let pinnedY = 0;
+        let wasPinned = false;
+        let lastStopId = null;
 
-            const computeTarget = () => {
-                const anchorRect = anchorEl.getBoundingClientRect();
-                const inHero = anchorRect.bottom > 150 && window.scrollY < 160;
-                const isMobile = window.innerWidth < 1024;
+        const computeTarget = () => {
+            const isMobile = window.innerWidth < 1024;
+            const anchorRect = anchorEl?.getBoundingClientRect();
+            const inHero = isHeroGuide && anchorRect && anchorRect.bottom > 150 && window.scrollY < 160;
 
-                if (Date.now() < pinnedUntil) {
-                    wasPinned = true;
-                    targetScale = inHero ? Math.min(1, anchorRect.width / baseSize) : (isMobile ? 0.46 : 0.68);
-                    const effSize = baseSize * targetScale;
-                    targetX = Math.max(8, Math.min(window.innerWidth - effSize - 8, pinnedX));
-                    targetY = Math.max(56, Math.min(window.innerHeight - effSize - 8, pinnedY));
-                    flyerEl.dataset.side = targetX < window.innerWidth / 2 ? 'left' : 'right';
-                    return;
-                }
-
-                if (wasPinned) {
-                    wasPinned = false;
-                    showSpeech('Flying back to my spot!');
-                }
-
-                if (inHero) {
-                    const s = Math.min(1.05, Math.max(0.62, anchorRect.width / baseSize));
-                    targetScale = s;
-                    const effSize = baseSize * s;
-                    targetX = anchorRect.left + (anchorRect.width - effSize) / 2;
-                    targetY = anchorRect.top + (anchorRect.height - effSize) / 2;
-                    flyerEl.dataset.side = 'hero';
-                    if (controlsEl) controlsEl.style.opacity = '1';
-                    instance?.setPointDirection(0, 0);
-                    if (lastStopId !== 'hero') {
-                        lastStopId = 'hero';
-                    }
-                    return;
-                }
-
-                if (controlsEl) controlsEl.style.opacity = '0';
-
-                const midY = window.innerHeight * 0.45;
-                let activeStop = stops[0];
-                for (const s of stops) {
-                    const el = document.getElementById(s.id);
-                    if (!el) continue;
-                    if (el.getBoundingClientRect().top <= midY + 140) {
-                        activeStop = s;
-                    }
-                }
-
-                if (isMobile) {
-                    targetScale = 0.44;
-                    const effSize = baseSize * targetScale;
-                    targetX = window.innerWidth - effSize - 10;
-                    targetY = window.innerHeight - effSize - 14;
-                    flyerEl.dataset.side = 'right';
-                    instance?.setPointDirection(-1, 0);
-                } else {
-                    targetScale = 0.66;
-                    const effSize = baseSize * targetScale;
-                    const docMax = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-                    const scrollFrac = Math.max(0, Math.min(1, window.scrollY / docMax));
-                    const swayX = Math.sin(scrollFrac * Math.PI * 4) * 26;
-                    const swayY = Math.cos(scrollFrac * Math.PI * 3) * 24;
-                    targetX = Math.max(12, Math.min(window.innerWidth - effSize - 12, window.innerWidth * activeStop.xPct - effSize / 2 + swayX));
-                    targetY = Math.max(72, Math.min(window.innerHeight - effSize - 18, window.innerHeight * activeStop.yPct - effSize / 2 + swayY));
-                    flyerEl.dataset.side = activeStop.dir > 0 ? 'left' : 'right';
-                    instance?.setPointDirection(activeStop.dir, activeStop.dir * 0.08);
-                }
-
-                if (lastStopId !== activeStop.id) {
-                    lastStopId = activeStop.id;
-                    instance?.triggerReaction(activeStop.reaction, activeStop.line);
-                }
-            };
-
-            const instance = createMascotInstance(canvas, {
-                mode,
-                disableAutoTap: true,
-                onSpeech: showSpeech,
-                onFrame: (delta) => {
-                    computeTarget();
-                    if (!initializedPos) {
-                        curX = targetX;
-                        curY = targetY;
-                        curScale = targetScale;
-                        initializedPos = true;
-                    } else if (!isDragging) {
-                        const k = 1 - Math.exp(-delta * 6.5);
-                        const vx = targetX - curX;
-                        curX += vx * k;
-                        curY += (targetY - curY) * k;
-                        curScale += (targetScale - curScale) * k;
-                        if (Math.abs(vx) > 2) {
-                            instance?.setPointDirection(vx > 0 ? 1 : -1, Math.max(-0.22, Math.min(0.22, -vx * 0.0018)));
-                        }
-                    }
-                    flyerEl.style.transform = `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0) scale(${curScale.toFixed(4)})`;
-                },
-            });
-
-            if (!instance) {
-                const fallback = host.querySelector('[data-mascot-fallback]');
-                if (fallback) fallback.hidden = false;
-                flyerEl.hidden = true;
+            if (Date.now() < pinnedUntil) {
+                wasPinned = true;
+                targetScale = inHero ? Math.min(1, anchorRect.width / baseSize) : (isMobile ? 0.36 : 0.52);
+                const effSize = baseSize * targetScale;
+                targetX = Math.max(8, Math.min(window.innerWidth - effSize - 8, pinnedX));
+                targetY = Math.max(56, Math.min(window.innerHeight - effSize - 8, pinnedY));
+                flyerEl.dataset.side = targetX < window.innerWidth / 2 ? 'left' : 'right';
                 return;
             }
 
-            // Mouse / touch drag to move anywhere & stay for 5 seconds
-            canvas.addEventListener('pointerdown', (ev) => {
-                isDragging = true;
-                dragMoved = false;
-                dragStartX = ev.clientX;
-                dragStartY = ev.clientY;
-                dragOriginX = curX;
-                dragOriginY = curY;
-                canvas.style.cursor = 'grabbing';
-                canvas.setPointerCapture(ev.pointerId);
-            });
+            if (wasPinned) {
+                wasPinned = false;
+                showBriefSpeech('Flying back to my spot!', 2200);
+            }
 
-            canvas.addEventListener('pointermove', (ev) => {
-                if (!isDragging) return;
-                const dx = ev.clientX - dragStartX;
-                const dy = ev.clientY - dragStartY;
-                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-                    dragMoved = true;
+            if (inHero) {
+                const s = Math.min(1.05, Math.max(0.62, anchorRect.width / baseSize));
+                targetScale = s;
+                const effSize = baseSize * s;
+                targetX = anchorRect.left + (anchorRect.width - effSize) / 2;
+                targetY = anchorRect.top + (anchorRect.height - effSize) / 2;
+                flyerEl.dataset.side = 'hero';
+                if (controlsEl) controlsEl.style.opacity = '1';
+                instance?.setPointDirection(0, 0);
+                if (lastStopId !== 'hero') {
+                    lastStopId = 'hero';
                 }
-                if (dragMoved) {
-                    const effSize = baseSize * curScale;
-                    curX = Math.max(8, Math.min(window.innerWidth - effSize - 8, dragOriginX + dx));
-                    curY = Math.max(56, Math.min(window.innerHeight - effSize - 8, dragOriginY + dy));
-                    pinnedX = curX;
-                    pinnedY = curY;
-                    pinnedUntil = Date.now() + 5000;
-                    instance.setPointDirection(0, Math.max(-0.25, Math.min(0.25, -dx * 0.002)));
-                    flyerEl.style.transform = `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0) scale(${curScale.toFixed(4)})`;
+                return;
+            }
+
+            if (controlsEl) controlsEl.style.opacity = '0';
+
+            if (!isHeroGuide) {
+                targetScale = isMobile ? 0.34 : 0.46;
+                const effSize = baseSize * targetScale;
+                targetX = window.innerWidth - effSize - (isMobile ? 10 : 18);
+                targetY = window.innerHeight - effSize - (isMobile ? 56 : 18);
+                flyerEl.dataset.side = 'right';
+                return;
+            }
+
+            const midY = window.innerHeight * 0.45;
+            let activeStop = stops[0];
+            for (const s of stops) {
+                const el = document.getElementById(s.id);
+                if (!el) continue;
+                if (el.getBoundingClientRect().top <= midY + 140) {
+                    activeStop = s;
                 }
-            });
+            }
 
-            const endDrag = (ev) => {
-                if (!isDragging) return;
-                isDragging = false;
-                canvas.style.cursor = 'grab';
-                if (canvas.hasPointerCapture?.(ev.pointerId)) {
-                    canvas.releasePointerCapture(ev.pointerId);
-                }
-                if (dragMoved) {
-                    pinnedX = curX;
-                    pinnedY = curY;
-                    pinnedUntil = Date.now() + 5000;
-                    showSpeech('Staying right here for 5s!');
-                } else {
-                    instance.triggerReaction();
-                }
-            };
+            if (isMobile) {
+                targetScale = 0.38;
+                const effSize = baseSize * targetScale;
+                targetX = window.innerWidth - effSize - 10;
+                targetY = window.innerHeight - effSize - 14;
+                flyerEl.dataset.side = 'right';
+                instance?.setPointDirection(-1, 0);
+            } else {
+                targetScale = 0.62;
+                const effSize = baseSize * targetScale;
+                const docMax = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+                const scrollFrac = Math.max(0, Math.min(1, window.scrollY / docMax));
+                const swayX = Math.sin(scrollFrac * Math.PI * 3) * 20;
+                const swayY = Math.cos(scrollFrac * Math.PI * 2.5) * 18;
+                targetX = Math.max(12, Math.min(window.innerWidth - effSize - 12, window.innerWidth * activeStop.xPct - effSize / 2 + swayX));
+                targetY = Math.max(72, Math.min(window.innerHeight - effSize - 18, window.innerHeight * activeStop.yPct - effSize / 2 + swayY));
+                flyerEl.dataset.side = activeStop.dir > 0 ? 'left' : 'right';
+                instance?.setPointDirection(activeStop.dir, activeStop.dir * 0.06);
+            }
 
-            canvas.addEventListener('pointerup', endDrag);
-            canvas.addEventListener('pointercancel', endDrag);
-
-            host.querySelectorAll('[data-mascot-react]').forEach((btn) => {
-                btn.addEventListener('click', (ev) => {
-                    ev.stopPropagation();
-                    instance.triggerReaction(btn.dataset.mascotReact);
-                });
-            });
-
-            return;
-        }
-
-        // Compact badge mascot (Knowledge Base, Changelog, Login)
-        const showSpeech = (msg) => {
-            if (!speechEl || !msg) return;
-            speechEl.textContent = msg;
-            speechEl.hidden = false;
+            if (lastStopId !== activeStop.id) {
+                lastStopId = activeStop.id;
+                instance?.triggerReaction(activeStop.reaction, activeStop.line);
+            }
         };
 
         const instance = createMascotInstance(canvas, {
             mode,
-            onSpeech: showSpeech,
+            disableAutoTap: true,
+            onSpeech: (msg) => showBriefSpeech(msg, 3200),
+            onFrame: (delta) => {
+                computeTarget();
+                if (!initializedPos) {
+                    curX = targetX;
+                    curY = targetY;
+                    curScale = targetScale;
+                    initializedPos = true;
+                } else if (!isDragging) {
+                    // Slower, buttery-smooth lerp
+                    const k = 1 - Math.exp(-delta * 2.4);
+                    const vx = targetX - curX;
+                    curX += vx * k;
+                    curY += (targetY - curY) * k;
+                    curScale += (targetScale - curScale) * k;
+                    if (Math.abs(vx) > 2.5) {
+                        instance?.setPointDirection(vx > 0 ? 1 : -1, Math.max(-0.16, Math.min(0.16, -vx * 0.0009)));
+                    }
+                }
+                flyerEl.style.transform = `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0) scale(${curScale.toFixed(4)})`;
+                flyerEl.style.setProperty('--mascot-inv-scale', (1 / Math.max(curScale, 0.3)).toFixed(3));
+            },
         });
 
         if (!instance) {
             const fallback = host.querySelector('[data-mascot-fallback]');
             if (fallback) fallback.hidden = false;
-            canvas.hidden = true;
+            flyerEl.hidden = true;
+            return;
         }
+
+        const drawerCtrl = wireAssistantDrawer(host, instance, showBriefSpeech);
+
+        // Brief initial greeting only on hero, then fades out cleanly
+        if (isHeroGuide && speechEl?.textContent?.trim()) {
+            showBriefSpeech(speechEl.textContent.trim(), 2800);
+        }
+
+        canvas.addEventListener('pointerdown', (ev) => {
+            isDragging = true;
+            dragMoved = false;
+            dragStartX = ev.clientX;
+            dragStartY = ev.clientY;
+            dragOriginX = curX;
+            dragOriginY = curY;
+            canvas.style.cursor = 'grabbing';
+            canvas.setPointerCapture(ev.pointerId);
+        });
+
+        canvas.addEventListener('pointermove', (ev) => {
+            if (!isDragging) return;
+            const dx = ev.clientX - dragStartX;
+            const dy = ev.clientY - dragStartY;
+            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                dragMoved = true;
+            }
+            if (dragMoved) {
+                const effSize = baseSize * curScale;
+                curX = Math.max(8, Math.min(window.innerWidth - effSize - 8, dragOriginX + dx));
+                curY = Math.max(56, Math.min(window.innerHeight - effSize - 8, dragOriginY + dy));
+                pinnedX = curX;
+                pinnedY = curY;
+                pinnedUntil = Date.now() + 5000;
+                instance.setPointDirection(0, Math.max(-0.2, Math.min(0.2, -dx * 0.0015)));
+                flyerEl.style.transform = `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0) scale(${curScale.toFixed(4)})`;
+                flyerEl.style.setProperty('--mascot-inv-scale', (1 / Math.max(curScale, 0.3)).toFixed(3));
+            }
+        });
+
+        const endDrag = (ev) => {
+            if (!isDragging) return;
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+            if (canvas.hasPointerCapture?.(ev.pointerId)) {
+                canvas.releasePointerCapture(ev.pointerId);
+            }
+            if (dragMoved) {
+                pinnedX = curX;
+                pinnedY = curY;
+                pinnedUntil = Date.now() + 5000;
+                showBriefSpeech('Staying right here for 5s!', 2500);
+            } else {
+                instance.triggerReaction();
+                if (!isHeroGuide && drawerCtrl) {
+                    drawerCtrl.setOpen(!drawerCtrl.isOpen());
+                }
+            }
+        };
+
+        canvas.addEventListener('pointerup', endDrag);
+        canvas.addEventListener('pointercancel', endDrag);
+
+        host.querySelectorAll('[data-mascot-react]').forEach((btn) => {
+            btn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                instance.triggerReaction(btn.dataset.mascotReact);
+            });
+        });
     });
 }
 

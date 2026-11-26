@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ObsMacro;
 use App\Models\ObsScreen;
 use App\Models\ObsStudio;
+use App\Models\ScreenCollection;
 use App\Models\User;
 use App\Services\ChangelogService;
 use App\Services\ReverbStatusService;
@@ -244,5 +245,94 @@ class ObsidianUiThemeTest extends TestCase
         } finally {
             fclose($server);
         }
+    }
+
+    public function test_lumi_mascot_appears_across_app_views_excluding_builder_and_stage(): void
+    {
+        $user = User::factory()->create();
+        $studio = ObsStudio::factory()->online()->for($user)->create(['name' => 'Broadcast Main']);
+        $this->actingAs($user)
+            ->postJson(route('studio.control-mode', ['studio' => $studio->slug]), ['control_mode' => 'screens'])
+            ->assertOk();
+        $collection = ScreenCollection::findOrFail($studio->fresh()->active_screen_collection_id);
+        auth()->logout();
+
+        // Public pages
+        $this->get(route('home'))->assertOk()->assertSee('data-obs-mascot', false)->assertSee('data-mascot-mode="hero-guide"', false);
+        $this->get(route('changelog'))->assertOk()->assertSee('data-obs-mascot', false)->assertSee('data-mascot-mode="floating-assistant"', false);
+        $this->get(route('knowledge-base'))->assertOk()->assertSee('data-obs-mascot', false)->assertSee('data-mascot-mode="floating-assistant"', false);
+        $this->get('/admin/login')->assertOk()->assertSee('data-obs-mascot', false)->assertSee('data-mascot-mode="floating-assistant"', false);
+
+        // Authenticated Filament & Studio pages
+        $this->actingAs($user)->get('/admin')->assertOk()->assertSee('data-obs-mascot', false);
+        $this->actingAs($user)->get(route('studio.show', ['studio' => $studio->slug]))->assertOk()->assertSee('data-obs-mascot', false);
+        $this->actingAs($user)->get(route('obs.deck.show', ['studio' => $studio->slug]))->assertOk()->assertSee('data-obs-mascot', false);
+
+        // Excluded distraction-free surfaces: Canvas Builder & Stage Player
+        $this->actingAs($user)
+            ->get(route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => $collection->id]))
+            ->assertOk()
+            ->assertDontSee('data-obs-mascot', false);
+
+        $this->get(route('obs.collection.show', ['token' => $collection->public_token]))
+            ->assertOk()
+            ->assertDontSee('data-obs-mascot', false);
+    }
+
+    public function test_lumi_assistant_answers_questions_generates_copy_and_executes_live_studio_actions(): void
+    {
+        // Guest: copy generation works
+        $this->postJson(route('lumi.ask'), ['message' => 'Suggest lower-third copy'])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonStructure(['reply', 'reaction', 'links']);
+
+        // Guest: KB search works
+        $this->postJson(route('lumi.ask'), ['message' => 'How do I pair OBS?'])
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        // Guest: live studio actions require authentication
+        $this->postJson(route('lumi.ask'), ['message' => 'Start 5m timer'])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('reaction', 'peek');
+
+        $user = User::factory()->create();
+        $studio = ObsStudio::factory()->online()->for($user)->create(['name' => 'Live Desk']);
+        $this->actingAs($user)
+            ->postJson(route('studio.control-mode', ['studio' => $studio->slug]), ['control_mode' => 'screens'])
+            ->assertOk();
+        $collection = ScreenCollection::findOrFail($studio->fresh()->active_screen_collection_id);
+        $collection->update([
+            'runtime_state' => [
+                'timer' => ['duration_seconds' => 300, 'remaining_seconds' => 300, 'running' => false, 'mode' => 'countdown', 'label' => ''],
+                'lower_third' => ['visible' => false, 'badge' => 'LIVE', 'title' => 'Guest', 'subtitle' => 'Host'],
+            ],
+        ]);
+
+        // Signed-in operator: live studio actions mutate runtime_state and check status
+        $this->actingAs($user)
+            ->postJson(route('lumi.ask'), ['message' => 'Start 10m timer', 'studio_slug' => $studio->slug])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('reaction', 'cheer');
+
+        $collection->refresh();
+        $this->assertSame('running', data_get($collection->runtime_state, 'timer.status'));
+        $this->assertSame(600, data_get($collection->runtime_state, 'timer.duration_seconds'));
+
+        $this->actingAs($user)
+            ->postJson(route('lumi.ask'), ['message' => 'Show lower third', 'studio_slug' => $studio->slug])
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $collection->refresh();
+        $this->assertTrue((bool) data_get($collection->runtime_state, 'lower_third.visible'));
+
+        $this->actingAs($user)
+            ->postJson(route('lumi.ask'), ['message' => 'Check studio status', 'studio_slug' => $studio->slug])
+            ->assertOk()
+            ->assertJsonPath('ok', true);
     }
 }

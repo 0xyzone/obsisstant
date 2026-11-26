@@ -3386,5 +3386,6 @@
                 }, 15000);
             })();
         </script>
+        <x-obs-mascot mode="floating-assistant" :studioSlug="$studio->slug" />
     </body>
 </html>

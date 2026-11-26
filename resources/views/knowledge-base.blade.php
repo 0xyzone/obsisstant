@@ -201,5 +201,6 @@
                 :macroCreateUrl="url('/admin/obs-macros/create')"
             />
         </main>
+        <x-obs-mascot mode="floating-assistant" />
     </body>
 </html>
