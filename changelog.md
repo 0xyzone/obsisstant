@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.22.4] - 2026-11-27 | type: macro
+
+> Removed the duplicate corner "Ask Oxy" button so only Oxy's own pill appears, and redesigned Oxy's chat modal into a live speech-bubble anchored directly to Oxy with thinking/speaking animations.
+
+### Improved
+- **Single Ask Oxy Pill & Anchored Speech-Bubble Chat**: Removed `.oxy-fab-launcher` so there is no duplicate button in the corner, anchored `.lumi-drawer` directly beside Oxy with a directional speech-bubble tail (`left`, `right`, or `above` on mobile), and added animated thinking dots + speaking glow/status feedback as Oxy replies.
+
 ## [v1.22.3] - 2026-11-27 | type: macro
 
 > Fixed Oxy and the Ask Oxy launcher being trapped inside the Filament login card (`backdrop-filter` containing block) by moving the mascot mount from `login-hero.blade.php` to `PanelsRenderHook::BODY_END`.

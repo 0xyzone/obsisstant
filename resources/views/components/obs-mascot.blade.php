@@ -49,18 +49,15 @@
         <button type="button" class="obs-mascot-ask-pill" data-lumi-toggle aria-expanded="false">Ask Oxy</button>
     </div>
 
-    {{-- Always-reachable fixed Ask Oxy launcher --}}
-    <button type="button" class="oxy-fab-launcher" data-lumi-toggle aria-expanded="false" aria-label="Open Oxy Assistant">
-        <span class="oxy-fab-dot" aria-hidden="true"></span>
-        <span>Ask Oxy</span>
-    </button>
-
-    {{-- Built-in Smart AI Assistant Drawer --}}
-    <section class="lumi-drawer" data-lumi-drawer hidden aria-label="Oxy Assistant">
+    {{-- Anchored Speech-Bubble AI Chat Modal --}}
+    <section class="lumi-drawer" data-lumi-drawer data-bubble-side="left" hidden aria-label="Oxy Assistant">
         <header class="lumi-drawer-head">
-            <div>
-                <strong class="lumi-drawer-title">Oxy</strong>
-                <span class="lumi-drawer-sub">{{ $isSignedIn ? 'Your Studio Sidekick' : 'OBS & Overlay Buddy' }}</span>
+            <div class="oxy-head-meta">
+                <span class="oxy-status-dot" aria-hidden="true"></span>
+                <div>
+                    <strong class="lumi-drawer-title">Oxy</strong>
+                    <span class="lumi-drawer-sub" data-oxy-status>{{ $isSignedIn ? 'Your Studio Sidekick' : 'OBS & Overlay Buddy' }}</span>
+                </div>
             </div>
             <button type="button" class="lumi-close-btn" data-lumi-close aria-label="Close Oxy Assistant">&times;</button>
         </header>
@@ -181,45 +178,6 @@
             pointer-events: none;
         }
 
-        .oxy-fab-launcher {
-            position: fixed;
-            inset-inline-end: 1.15rem;
-            inset-block-end: 1.15rem;
-            z-index: 48;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            min-block-size: 2.45rem;
-            padding: 0.4rem 1.05rem;
-            border-radius: 9999px;
-            border: 1px solid rgba(244, 225, 133, 0.6);
-            background: linear-gradient(180deg, rgba(28, 25, 19, 0.92) 0%, rgba(12, 11, 9, 0.96) 100%);
-            -webkit-backdrop-filter: blur(16px);
-            backdrop-filter: blur(16px);
-            color: #FAF7EE;
-            font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            letter-spacing: 0.01em;
-            cursor: pointer;
-            box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.28), 0 14px 30px -10px rgba(0, 0, 0, 0.92);
-            transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
-        }
-
-        .oxy-fab-launcher:hover {
-            transform: translateY(-2px);
-            border-color: #F4E185;
-            color: #F4E185;
-        }
-
-        .oxy-fab-dot {
-            inline-size: 0.5rem;
-            block-size: 0.5rem;
-            border-radius: 9999px;
-            background: linear-gradient(180deg, #F6E496 0%, #D9B768 100%);
-            box-shadow: 0 0 10px rgba(244, 225, 133, 0.8);
-        }
-
         /* Brief, highly readable speech bubble (fades out automatically) */
         .obs-mascot-bubble {
             position: absolute;
@@ -329,30 +287,117 @@
             background: linear-gradient(180deg, #FFF0AE 0%, #E7C97B 48%, #C9A04E 100%);
         }
 
-        /* Lumi AI Assistant Drawer */
+        /* Anchored Speech-Bubble Chat Modal */
         .lumi-drawer {
             position: fixed;
-            inset-inline-end: max(1rem, env(safe-area-inset-right));
-            inset-block-end: max(5.5rem, env(safe-area-inset-bottom));
+            inset-inline-start: 0;
+            inset-block-start: 0;
             z-index: 60;
             inline-size: min(92vw, 22.5rem);
-            max-block-size: 70dvh;
+            max-block-size: min(72dvh, 30rem);
             display: grid;
             grid-template-rows: auto minmax(0, 1fr) auto auto;
             gap: 0.65rem;
-            padding: 0.9rem;
-            border-radius: 1.15rem;
-            background: linear-gradient(165deg, rgba(22, 20, 16, 0.94) 0%, rgba(11, 10, 9, 0.96) 100%);
-            -webkit-backdrop-filter: blur(22px) saturate(145%);
-            backdrop-filter: blur(22px) saturate(145%);
-            border: 1px solid rgba(205, 173, 105, 0.38);
-            box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.2), 0 26px 56px -18px rgba(0, 0, 0, 0.95);
+            padding: 0.95rem;
+            border-radius: 1.35rem;
+            background: linear-gradient(165deg, rgba(24, 22, 17, 0.94) 0%, rgba(11, 10, 9, 0.97) 100%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+            backdrop-filter: blur(22px) saturate(150%);
+            border: 1px solid rgba(205, 173, 105, 0.44);
+            box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.24), 0 28px 60px -18px rgba(0, 0, 0, 0.95);
             font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
             color: #FAF7EE;
+            transform-origin: bottom right;
+            transition: opacity 200ms ease, border-color 220ms ease, box-shadow 220ms ease;
+        }
+
+        .lumi-drawer.is-speaking {
+            border-color: rgba(244, 225, 133, 0.82);
+            box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.36), 0 0 32px -10px rgba(244, 225, 133, 0.45), 0 28px 60px -18px rgba(0, 0, 0, 0.95);
+        }
+
+        .lumi-drawer::after {
+            content: '';
+            position: absolute;
+            inline-size: 0.85rem;
+            block-size: 0.85rem;
+            background: rgba(15, 14, 11, 0.97);
+            border: 1px solid rgba(205, 173, 105, 0.44);
+            transform: rotate(45deg);
+            pointer-events: none;
+        }
+
+        .lumi-drawer[data-bubble-side="left"]::after {
+            inset-inline-end: -0.46rem;
+            inset-block-end: 2.2rem;
+            border-inline-start: 0;
+            border-block-end: 0;
+        }
+
+        .lumi-drawer[data-bubble-side="right"]::after {
+            inset-inline-start: -0.46rem;
+            inset-block-end: 2.2rem;
+            border-inline-end: 0;
+            border-block-start: 0;
+        }
+
+        .lumi-drawer[data-bubble-side="above"]::after {
+            inset-inline-end: 2.8rem;
+            inset-block-end: -0.46rem;
+            border-inline-start: 0;
+            border-block-start: 0;
         }
 
         .lumi-drawer[hidden] {
             display: none !important;
+        }
+
+        .oxy-head-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+        }
+
+        .oxy-status-dot {
+            inline-size: 0.55rem;
+            block-size: 0.55rem;
+            border-radius: 9999px;
+            background: linear-gradient(180deg, #F6E496 0%, #D9B768 100%);
+            box-shadow: 0 0 10px rgba(244, 225, 133, 0.75);
+            flex-shrink: 0;
+        }
+
+        .lumi-drawer.is-speaking .oxy-status-dot {
+            animation: oxyPulseDot 900ms ease-in-out infinite;
+        }
+
+        @keyframes oxyPulseDot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.45); opacity: 0.65; }
+        }
+
+        .oxy-typing-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.28rem;
+            padding-block: 0.15rem;
+        }
+
+        .oxy-typing-dots i {
+            display: block;
+            inline-size: 0.4rem;
+            block-size: 0.4rem;
+            border-radius: 9999px;
+            background: #F4E185;
+            animation: oxyBounceDot 900ms ease-in-out infinite;
+        }
+
+        .oxy-typing-dots i:nth-child(2) { animation-delay: 150ms; }
+        .oxy-typing-dots i:nth-child(3) { animation-delay: 300ms; }
+
+        @keyframes oxyBounceDot {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
+            40% { transform: translateY(-4px); opacity: 1; }
         }
 
         .lumi-drawer-head {
@@ -499,12 +544,6 @@
             .obs-mascot-ask-pill {
                 font-size: 0.76rem;
                 padding: 0.3rem 0.8rem;
-            }
-            .oxy-fab-launcher {
-                inset-inline-end: 0.85rem;
-                inset-block-end: 4.85rem;
-                font-size: 0.78rem;
-                padding: 0.35rem 0.9rem;
             }
         }
     </style>

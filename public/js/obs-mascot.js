@@ -434,17 +434,66 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
     const input = host.querySelector('[data-lumi-input]');
     const log = host.querySelector('[data-lumi-log]');
     const quickRow = host.querySelector('.lumi-quick-row');
+    const statusEl = host.querySelector('[data-oxy-status]');
+    const speechEl = host.querySelector('[data-mascot-speech]');
     if (!drawer || !form || !input || !log) return;
 
+    const defaultStatus = statusEl?.textContent || 'Your Studio Sidekick';
     const askUrl = host.dataset.oxyUrl || '/oxy/ask';
     const studioSlug = host.dataset.studioSlug || '';
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
     const history = [];
+    let speakTimeout = null;
+
+    const setSpeaking = (speaking, label = null) => {
+        clearTimeout(speakTimeout);
+        drawer.classList.toggle('is-speaking', speaking);
+        if (statusEl) {
+            statusEl.textContent = label || (speaking ? 'Answering...' : defaultStatus);
+        }
+        if (speaking && !label) {
+            speakTimeout = setTimeout(() => {
+                drawer.classList.remove('is-speaking');
+                if (statusEl) statusEl.textContent = defaultStatus;
+            }, 2200);
+        }
+    };
+
+    const syncPosition = (mascotX, mascotY, mascotSize) => {
+        if (drawer.hidden) return;
+        const dw = drawer.offsetWidth || 340;
+        const dh = drawer.offsetHeight || 360;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const pad = 12;
+        let side = 'left';
+        let x;
+        let y;
+
+        if (vw < 640 || (mascotX - dw - 14 < pad && mascotX + mascotSize + dw + 14 > vw - pad)) {
+            side = 'above';
+            x = Math.max(pad, Math.min(vw - dw - pad, mascotX + mascotSize - dw));
+            y = Math.max(56, Math.min(vh - dh - pad, mascotY - dh - 14));
+        } else if (mascotX - dw - 14 >= pad) {
+            side = 'left';
+            x = mascotX - dw - 14;
+            y = Math.max(56, Math.min(vh - dh - pad, mascotY + mascotSize - dh + 6));
+        } else {
+            side = 'right';
+            x = Math.min(vw - dw - pad, mascotX + mascotSize + 14);
+            y = Math.max(56, Math.min(vh - dh - pad, mascotY + mascotSize - dh + 6));
+        }
+
+        drawer.dataset.bubbleSide = side;
+        drawer.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+    };
 
     const setOpen = (open) => {
         drawer.hidden = !open;
         toggleBtns.forEach((btn) => btn.setAttribute('aria-expanded', open ? 'true' : 'false'));
         if (open) {
+            if (speechEl) speechEl.classList.remove('is-visible');
+            instance?.triggerReaction('peek', false);
             setTimeout(() => input.focus(), 40);
         }
     };
@@ -503,8 +552,13 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
         input.value = '';
         input.disabled = true;
 
-        const typingBubble = appendMsg('Oxy is typing…', 'bot');
-        typingBubble.style.opacity = '0.7';
+        const typingBubble = document.createElement('div');
+        typingBubble.className = 'lumi-msg lumi-msg--bot';
+        typingBubble.innerHTML = '<span class="oxy-typing-dots" aria-label="Oxy is thinking"><i></i><i></i><i></i></span>';
+        log.appendChild(typingBubble);
+        log.scrollTop = log.scrollHeight;
+        setSpeaking(true, 'Thinking...');
+        instance?.triggerReaction('peek', false);
 
         try {
             const res = await fetch(askUrl, {
@@ -526,12 +580,14 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
             appendMsg(replyText, 'bot', data?.links || []);
             history.push({ role: 'assistant', text: replyText.slice(0, 500) });
             renderSuggestions(data?.suggestions);
+            setSpeaking(true);
             instance?.triggerReaction(data?.reaction || 'wave', false);
             if (drawer.hidden) {
                 showBriefSpeech(replyText.split('\n')[0]);
             }
         } catch {
             typingBubble.remove();
+            setSpeaking(false);
             appendMsg('Hit a quick connection hiccup — mind trying that again?', 'bot');
         } finally {
             input.disabled = false;
@@ -548,7 +604,7 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
         btn.addEventListener('click', () => sendQuestion(btn.dataset.lumiPrompt));
     });
 
-    return { setOpen, isOpen: () => !drawer.hidden };
+    return { setOpen, isOpen: () => !drawer.hidden, syncPosition };
 }
 
 function initMascots() {
@@ -712,6 +768,7 @@ function initMascots() {
                 }
                 flyerEl.style.transform = `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0) scale(${curScale.toFixed(4)})`;
                 flyerEl.style.setProperty('--mascot-inv-scale', (1 / Math.max(curScale, 0.3)).toFixed(3));
+                drawerCtrl?.syncPosition?.(curX, curY, baseSize * curScale);
             },
         });
 
