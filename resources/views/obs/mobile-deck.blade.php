@@ -1257,8 +1257,14 @@
                 const pendingResolvers = new Map();
 
                 // Unified Stage Tile Deck State
+                const stampCollectionPerf = (col) => {
+                    if (col && typeof col === 'object') {
+                        col._receivedAtPerf = performance.now();
+                    }
+                    return col;
+                };
                 let controlMode = @json($controlMode ?? 'screens');
-                let collectionsData = @json($collectionsPayload ?? []);
+                let collectionsData = (@json($collectionsPayload ?? [])).map(stampCollectionPerf);
                 let activeCollectionId = @json($activeCollectionId);
                 let subscribedCollectionToken = null;
                 let subscribedCollectionChannel = null;
@@ -1483,6 +1489,7 @@
 
                 const upsertCollection = (payload) => {
                     if (!payload?.collection_id) return;
+                    stampCollectionPerf(payload);
                     const idx = collectionsData.findIndex((c) => Number(c.collection_id) === Number(payload.collection_id));
                     if (idx >= 0) collectionsData[idx] = payload;
                     else collectionsData.push(payload);
@@ -1497,25 +1504,36 @@
                 const getCurrentTimerSeconds = (col) => {
                     const t = col?.runtime_state?.timer || {};
                     const mode = t.mode || 'countdown';
+                    const status = t.status || 'stopped';
                     const duration = Math.max(1, Number(t.duration_seconds ?? 300));
+                    const elapsedLocalMs = Math.max(0, performance.now() - Number(col?._receivedAtPerf ?? performance.now()));
+
                     if (mode === 'clock') {
                         const d = new Date();
                         const text = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
                         return { secs: 0, duration, mode, status: 'running', label: t.label || 'LOCAL TIME', text, pct: 100 };
                     }
-                    let secs = Number(t.remaining_seconds ?? t.duration_seconds ?? 0);
+
                     if (mode === 'countup') {
-                        secs = Number(t.elapsed_base_seconds || 0);
-                        if (t.status === 'running' && t.started_at) {
-                            secs += Math.max(0, Math.floor((Date.now() - Date.parse(t.started_at)) / 1000));
+                        let elapsedMs = Number.isFinite(Number(t.elapsed_ms))
+                            ? Number(t.elapsed_ms)
+                            : Number(t.elapsed_base_seconds || 0) * 1000;
+                        if (status === 'running') {
+                            elapsedMs += elapsedLocalMs;
                         }
-                        return { secs, duration, mode, status: t.status || 'stopped', label: t.label || 'ELAPSED', text: fmtDeckClock(secs), pct: 100 };
+                        const secs = Math.max(0, Math.floor(elapsedMs / 1000));
+                        return { secs, duration, mode, status, label: t.label || 'ELAPSED', text: fmtDeckClock(secs), pct: 100 };
                     }
-                    if (t.status === 'running' && t.target_at) {
-                        secs = Math.max(0, Math.ceil((Date.parse(t.target_at) - Date.now()) / 1000));
+
+                    let remMs = Number.isFinite(Number(t.remaining_ms))
+                        ? Number(t.remaining_ms)
+                        : Number(t.remaining_seconds ?? t.duration_seconds ?? 0) * 1000;
+                    if (status === 'running') {
+                        remMs = Math.max(0, remMs - elapsedLocalMs);
                     }
-                    const pct = Math.max(0, Math.min(100, Math.round((secs / duration) * 100)));
-                    return { secs, duration, mode, status: t.status || 'stopped', label: t.label || 'LIVE IN', text: fmtDeckClock(secs), pct };
+                    const secs = Math.max(0, Math.ceil(remMs / 1000));
+                    const pct = Math.max(0, Math.min(100, Math.round((remMs / (duration * 1000)) * 100)));
+                    return { secs, duration, mode, status, label: t.label || 'LIVE IN', text: fmtDeckClock(secs), pct };
                 };
 
                 const subscribeDeckCollectionEcho = (col) => {

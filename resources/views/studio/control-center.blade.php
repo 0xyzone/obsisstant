@@ -4377,10 +4377,19 @@
                 let subscribedColToken = null;
                 let subscribedColChannel = null;
 
+                const stampCollectionPerf = (col) => {
+                    if (col && typeof col === 'object') {
+                        col._receivedAtPerf = performance.now();
+                    }
+                    return col;
+                };
+                collectionsData.forEach(stampCollectionPerf);
+
                 const getActiveCollection = () => collectionsData.find((c) => Number(c.collection_id) === Number(activeCollectionId)) || collectionsData[0] || null;
 
                 const upsertCollectionData = (updated) => {
                     if (!updated?.collection_id) return;
+                    stampCollectionPerf(updated);
                     const idx = collectionsData.findIndex((c) => Number(c.collection_id) === Number(updated.collection_id));
                     if (idx >= 0) collectionsData[idx] = updated;
                     else collectionsData.push(updated);
@@ -4412,24 +4421,35 @@
                     const el = document.getElementById('uni-timer-readout');
                     if (!col || !el) return;
                     const t = col.runtime_state?.timer || {};
-                    let secs = Number(t.remaining_seconds ?? t.duration_seconds ?? 0);
-                    if (t.mode === 'countup') {
-                        secs = Number(t.elapsed_base_seconds || 0);
-                        if (t.status === 'running' && t.started_at) {
-                            secs += Math.max(0, Math.floor((Date.now() - Date.parse(t.started_at)) / 1000));
-                        }
-                    } else if (t.status === 'running' && t.target_at) {
-                        secs = Math.max(0, Math.ceil((Date.parse(t.target_at) - Date.now()) / 1000));
+                    const mode = t.mode || 'countdown';
+                    const status = String(t.status || 'stopped');
+                    const elapsedLocalMs = Math.max(0, performance.now() - Number(col._receivedAtPerf ?? performance.now()));
+
+                    if (mode === 'clock') {
+                        const d = new Date();
+                        el.textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+                    } else if (mode === 'countup') {
+                        let elapsedMs = Number.isFinite(Number(t.elapsed_ms))
+                            ? Number(t.elapsed_ms)
+                            : Number(t.elapsed_base_seconds || 0) * 1000;
+                        if (status === 'running') elapsedMs += elapsedLocalMs;
+                        el.textContent = fmtStageClock(Math.floor(elapsedMs / 1000));
+                    } else {
+                        let remMs = Number.isFinite(Number(t.remaining_ms))
+                            ? Number(t.remaining_ms)
+                            : Number(t.remaining_seconds ?? t.duration_seconds ?? 0) * 1000;
+                        if (status === 'running') remMs = Math.max(0, remMs - elapsedLocalMs);
+                        el.textContent = fmtStageClock(Math.ceil(remMs / 1000));
                     }
-                    el.textContent = fmtStageClock(secs);
 
                     const statusEl = document.getElementById('uni-timer-status-label');
                     if (statusEl) {
-                        const st = String(t.status || 'stopped');
-                        statusEl.textContent = st === 'running' ? 'Running' : (st === 'paused' ? 'Paused' : 'Stopped');
-                        statusEl.style.color = st === 'running'
+                        statusEl.textContent = mode === 'clock'
+                            ? 'Live Clock'
+                            : (status === 'running' ? 'Running' : (status === 'paused' ? 'Paused' : 'Stopped'));
+                        statusEl.style.color = (status === 'running' || mode === 'clock')
                             ? 'var(--positive)'
-                            : (st === 'paused' ? 'var(--gold-light)' : 'var(--ink-muted)');
+                            : (status === 'paused' ? 'var(--gold-light)' : 'var(--ink-muted)');
                     }
                 };
 

@@ -105,6 +105,11 @@ class ScreenCollectionService
             $defaultTransition['stinger_url'] = null;
         }
 
+        $nowUtc = Carbon::now('UTC');
+        $serverNowMs = (int) $nowUtc->getPreciseTimestamp(3);
+        $runtimeState = $collection->getMergedRuntimeState();
+        $runtimeState['timer'] = self::hydrateTimerSnapshot($runtimeState['timer'], $serverNowMs);
+
         return [
             'collection_id' => $collection->id,
             'obs_studio_id' => $collection->obs_studio_id,
@@ -120,12 +125,47 @@ class ScreenCollectionService
             'obs_source_name' => $collection->obs_source_name,
             'theme' => $collection->getMergedTheme(),
             'default_transition' => $defaultTransition,
-            'runtime_state' => $collection->getMergedRuntimeState(),
+            'runtime_state' => $runtimeState,
             'deck_layout' => $collection->getNormalizedDeckLayout(),
             'views' => $views,
             'assets' => $serializedAssets,
-            'updated_at' => $collection->updated_at?->toIso8601String() ?? now()->toIso8601String(),
+            'server_now_ms' => $serverNowMs,
+            'updated_at' => $collection->updated_at?->toIso8601String() ?? $nowUtc->toIso8601String(),
         ];
+    }
+
+    /**
+     * Enrich serialized timer state with server-relative remaining/elapsed milliseconds so clients are immune to wall-clock skew.
+     *
+     * @param  array<string, mixed>  $timer
+     * @return array<string, mixed>
+     */
+    private static function hydrateTimerSnapshot(array $timer, int $serverNowMs): array
+    {
+        $mode = (string) ($timer['mode'] ?? 'countdown');
+        $status = (string) ($timer['status'] ?? 'stopped');
+        $durationSecs = max(0, (int) ($timer['duration_seconds'] ?? 300));
+        $remainingSecs = max(0, (int) ($timer['remaining_seconds'] ?? $durationSecs));
+        $elapsedBaseSecs = max(0, (int) ($timer['elapsed_base_seconds'] ?? 0));
+
+        $remainingMs = $remainingSecs * 1000;
+        $elapsedMs = $elapsedBaseSecs * 1000;
+
+        if ($status === 'running' && $mode === 'countdown' && ! empty($timer['target_at'])) {
+            $targetMs = (int) Carbon::parse((string) $timer['target_at'])->utc()->getPreciseTimestamp(3);
+            $remainingMs = max(0, $targetMs - $serverNowMs);
+            $remainingSecs = (int) ceil($remainingMs / 1000);
+        } elseif ($status === 'running' && $mode === 'countup' && ! empty($timer['started_at'])) {
+            $startedMs = (int) Carbon::parse((string) $timer['started_at'])->utc()->getPreciseTimestamp(3);
+            $elapsedMs = ($elapsedBaseSecs * 1000) + max(0, $serverNowMs - $startedMs);
+        }
+
+        $timer['server_now_ms'] = $serverNowMs;
+        $timer['remaining_ms'] = $remainingMs;
+        $timer['remaining_seconds'] = $remainingSecs;
+        $timer['elapsed_ms'] = $elapsedMs;
+
+        return $timer;
     }
 
     /**
@@ -419,13 +459,32 @@ class ScreenCollectionService
     private function applyTimerAction(array $current, array $patch): array
     {
         $action = (string) ($patch['action'] ?? 'update');
-        $mode = (string) ($patch['mode'] ?? ($current['mode'] ?? 'countdown'));
-        $now = now();
+        $previousMode = (string) ($current['mode'] ?? 'countdown');
+        $mode = (string) ($patch['mode'] ?? $previousMode);
+        $now = Carbon::now('UTC');
+        $nowMs = (int) $now->getPreciseTimestamp(3);
 
         if (array_key_exists('label', $patch)) {
             $current['label'] = (string) $patch['label'];
         }
         $current['mode'] = $mode;
+
+        if ($action === 'update' && $mode !== $previousMode && ($current['status'] ?? '') === 'running') {
+            if ($mode === 'countup') {
+                $current['started_at'] = $now->toIso8601ZuluString('millisecond');
+                $current['target_at'] = null;
+            } elseif ($mode === 'countdown') {
+                $rem = max(1, (int) ($current['remaining_seconds'] ?? $current['duration_seconds'] ?? 300));
+                $current['remaining_seconds'] = $rem;
+                $current['target_at'] = $now->copy()->addSeconds($rem)->toIso8601ZuluString('millisecond');
+                $current['started_at'] = null;
+            } else {
+                $current['target_at'] = null;
+                $current['started_at'] = null;
+            }
+
+            return $current;
+        }
 
         if ($action === 'set') {
             $seconds = max(0, (int) ($patch['duration_seconds'] ?? $patch['seconds'] ?? $current['duration_seconds'] ?? 300));
@@ -434,10 +493,10 @@ class ScreenCollectionService
             $current['elapsed_base_seconds'] = 0;
             $current['status'] = ! empty($patch['auto_start']) ? 'running' : 'stopped';
             $current['target_at'] = $current['status'] === 'running' && $mode === 'countdown'
-                ? $now->copy()->addSeconds($seconds)->toIso8601String()
+                ? $now->copy()->addSeconds($seconds)->toIso8601ZuluString('millisecond')
                 : null;
             $current['started_at'] = $current['status'] === 'running' && $mode === 'countup'
-                ? $now->toIso8601String()
+                ? $now->toIso8601ZuluString('millisecond')
                 : null;
 
             return $current;
@@ -445,17 +504,27 @@ class ScreenCollectionService
 
         if ($action === 'start') {
             if ($mode === 'countup') {
+                if (($current['status'] ?? '') === 'running' && ! empty($current['started_at'])) {
+                    return $current;
+                }
                 $current['status'] = 'running';
-                $current['started_at'] = $now->toIso8601String();
+                $current['started_at'] = $now->toIso8601ZuluString('millisecond');
                 $current['target_at'] = null;
             } else {
+                if (($current['status'] ?? '') === 'running' && ! empty($current['target_at'])) {
+                    $existingTargetMs = (int) Carbon::parse((string) $current['target_at'])->utc()->getPreciseTimestamp(3);
+                    if ($existingTargetMs > $nowMs) {
+                        return $current;
+                    }
+                }
                 $remaining = max(0, (int) ($current['remaining_seconds'] ?? $current['duration_seconds'] ?? 300));
                 if ($remaining === 0) {
                     $remaining = max(10, (int) ($current['duration_seconds'] ?? 300));
                 }
                 $current['remaining_seconds'] = $remaining;
                 $current['status'] = 'running';
-                $current['target_at'] = $now->copy()->addSeconds($remaining)->toIso8601String();
+                $current['target_at'] = $now->copy()->addSeconds($remaining)->toIso8601ZuluString('millisecond');
+                $current['started_at'] = null;
             }
 
             return $current;
@@ -464,11 +533,12 @@ class ScreenCollectionService
         if ($action === 'pause') {
             if (($current['status'] ?? '') === 'running') {
                 if ($mode === 'countup' && ! empty($current['started_at'])) {
-                    $elapsed = max(0, (int) Carbon::parse((string) $current['started_at'])->diffInSeconds($now));
+                    $startedMs = (int) Carbon::parse((string) $current['started_at'])->utc()->getPreciseTimestamp(3);
+                    $elapsed = max(0, (int) floor(($nowMs - $startedMs) / 1000));
                     $current['elapsed_base_seconds'] = (int) ($current['elapsed_base_seconds'] ?? 0) + $elapsed;
                 } elseif (! empty($current['target_at'])) {
-                    $remaining = max(0, (int) $now->diffInSeconds(Carbon::parse((string) $current['target_at']), false));
-                    $current['remaining_seconds'] = $remaining;
+                    $targetMs = (int) Carbon::parse((string) $current['target_at'])->utc()->getPreciseTimestamp(3);
+                    $current['remaining_seconds'] = max(0, (int) ceil(($targetMs - $nowMs) / 1000));
                 }
             }
             $current['status'] = 'paused';
@@ -493,13 +563,16 @@ class ScreenCollectionService
         if ($action === 'add_seconds') {
             $delta = (int) ($patch['seconds'] ?? 60);
             if (($current['status'] ?? '') === 'running' && $mode === 'countdown' && ! empty($current['target_at'])) {
-                $target = Carbon::parse((string) $current['target_at'])->addSeconds($delta);
-                if ($target->lessThanOrEqualTo($now)) {
+                $target = Carbon::parse((string) $current['target_at'])->utc()->addSeconds($delta);
+                $targetMs = (int) $target->getPreciseTimestamp(3);
+                if ($targetMs <= $nowMs) {
                     $current['remaining_seconds'] = 0;
-                    $current['target_at'] = $now->toIso8601String();
+                    $current['target_at'] = $now->toIso8601ZuluString('millisecond');
                 } else {
-                    $current['remaining_seconds'] = max(0, (int) $now->diffInSeconds($target, false));
-                    $current['target_at'] = $target->toIso8601String();
+                    $remSecs = max(0, (int) ceil(($targetMs - $nowMs) / 1000));
+                    $current['remaining_seconds'] = $remSecs;
+                    $current['duration_seconds'] = max($remSecs, (int) ($current['duration_seconds'] ?? 0));
+                    $current['target_at'] = $target->toIso8601ZuluString('millisecond');
                 }
             } elseif ($mode === 'countup') {
                 $current['elapsed_base_seconds'] = max(0, (int) ($current['elapsed_base_seconds'] ?? 0) + $delta);

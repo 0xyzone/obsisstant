@@ -244,6 +244,73 @@ class ScreenCollectionStageTest extends TestCase
         Event::assertDispatched(ScreenCollectionUpdated::class, 2);
     }
 
+    public function test_timer_countdown_provides_clock_skew_immune_millisecond_anchors_and_accurate_controls(): void
+    {
+        Event::fake([ScreenCollectionUpdated::class]);
+
+        $user = User::factory()->create();
+        $studio = ObsStudio::factory()->for($user)->create();
+        $collection = ScreenCollection::factory()->for($user)->create(['obs_studio_id' => $studio->id]);
+        $view = ScreenView::factory()->create(['screen_collection_id' => $collection->id]);
+        $collection->update(['active_view_id' => $view->id]);
+
+        $this->travelTo(now()->startOfSecond());
+
+        try {
+            // Set 5:00 (300s) then Start -> remaining_ms MUST be exact 300000ms (05:00), never skewed!
+            $this->actingAs($user)
+                ->postJson(route('studio.collections.runtime', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                    'timer' => ['action' => 'set', 'duration_seconds' => 300],
+                ])
+                ->assertOk()
+                ->assertJsonPath('collection.runtime_state.timer.remaining_seconds', 300)
+                ->assertJsonPath('collection.runtime_state.timer.remaining_ms', 300000);
+
+            $startRes = $this->actingAs($user)
+                ->postJson(route('studio.collections.runtime', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                    'timer' => ['action' => 'start'],
+                ])
+                ->assertOk();
+
+            $startRes->assertJsonPath('collection.runtime_state.timer.status', 'running');
+            $startRes->assertJsonPath('collection.runtime_state.timer.remaining_seconds', 300);
+            $this->assertGreaterThan(0, (int) $startRes->json('collection.server_now_ms'));
+            $this->assertSame(300000, (int) $startRes->json('collection.runtime_state.timer.remaining_ms'));
+
+            // Advance server time by exactly 12 seconds -> state endpoint reports exact 288s / 288000ms
+            $this->travel(12)->seconds();
+
+            // Calling Start again while already running is idempotent (must NOT reset back to 300s!)
+            $idempotentRes = $this->actingAs($user)
+                ->postJson(route('studio.collections.runtime', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                    'timer' => ['action' => 'start'],
+                ])
+                ->assertOk();
+            $idempotentRes->assertJsonPath('collection.runtime_state.timer.remaining_seconds', 288);
+
+            // Pause preserves exact remaining 288s
+            $pauseRes = $this->actingAs($user)
+                ->postJson(route('studio.collections.runtime', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                    'timer' => ['action' => 'pause'],
+                ])
+                ->assertOk();
+            $pauseRes->assertJsonPath('collection.runtime_state.timer.status', 'paused');
+            $pauseRes->assertJsonPath('collection.runtime_state.timer.remaining_seconds', 288);
+            $pauseRes->assertJsonPath('collection.runtime_state.timer.remaining_ms', 288000);
+
+            // Add +60s while paused -> 348s
+            $this->actingAs($user)
+                ->postJson(route('studio.collections.runtime', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                    'timer' => ['action' => 'add_seconds', 'seconds' => 60],
+                ])
+                ->assertOk()
+                ->assertJsonPath('collection.runtime_state.timer.remaining_seconds', 348)
+                ->assertJsonPath('collection.runtime_state.timer.remaining_ms', 348000);
+        } finally {
+            $this->travelBack();
+        }
+    }
+
     public function test_public_stage_player_renders_and_handles_idempotent_timer_end_logic(): void
     {
         Event::fake([ScreenCollectionUpdated::class]);

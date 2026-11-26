@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.13.2] - 2026-11-26 | type: macro
+
+> Fixed countdown timer offset bug caused by server/client clock skew by anchoring timer math to server-computed milliseconds and monotonic browser time.
+
+### Fixed
+- Eliminated timer clock-skew jumps (e.g. a 5:00 timer starting at 6:17) by computing exact server-relative remaining_ms and elapsed_ms in ScreenCollectionService and ticking via monotonic performance.now() across Mobile Deck, Studio Control Center, and Stage Player
+- Used millisecond UTC timestamps, made Start idempotent while running, preserved ceil precision on Pause/Add Seconds, and synced live timer mode and on-screen label updates directly to Stage Player
+
 ## [v1.13.1] - 2026-11-25 | type: macro
 
 > Upgraded Mobile Control Deck with an interactive multi-control Timer Tile and a full Stage Timer Controls modal with presets, custom Min:Sec input, nudges, modes, and on-screen label.

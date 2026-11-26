@@ -407,6 +407,9 @@
         <script>
             (() => {
                 let stageData = @json($stagePayload);
+                if (stageData && typeof stageData === 'object') {
+                    stageData._receivedAtPerf = performance.now();
+                }
                 const echoCfg = @json($echoConfig);
                 const stageUrls = @json($stageUrls);
                 const logicTriggerUrl = stageUrls.logicTrigger;
@@ -479,11 +482,11 @@
                     return (showHours || hrs > 0) ? `${String(hrs).padStart(2, '0')}:${mm}:${ss}` : `${mm}:${ss}`;
                 };
 
-                const computeTimerSeconds = (mode = 'countdown') => {
+                const computeTimerSeconds = (layerMode = null, showHours = false) => {
                     const timer = stageData?.runtime_state?.timer || {};
-                    const effectiveMode = mode || timer.mode || 'countdown';
+                    const effectiveMode = timer.mode || layerMode || 'countdown';
                     const status = timer.status || 'stopped';
-                    const nowMs = Date.now();
+                    const elapsedLocalMs = Math.max(0, performance.now() - Number(stageData?._receivedAtPerf ?? performance.now()));
 
                     if (effectiveMode === 'clock') {
                         const d = new Date();
@@ -494,18 +497,24 @@
                     }
 
                     if (effectiveMode === 'countup') {
-                        let secs = Number(timer.elapsed_base_seconds || 0);
-                        if (status === 'running' && timer.started_at) {
-                            secs += Math.max(0, Math.floor((nowMs - Date.parse(timer.started_at)) / 1000));
+                        let elapsedMs = Number.isFinite(Number(timer.elapsed_ms))
+                            ? Number(timer.elapsed_ms)
+                            : Number(timer.elapsed_base_seconds || 0) * 1000;
+                        if (status === 'running') {
+                            elapsedMs += elapsedLocalMs;
                         }
-                        return { text: formatClock(secs, false), remaining: secs };
+                        const secs = Math.max(0, Math.floor(elapsedMs / 1000));
+                        return { text: formatClock(secs, showHours), remaining: secs };
                     }
 
-                    let rem = Number(timer.remaining_seconds ?? timer.duration_seconds ?? 0);
-                    if (status === 'running' && timer.target_at) {
-                        rem = Math.max(0, Math.ceil((Date.parse(timer.target_at) - nowMs) / 1000));
+                    let remMs = Number.isFinite(Number(timer.remaining_ms))
+                        ? Number(timer.remaining_ms)
+                        : Number(timer.remaining_seconds ?? timer.duration_seconds ?? 0) * 1000;
+                    if (status === 'running') {
+                        remMs = Math.max(0, remMs - elapsedLocalMs);
                     }
-                    return { text: formatClock(rem, false), remaining: rem };
+                    const rem = Math.max(0, Math.ceil(remMs / 1000));
+                    return { text: formatClock(rem, showHours), remaining: rem };
                 };
 
                 const shouldShowCondition = (tag, timerInfo) => {
@@ -700,8 +709,9 @@
                             box.style.borderRadius = `${radius}px`;
                             if (p.bg_color) box.style.background = p.bg_color;
                             const lbl = document.createElement('div');
-                            lbl.className = 'timer-label';
-                            lbl.textContent = p.label || stageData?.runtime_state?.timer?.label || 'TIMER';
+                            lbl.className = 'timer-label live-timer-label';
+                            lbl.dataset.defaultLabel = p.label || '';
+                            lbl.textContent = stageData?.runtime_state?.timer?.label || p.label || 'TIMER';
                             const digits = document.createElement('div');
                             digits.className = 'timer-digits live-timer-digits';
                             digits.dataset.timerMode = String(p.mode || 'countdown');
@@ -813,8 +823,14 @@
                     });
 
                     slot.querySelectorAll('.live-timer-digits').forEach((d) => {
-                        const t = computeTimerSeconds(d.dataset.timerMode);
+                        const t = computeTimerSeconds(d.dataset.timerMode, d.dataset.showHours === '1');
                         d.textContent = t.text;
+                    });
+                    slot.querySelectorAll('.live-timer-label').forEach((lbl) => {
+                        const liveLabel = runtime.timer?.label;
+                        lbl.textContent = (liveLabel !== undefined && liveLabel !== '')
+                            ? liveLabel
+                            : (lbl.dataset.defaultLabel || 'TIMER');
                     });
 
                     slot.querySelectorAll('.live-scoreboard-widget').forEach((w) => {
@@ -945,6 +961,7 @@
 
                 const applyStagePayload = async (nextPayload) => {
                     if (!nextPayload || typeof nextPayload !== 'object') return;
+                    nextPayload._receivedAtPerf = performance.now();
                     stageData = nextPayload;
                     fitViewport();
                     preloadAssets();
