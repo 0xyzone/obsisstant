@@ -110,7 +110,7 @@ class OxyAssistantService
         }
 
         $model = trim((string) config('services.gemini.model', 'gemini-3.5-flash-lite')) ?: 'gemini-3.5-flash-lite';
-        $endpoint = trim((string) config('services.gemini.endpoint', 'https://generativelanguage.googleapis.com/v1/interactions'));
+        $endpoint = trim((string) config('services.gemini.endpoint', 'https://generativelanguage.googleapis.com/v1beta/interactions'));
 
         $studioKey = $studio?->id ?? 0;
         $historyFingerprint = md5((string) json_encode(array_slice($history, -2)));

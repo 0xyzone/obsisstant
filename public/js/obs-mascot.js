@@ -4,7 +4,7 @@ import { RoomEnvironment } from 'https://esm.sh/three@0.186.0/examples/jsm/envir
 const REACTIONS = ['wave', 'spin', 'cheer', 'dance', 'peek'];
 
 const REACTION_LINES = {
-    wave: 'Hey! Tap Ask Lumi or drag me anywhere.',
+    wave: 'Hey! Tap Ask Oxy or drag me anywhere.',
     spin: 'Wheee! Everything stays synced live.',
     cheer: 'Looking sharp! Ready to go live.',
     dance: 'Vibing with your stream setup!',

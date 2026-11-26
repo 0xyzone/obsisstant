@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.22.1] - 2026-11-27 | type: macro
+
+> Fixed the Wave reaction speech bubble in `public/js/obs-mascot.js` so it says "Ask Oxy" instead of "Ask Lumi", and updated the default Gemini Interactions endpoint to `v1beta/interactions` for direct compatibility with Google AI Studio keys.
+
+### Fixed
+- Updated `REACTION_LINES.wave` in `public/js/obs-mascot.js` from `"Hey! Tap Ask Lumi or drag me anywhere."` to `"Hey! Tap Ask Oxy or drag me anywhere."`.
+- Pointed `services.gemini.endpoint` to `https://generativelanguage.googleapis.com/v1beta/interactions` (`gemini-3.5-flash-lite`) so Google AI Studio `AQ.*` keys authenticate out of the box.
+
 ## [v1.22.0] - 2026-11-27 | type: minor
 
 > Added hybrid Google Gemini AI support (`gemini-3.5-flash-lite` via the Interactions v1 API) for signed-in Studio operators in Oxy, with 12-hour response caching, zero-token local execution for live Studio/OBS commands, and automatic local fallback for guests or when no API key is configured.
