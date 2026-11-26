@@ -263,7 +263,7 @@ class ScreenCollectionService
         }
 
         $type = (string) ($baseTransition['type'] ?? 'fade');
-        $durationMs = $type === 'cut' ? 0 : max(80, min(5000, (int) ($baseTransition['duration_ms'] ?? 450)));
+        $durationMs = $type === 'cut' ? 0 : max(80, min(3000, (int) ($baseTransition['duration_ms'] ?? 450)));
         $swapPointMs = max(0, min($durationMs, (int) ($baseTransition['swap_point_ms'] ?? (int) round($durationMs * 0.5))));
 
         $stingerUrl = null;

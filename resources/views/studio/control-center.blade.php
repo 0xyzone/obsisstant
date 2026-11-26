@@ -1583,7 +1583,7 @@
                                         <option value="{{ $txKey }}">{{ $txLabel }}</option>
                                     @endforeach
                                 </select>
-                                <input type="number" id="unified-tx-dur" class="s-input" min="0" max="5000" step="50" value="450" style="inline-size: 4.5rem; min-block-size: 1.9rem; font-size: 0.75rem;" aria-label="Transition duration in milliseconds" title="Transition duration (ms)">
+                                <input type="number" id="unified-tx-dur" class="s-input" min="0" max="3000" step="50" value="450" style="inline-size: 4.5rem; min-block-size: 1.9rem; font-size: 0.75rem;" aria-label="Transition duration in milliseconds" title="Transition duration (up to 3000 ms)">
                                 <span class="dock-subtitle">ms</span>
                             </div>
                         </div>
@@ -4658,7 +4658,11 @@
                             btn.append(thumb, info);
                             btn.addEventListener('click', async () => {
                                 const txType = document.getElementById('unified-tx-type')?.value || 'default';
-                                const txDur = Number(document.getElementById('unified-tx-dur')?.value || 450);
+                                const txDurEl = document.getElementById('unified-tx-dur');
+                                const txDur = txType === 'cut'
+                                    ? 0
+                                    : Math.min(3000, Math.max(80, Math.round(Number(txDurEl?.value || 450))));
+                                if (txDurEl && txType !== 'default') txDurEl.value = String(txDur);
                                 const res = await postJson(endpoints.collectionSwitchTpl.replace('__COL__', col.collection_id), {
                                     view_id: view.id,
                                     transition: txType === 'default' ? null : { type: txType, duration_ms: txDur },

@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.13.4] - 2026-11-26 | type: macro
+
+> Added configurable transition duration controls (capped at 3000 ms maximum) to the Mobile Control Deck toolbar and Tile Editor with matching server-side validation.
+
+### Added
+- Added a live millisecond transition duration input beside the Mobile Deck global transition selector and inside the App Screen View Tile Editor modal, shown whenever a transition type is selected and capped at 3000 ms (0 ms for Cut)
+
+### Changed
+- Enforced the 3000 ms maximum transition duration across ScreenCollectionController validation, ScreenCollectionService view switching, Studio Control Center override input, and Stage Player runtime clamping
+
 ## [v1.13.3] - 2026-11-26 | type: macro
 
 > Fixed persistent Install OBS Agent prompts and multi-device online/offline flapping when Obsisstant is open across multiple computers or mobile devices.

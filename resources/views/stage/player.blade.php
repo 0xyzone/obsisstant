@@ -879,7 +879,7 @@
                 const runViewTransition = async (nextView, tx) => {
                     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
                     const type = reduced && tx.type !== 'cut' ? 'fade' : (tx?.type || 'fade');
-                    const dur = type === 'cut' ? 0 : Math.max(80, Number(tx?.duration_ms || 450));
+                    const dur = type === 'cut' ? 0 : Math.max(80, Math.min(3000, Number(tx?.duration_ms || 450)));
                     const swapMs = Math.max(40, Math.min(dur, Number(tx?.swap_point_ms || Math.round(dur / 2))));
                     const slotKey = standbySlot === slotA ? 'a' : 'b';
 

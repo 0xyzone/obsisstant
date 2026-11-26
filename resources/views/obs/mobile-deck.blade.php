@@ -247,6 +247,40 @@
 
             .deck-input { inline-size: 100%; }
 
+            .tx-dur-wrap {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                min-block-size: 2.25rem;
+                padding: 0 0.55rem 0 0.4rem;
+                border-radius: 0.6rem;
+                border: 1px solid var(--border-gold);
+                background: var(--surface-well);
+            }
+
+            .tx-dur-wrap[hidden] { display: none; }
+
+            .tx-dur-input {
+                inline-size: 4.35rem;
+                min-block-size: 1.95rem;
+                padding: 0.15rem 0.25rem;
+                border: 0;
+                background: transparent;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-variant-numeric: tabular-nums;
+                text-align: right;
+            }
+
+            .tx-dur-input:focus { outline: none; }
+            .tx-dur-input:disabled { color: var(--muted); opacity: 0.7; }
+
+            .tx-dur-unit {
+                font-size: 0.72rem;
+                font-weight: 600;
+                color: var(--gold);
+                user-select: none;
+            }
+
             .deck-offline-banner {
                 display: flex;
                 flex-wrap: wrap;
@@ -903,6 +937,21 @@
                                 <option value="{{ $txKey }}">{{ $txLabel }}</option>
                             @endforeach
                         </select>
+                        <label id="deck-uni-tx-dur-wrap" class="tx-dur-wrap" hidden>
+                            <input
+                                type="number"
+                                id="deck-uni-tx-duration"
+                                class="deck-input tx-dur-input"
+                                min="0"
+                                max="3000"
+                                step="50"
+                                value="450"
+                                inputmode="numeric"
+                                aria-label="Transition duration in milliseconds (max 3000 ms)"
+                                title="Transition duration (up to 3000 ms)"
+                            >
+                            <span class="tx-dur-unit">ms</span>
+                        </label>
                     </div>
 
                     <div class="deck-controls-group">
@@ -1604,6 +1653,45 @@
                     }
                 };
 
+                const MAX_TX_DURATION_MS = 3000;
+                const clampTransitionDurationMs = (rawValue, txType = 'fade', fallback = 450) => {
+                    if (txType === 'cut') return 0;
+                    const parsed = Number(rawValue);
+                    if (!Number.isFinite(parsed)) {
+                        return Math.min(MAX_TX_DURATION_MS, Math.max(80, Math.round(Number(fallback || 450))));
+                    }
+                    return Math.min(MAX_TX_DURATION_MS, Math.max(80, Math.round(parsed)));
+                };
+
+                const syncGlobalTransitionDurationUI = () => {
+                    const txSel = document.getElementById('deck-uni-tx-select');
+                    const durWrap = document.getElementById('deck-uni-tx-dur-wrap');
+                    const durInput = document.getElementById('deck-uni-tx-duration');
+                    if (!txSel || !durWrap || !durInput) return;
+
+                    const txType = txSel.value || 'default';
+                    if (txType === 'default') {
+                        durWrap.hidden = true;
+                        return;
+                    }
+
+                    durWrap.hidden = false;
+                    if (txType === 'cut') {
+                        durInput.value = '0';
+                        durInput.disabled = true;
+                    } else {
+                        durInput.disabled = false;
+                        const col = getActiveCollection();
+                        const colDefault = col?.default_transition?.duration_ms ?? 450;
+                        const current = Number(durInput.value);
+                        if (!durInput.value || !Number.isFinite(current) || current <= 0) {
+                            durInput.value = String(clampTransitionDurationMs(colDefault, txType, 450));
+                        } else if (current > MAX_TX_DURATION_MS) {
+                            durInput.value = String(MAX_TX_DURATION_MS);
+                        }
+                    }
+                };
+
                 const executeTileAction = async (tile) => {
                     const col = getActiveCollection();
                     if (!col || !tile) return;
@@ -1617,11 +1705,24 @@
                             return;
                         }
                         const globalTx = document.getElementById('deck-uni-tx-select')?.value || 'default';
-                        const txType = globalTx !== 'default' ? globalTx : (cfg.transition_type || 'default');
+                        const globalDurRaw = document.getElementById('deck-uni-tx-duration')?.value;
+                        const defaultDur = col.default_transition?.duration_ms ?? 450;
+                        let transitionPayload = null;
+                        if (globalTx !== 'default') {
+                            const clampedDur = clampTransitionDurationMs(globalDurRaw, globalTx, defaultDur);
+                            const durInput = document.getElementById('deck-uni-tx-duration');
+                            if (durInput) durInput.value = String(clampedDur);
+                            transitionPayload = { type: globalTx, duration_ms: clampedDur };
+                        } else if (cfg.transition_type && cfg.transition_type !== 'default') {
+                            transitionPayload = { type: cfg.transition_type };
+                            if (cfg.transition_duration_ms !== undefined && cfg.transition_duration_ms !== null && cfg.transition_duration_ms !== '') {
+                                transitionPayload.duration_ms = clampTransitionDurationMs(cfg.transition_duration_ms, cfg.transition_type, defaultDur);
+                            }
+                        }
                         try {
                             const res = await postJson(deckUrls.switchTpl.replace('__COL__', col.collection_id), {
                                 view_id: targetView.id,
-                                transition: txType === 'default' ? null : { type: txType },
+                                transition: transitionPayload,
                             });
                             if (res.collection) {
                                 upsertCollection(res.collection);
@@ -1809,11 +1910,18 @@
                         if (tile.type === 'switch_view') {
                             viewObj = (col.views || []).find((v) => Number(v.id) === Number(cfg.view_id)) || null;
                             isOnAir = Boolean(viewObj && Number(viewObj.id) === Number(col.active_view_id));
-                            const txKey = (cfg.transition_type && cfg.transition_type !== 'default')
+                            const hasTileTx = Boolean(cfg.transition_type && cfg.transition_type !== 'default');
+                            const txKey = hasTileTx
                                 ? cfg.transition_type
                                 : (viewObj?.transition_override?.type || col.default_transition?.type || 'fade');
+                            const rawDur = hasTileTx
+                                ? (cfg.transition_duration_ms ?? col.default_transition?.duration_ms ?? 450)
+                                : (viewObj?.transition_override?.duration_ms ?? col.default_transition?.duration_ms ?? 450);
+                            const txMeta = txKey === 'cut'
+                                ? 'cut'
+                                : `${String(txKey).replaceAll('_', ' ')} · ${clampTransitionDurationMs(rawDur, txKey)}ms`;
                             autoSub = viewObj
-                                ? `${(viewObj.layers || []).length} layers · ${String(txKey).replaceAll('_', ' ')}`
+                                ? `${(viewObj.layers || []).length} layers · ${txMeta}`
                                 : 'Missing view — edit tile';
                         } else if (tile.type === 'timer') {
                             topBadge = timerInfo.mode === 'countup' ? 'Stopwatch' : (timerInfo.mode === 'clock' ? 'Clock' : 'Timer');
@@ -2129,6 +2237,7 @@
                     if (editToolbar) editToolbar.hidden = !isEditMode;
 
                     subscribeDeckCollectionEcho(col);
+                    syncGlobalTransitionDurationUI();
                     renderTilesBoard();
 
                     // Keep quick drawer readouts in sync
@@ -2274,7 +2383,57 @@
                             txSel.appendChild(o);
                         });
                         txWrap.appendChild(txSel);
-                        tileDynamicHost.append(viewWrap, txWrap);
+
+                        const durWrap = document.createElement('label');
+                        durWrap.id = 'cfg-tx-duration-wrap';
+                        durWrap.className = 'field-stack';
+                        durWrap.innerHTML = '<span class="field-label">Transition Duration (ms, max 3000)</span>';
+                        const durInput = document.createElement('input');
+                        durInput.type = 'number';
+                        durInput.id = 'cfg-tx-duration';
+                        durInput.className = 'deck-input';
+                        durInput.min = '0';
+                        durInput.max = String(MAX_TX_DURATION_MS);
+                        durInput.step = '50';
+                        durInput.inputMode = 'numeric';
+                        const defaultDur = clampTransitionDurationMs(col?.default_transition?.duration_ms ?? 450, 'fade', 450);
+                        durInput.value = existingCfg.transition_duration_ms !== undefined && existingCfg.transition_duration_ms !== null
+                            ? String(clampTransitionDurationMs(existingCfg.transition_duration_ms, existingCfg.transition_type || 'fade', defaultDur))
+                            : String(defaultDur);
+                        durInput.addEventListener('input', () => {
+                            if (durInput.value !== '' && Number(durInput.value) > MAX_TX_DURATION_MS) {
+                                durInput.value = String(MAX_TX_DURATION_MS);
+                            }
+                        });
+                        durInput.addEventListener('blur', () => {
+                            if (txSel.value === 'default') return;
+                            durInput.value = String(clampTransitionDurationMs(durInput.value, txSel.value, defaultDur));
+                        });
+                        durWrap.appendChild(durInput);
+
+                        const syncTileTxDuration = () => {
+                            const selectedTx = txSel.value || 'default';
+                            if (selectedTx === 'default') {
+                                durWrap.hidden = true;
+                                return;
+                            }
+                            durWrap.hidden = false;
+                            if (selectedTx === 'cut') {
+                                durInput.value = '0';
+                                durInput.disabled = true;
+                            } else {
+                                durInput.disabled = false;
+                                if (!durInput.value || Number(durInput.value) <= 0) {
+                                    durInput.value = String(defaultDur);
+                                } else if (Number(durInput.value) > MAX_TX_DURATION_MS) {
+                                    durInput.value = String(MAX_TX_DURATION_MS);
+                                }
+                            }
+                        };
+                        txSel.addEventListener('change', syncTileTxDuration);
+                        syncTileTxDuration();
+
+                        tileDynamicHost.append(viewWrap, txWrap, durWrap);
                         return;
                     }
 
@@ -2523,6 +2682,13 @@
                     if (type === 'switch_view') {
                         config.view_id = Number(document.getElementById('cfg-view-id')?.value || 0);
                         config.transition_type = document.getElementById('cfg-tx-type')?.value || 'default';
+                        if (config.transition_type !== 'default') {
+                            config.transition_duration_ms = clampTransitionDurationMs(
+                                document.getElementById('cfg-tx-duration')?.value,
+                                config.transition_type,
+                                col.default_transition?.duration_ms ?? 450,
+                            );
+                        }
                     } else if (type === 'timer') {
                         const act = document.getElementById('cfg-timer-action')?.value || 'toggle';
                         config.action = act;
@@ -2604,6 +2770,22 @@
                     try {
                         await postJson(deckUrls.controlMode, { active_screen_collection_id: activeCollectionId });
                     } catch {}
+                });
+
+                document.getElementById('deck-uni-tx-select')?.addEventListener('change', syncGlobalTransitionDurationUI);
+                document.getElementById('deck-uni-tx-duration')?.addEventListener('input', (ev) => {
+                    const el = ev.target;
+                    if (el.value !== '' && Number(el.value) > MAX_TX_DURATION_MS) {
+                        el.value = String(MAX_TX_DURATION_MS);
+                        showToast(`Maximum transition duration is ${MAX_TX_DURATION_MS} ms`, true);
+                    }
+                });
+                document.getElementById('deck-uni-tx-duration')?.addEventListener('change', (ev) => {
+                    const el = ev.target;
+                    const txType = document.getElementById('deck-uni-tx-select')?.value || 'default';
+                    if (txType === 'default') return;
+                    const col = getActiveCollection();
+                    el.value = String(clampTransitionDurationMs(el.value, txType, col?.default_transition?.duration_ms ?? 450));
                 });
 
                 document.getElementById('deck-create-first-collection-btn')?.addEventListener('click', async () => {

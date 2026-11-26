@@ -229,6 +229,11 @@ class ScreenCollectionController extends Controller
         $validated = $request->validate([
             'view_id' => ['required', 'integer'],
             'transition' => ['nullable', 'array'],
+            'transition.type' => ['nullable', 'string', 'max:40'],
+            'transition.duration_ms' => ['nullable', 'integer', 'min:0', 'max:3000'],
+            'transition.swap_point_ms' => ['nullable', 'integer', 'min:0', 'max:3000'],
+            'transition.stinger_asset_id' => ['nullable', 'integer'],
+            'transition.sweep_color' => ['nullable', 'string', 'max:40'],
         ]);
 
         $view = ScreenView::query()
@@ -302,10 +307,20 @@ class ScreenCollectionController extends Controller
             'tiles.*.color' => ['nullable', 'string', 'in:neutral,gold,emerald,crimson,cobalt,violet'],
             'tiles.*.span' => ['nullable', 'integer', 'in:1,2'],
             'tiles.*.config' => ['nullable', 'array'],
+            'tiles.*.config.*' => ['nullable'],
+            'tiles.*.config.transition_duration_ms' => ['nullable', 'integer', 'min:0', 'max:3000'],
         ]);
 
         $sanitizedTiles = [];
         foreach ($validated['tiles'] as $index => $tile) {
+            $tileConfig = is_array($tile['config'] ?? null) ? $tile['config'] : [];
+            if ($tile['type'] === 'switch_view' && array_key_exists('transition_duration_ms', $tileConfig) && $tileConfig['transition_duration_ms'] !== null && $tileConfig['transition_duration_ms'] !== '') {
+                $txType = (string) ($tileConfig['transition_type'] ?? 'default');
+                $tileConfig['transition_duration_ms'] = $txType === 'cut'
+                    ? 0
+                    : max(80, min(3000, (int) $tileConfig['transition_duration_ms']));
+            }
+
             $sanitizedTiles[] = [
                 'id' => trim((string) ($tile['id'] ?? '')) ?: 'tile_'.($index + 1).'_'.Str::lower(Str::random(5)),
                 'type' => (string) $tile['type'],
@@ -313,7 +328,7 @@ class ScreenCollectionController extends Controller
                 'subtitle' => trim((string) ($tile['subtitle'] ?? '')),
                 'color' => (string) ($tile['color'] ?? 'neutral'),
                 'span' => (int) ($tile['span'] ?? 1) === 2 ? 2 : 1,
-                'config' => is_array($tile['config'] ?? null) ? $tile['config'] : [],
+                'config' => $tileConfig,
             ];
         }
 

@@ -203,6 +203,111 @@ class ScreenCollectionStageTest extends TestCase
         });
     }
 
+    public function test_mobile_deck_and_switch_view_support_transition_duration_up_to_3000ms_max(): void
+    {
+        Event::fake([ScreenCollectionUpdated::class]);
+
+        $user = User::factory()->create();
+        $studio = ObsStudio::factory()->for($user)->create();
+        $collection = ScreenCollection::factory()->for($user)->create([
+            'obs_studio_id' => $studio->id,
+            'default_transition' => ['type' => 'fade', 'duration_ms' => 4500],
+        ]);
+        $viewA = ScreenView::factory()->create(['screen_collection_id' => $collection->id, 'name' => 'Intro', 'sort_order' => 1]);
+        $viewB = ScreenView::factory()->create(['screen_collection_id' => $collection->id, 'name' => 'Gameplay', 'sort_order' => 2]);
+        $collection->update(['active_view_id' => $viewA->id]);
+
+        // Mobile Deck renders transition duration control capped at 3000ms
+        $this->actingAs($user)
+            ->get(route('obs.deck.show', ['studio' => $studio->slug]))
+            ->assertOk()
+            ->assertSee('id="deck-uni-tx-duration"', false)
+            ->assertSee('max="3000"', false)
+            ->assertSee('MAX_TX_DURATION_MS = 3000', false)
+            ->assertSee('cfg-tx-duration', false);
+
+        // Switching views accepts up to 3000ms
+        $this->actingAs($user)
+            ->postJson(route('studio.collections.switch', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                'view_id' => $viewB->id,
+                'transition' => [
+                    'type' => 'slide_left',
+                    'duration_ms' => 3000,
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('collection.runtime_state.last_transition.type', 'slide_left')
+            ->assertJsonPath('collection.runtime_state.last_transition.duration_ms', 3000);
+
+        // Switching views rejects durations above 3000ms
+        $this->actingAs($user)
+            ->postJson(route('studio.collections.switch', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                'view_id' => $viewA->id,
+                'transition' => [
+                    'type' => 'fade',
+                    'duration_ms' => 3001,
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['transition.duration_ms']);
+
+        // Inherited collection default duration > 3000ms is clamped to 3000ms by ScreenCollectionService
+        $this->actingAs($user)
+            ->postJson(route('studio.collections.switch', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                'view_id' => $viewA->id,
+                'transition' => null,
+            ])
+            ->assertOk()
+            ->assertJsonPath('collection.runtime_state.last_transition.duration_ms', 3000);
+
+        // Configurable tile deck layout saves per-tile transition_duration_ms <= 3000 and rejects > 3000
+        $this->actingAs($user)
+            ->putJson(route('studio.collections.deck-layout', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                'columns' => 3,
+                'tiles' => [
+                    [
+                        'id' => 'tile_slow_fade',
+                        'type' => 'switch_view',
+                        'label' => 'Slow Fade',
+                        'subtitle' => '',
+                        'color' => 'gold',
+                        'span' => 1,
+                        'config' => [
+                            'view_id' => $viewB->id,
+                            'transition_type' => 'fade',
+                            'transition_duration_ms' => 1850,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('collection.deck_layout.tiles.0.config.view_id', $viewB->id)
+            ->assertJsonPath('collection.deck_layout.tiles.0.config.transition_type', 'fade')
+            ->assertJsonPath('collection.deck_layout.tiles.0.config.transition_duration_ms', 1850);
+
+        $this->actingAs($user)
+            ->putJson(route('studio.collections.deck-layout', ['studio' => $studio->slug, 'collection' => $collection->id]), [
+                'columns' => 3,
+                'tiles' => [
+                    [
+                        'id' => 'tile_too_slow',
+                        'type' => 'switch_view',
+                        'label' => 'Too Slow',
+                        'subtitle' => '',
+                        'color' => 'gold',
+                        'span' => 1,
+                        'config' => [
+                            'view_id' => $viewB->id,
+                            'transition_type' => 'fade',
+                            'transition_duration_ms' => 3500,
+                        ],
+                    ],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['tiles.0.config.transition_duration_ms']);
+    }
+
     public function test_runtime_timer_scoreboard_and_layer_toggles_preserve_transition_sequence(): void
     {
         Event::fake([ScreenCollectionUpdated::class]);
