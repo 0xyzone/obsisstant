@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.17.3] - 2026-11-26 | type: macro
+
+> Added a global ultra-thin shiny metallic gold pill scrollbar (expanding on hover) and metallic gold text selection with black ink across all app pages and the Filament Admin Panel.
+
+### Added
+- Added `public/css/obs-chrome.css` (loaded globally via `<x-app-favicon />` and Filament `obsidian-styles`) styling a `5px` thin metallic gold pill scrollbar that expands to `9px` on hover, plus `::selection` with metallic gold background and `#070706` black text.
+
 ## [v1.17.2] - 2026-11-26 | type: macro
 
 > Registered the Tailwind CSS v4 Vite plugin (`@tailwindcss/vite`) in `vite.config.js` to eliminate Lightning CSS `Unknown at rule` warnings during production builds.

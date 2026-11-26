@@ -1190,6 +1190,7 @@ class ScreenCollectionStageTest extends TestCase
         $this->actingAs($user)
             ->get(route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => $collection->id]))
             ->assertOk()
-            ->assertSee('box.style.rotate', false);
+            ->assertSee('box.style.rotate', false)
+            ->assertSee('css/obs-chrome.css', false);
     }
 }
