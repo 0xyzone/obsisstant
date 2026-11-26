@@ -7,6 +7,7 @@
         <title>{{ $collection->name }} · Screen Canvas Builder · Obsisstant</title>
         <x-app-favicon />
         <x-dev-hot-reload />
+        @vite('resources/css/app.css')
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=barlow-condensed:500,600,700,800|bebas-neue:400|fira-code:400,500,600,700|instrument-sans:400,500,600,700,800|inter:400,500,600,700,800|jetbrains-mono:400,500,600,700|montserrat:400,500,600,700,800|oswald:400,500,600,700|playfair-display:500,600,700,800|poppins:400,500,600,700,800|space-grotesk:400,500,600,700|syne:500,600,700,800&display=swap" rel="stylesheet">
         <style>
