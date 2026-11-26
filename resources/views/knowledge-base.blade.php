@@ -45,7 +45,10 @@
             body {
                 margin: 0;
                 min-block-size: 100dvb;
-                background-color: var(--bg-canvas);
+                background:
+                    radial-gradient(circle at 12% 0%, rgba(205, 173, 105, 0.14), transparent 42%),
+                    radial-gradient(circle at 88% 12%, rgba(244, 225, 133, 0.07), transparent 38%),
+                    var(--bg-canvas);
                 color: var(--ink-primary);
                 line-height: 1.6;
                 overflow-x: clip;
@@ -62,10 +65,11 @@
                 position: sticky;
                 inset-block-start: 0;
                 z-index: 40;
-                background: rgba(11, 11, 10, 0.86);
-                -webkit-backdrop-filter: blur(16px);
-                backdrop-filter: blur(16px);
-                border-block-end: 1px solid var(--hairline);
+                background: rgba(12, 11, 9, 0.74);
+                -webkit-backdrop-filter: blur(20px) saturate(145%);
+                backdrop-filter: blur(20px) saturate(145%);
+                border-block-end: 1px solid rgba(205, 173, 105, 0.24);
+                box-shadow: inset 0 -1px 0 rgba(244, 225, 133, 0.08), 0 12px 32px -18px rgba(0, 0, 0, 0.85);
             }
 
             .header-inner {
@@ -154,10 +158,11 @@
             }
 
             .header-nav .nav-cta {
-                background-image: linear-gradient(180deg, #DFC27D 0%, #CDAD69 100%);
+                background-image: linear-gradient(180deg, #F6E496 0%, #D9B768 48%, #B89143 100%);
                 color: #070706;
                 font-weight: 600;
-                border: 1px solid rgba(244, 225, 133, 0.45);
+                border: 1px solid rgba(244, 225, 133, 0.65);
+                box-shadow: inset 0 1px 0 rgba(255, 252, 232, 0.65), 0 6px 18px -8px rgba(205, 173, 105, 0.45);
             }
         </style>
         <x-knowledge-base-styles />

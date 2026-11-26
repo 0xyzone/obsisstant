@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.18.0] - 2026-11-26 | type: minor
+
+> Extended the shiny metallic gold and frosted glassmorphism theme across the homepage, Knowledge Base, and Filament Admin Panel, and redesigned the homepage with minimal, human-friendly copy and large thin Poppins headings.
+
+### Changed
+- Redesigned the homepage (`welcome.blade.php`) with large thin `Poppins` (`200`/`300`) display headings, shiny metallic gold gradient text and buttons, frosted glassmorphic cards, and concise human-friendly copy.
+- Extended the frosted glassmorphism, ambient gold lighting, and shiny metallic gold accents to Knowledge Base (`knowledge-base.blade.php`, `knowledge-base-styles.blade.php`) and Filament Admin Panel (`filament-obs-theme.css`).
+
 ## [v1.17.4] - 2026-11-26 | type: macro
 
 > Unified the application's visual theme with a metallic gold and frosted glassmorphism design system while keeping Poppins typography across every workspace.

@@ -6,7 +6,7 @@
         <title>{{ config('app.name', 'Obsisstant') }} · OBS Broadcast Relay &amp; Overlay Studio</title>
         <meta name="description" content="Real-time wireless OBS Studio deck, hardware relay agent, and live Browser Source overlays synced via Laravel Reverb.">
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=poppins:400,500,600&display=swap" rel="stylesheet">
+        <link href="https://fonts.bunny.net/css?family=poppins:200,300,400,500,600&display=swap" rel="stylesheet">
         <x-app-favicon />
         <x-dev-hot-reload />
         <style>
@@ -88,11 +88,15 @@
             body {
                 margin: 0;
                 min-block-size: 100dvb;
-                background-color: var(--bg-canvas);
+                background:
+                    radial-gradient(circle at 12% 0%, rgba(205, 173, 105, 0.16), transparent 42%),
+                    radial-gradient(circle at 88% 14%, rgba(244, 225, 133, 0.08), transparent 40%),
+                    radial-gradient(circle at 50% 82%, rgba(205, 173, 105, 0.07), transparent 48%),
+                    var(--bg-canvas);
                 color: var(--ink-primary);
                 font-size: 0.9375rem;
                 font-weight: 400;
-                line-height: 1.6;
+                line-height: 1.55;
                 overflow-x: clip;
             }
 
@@ -131,10 +135,11 @@
                 position: sticky;
                 inset-block-start: 0;
                 z-index: 40;
-                background: rgba(11, 11, 10, 0.86);
-                -webkit-backdrop-filter: blur(16px);
-                backdrop-filter: blur(16px);
-                border-block-end: 1px solid var(--hairline);
+                background: rgba(12, 11, 9, 0.72);
+                -webkit-backdrop-filter: blur(20px) saturate(145%);
+                backdrop-filter: blur(20px) saturate(145%);
+                border-block-end: 1px solid rgba(205, 173, 105, 0.24);
+                box-shadow: inset 0 -1px 0 rgba(244, 225, 133, 0.08), 0 12px 32px -18px rgba(0, 0, 0, 0.85);
             }
 
             .header-inner {
@@ -479,23 +484,29 @@
 
             .hero-title {
                 margin: var(--space-3) 0 0;
-                font-size: clamp(2.125rem, 1.45rem + 2.3vw, 3.625rem);
-                font-weight: 600;
-                line-height: 1.08;
-                letter-spacing: -0.025em;
+                font-size: clamp(2.625rem, 1.5rem + 3.8vw, 5rem);
+                font-weight: 200;
+                line-height: 1.03;
+                letter-spacing: -0.03em;
                 text-wrap: balance;
                 color: var(--ink-primary);
             }
 
             .hero-title .accent {
-                color: var(--gold-light);
+                background: linear-gradient(135deg, #FFF7CF 0%, #F4E185 38%, #CDAD69 72%, #FFF0AE 100%);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+                font-weight: 300;
             }
 
             .hero-lead {
                 margin: var(--space-4) 0 0;
-                max-inline-size: 52ch;
+                max-inline-size: 44ch;
                 font-size: 1rem;
+                font-weight: 300;
                 line-height: 1.6;
+                text-wrap: pretty;
                 color: var(--ink-secondary);
             }
 
@@ -532,26 +543,30 @@
             }
 
             .btn-primary {
-                background-image: linear-gradient(180deg, #DFC27D 0%, #CDAD69 100%);
+                background-image: linear-gradient(180deg, #F6E496 0%, #D9B768 48%, #B89143 100%);
                 color: #070706;
                 font-weight: 600;
-                border: 1px solid rgba(244, 225, 133, 0.45);
-                box-shadow: inset 0 1px 0 rgba(255, 250, 224, 0.45);
+                border: 1px solid rgba(244, 225, 133, 0.68);
+                box-shadow: inset 0 1px 0 rgba(255, 252, 232, 0.7), 0 10px 26px -10px rgba(205, 173, 105, 0.55);
             }
 
             .btn-primary:hover {
-                background-image: linear-gradient(180deg, #E8CE8D 0%, #D6B773 100%);
+                background-image: linear-gradient(180deg, #FFF0AE 0%, #E7C97B 48%, #C9A04E 100%);
+                box-shadow: inset 0 1px 0 rgba(255, 254, 240, 0.85), 0 12px 30px -10px rgba(244, 225, 133, 0.7);
             }
 
             .btn-secondary {
-                background-color: var(--bg-raised);
+                background: rgba(24, 23, 20, 0.68);
+                -webkit-backdrop-filter: blur(14px);
+                backdrop-filter: blur(14px);
                 color: var(--ink-primary);
                 border: 1px solid var(--hairline-strong);
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.14);
             }
 
             .btn-secondary:hover {
-                background-color: #23221E;
-                border-color: var(--gold-accent);
+                background: rgba(34, 32, 27, 0.82);
+                border-color: var(--gold-light);
             }
 
             /* Quiet Tabular Studio Metrics Strip */
@@ -586,12 +601,15 @@
 
             /* Interactive Coded OBS Studio Deck Preview */
             .console-frame {
-                background-color: var(--bg-card);
+                background: linear-gradient(165deg, rgba(26, 24, 20, 0.76) 0%, rgba(12, 11, 9, 0.86) 100%);
+                -webkit-backdrop-filter: blur(20px) saturate(145%);
+                backdrop-filter: blur(20px) saturate(145%);
                 border: 1px solid var(--hairline-strong);
                 border-radius: var(--radius-frame);
                 padding: var(--space-3);
                 display: grid;
                 gap: var(--space-3);
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.18), 0 24px 52px -24px rgba(0, 0, 0, 0.9);
             }
 
             .console-bar {
@@ -825,10 +843,10 @@
 
             .band-heading {
                 margin: 0;
-                font-size: clamp(1.5rem, 1.15rem + 1.25vw, 2.25rem);
-                font-weight: 500;
-                line-height: 1.16;
-                letter-spacing: -0.02em;
+                font-size: clamp(2rem, 1.3rem + 2.2vw, 3.25rem);
+                font-weight: 200;
+                line-height: 1.08;
+                letter-spacing: -0.025em;
                 text-wrap: balance;
                 color: var(--ink-primary);
             }
@@ -893,12 +911,15 @@
             }
 
             .pipeline-panel {
-                background-color: var(--bg-card);
+                background: linear-gradient(165deg, rgba(24, 22, 18, 0.74) 0%, rgba(12, 11, 9, 0.86) 100%);
+                -webkit-backdrop-filter: blur(18px) saturate(145%);
+                backdrop-filter: blur(18px) saturate(145%);
                 border: 1px solid var(--hairline-strong);
                 border-radius: var(--radius-card);
                 padding: var(--space-6);
                 display: grid;
                 gap: var(--space-5);
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.16), 0 22px 48px -24px rgba(0, 0, 0, 0.88);
             }
 
             .pipeline-head {
@@ -1023,12 +1044,15 @@
             }
 
             .preset-stage-card {
-                background-color: var(--bg-card);
+                background: linear-gradient(165deg, rgba(24, 22, 18, 0.74) 0%, rgba(12, 11, 9, 0.86) 100%);
+                -webkit-backdrop-filter: blur(18px) saturate(145%);
+                backdrop-filter: blur(18px) saturate(145%);
                 border: 1px solid var(--hairline-strong);
                 border-radius: var(--radius-frame);
                 padding: var(--space-4);
                 display: grid;
                 gap: var(--space-4);
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.16), 0 22px 48px -24px rgba(0, 0, 0, 0.88);
             }
 
             .preset-viewport {
@@ -1118,7 +1142,9 @@
 
             /* Closing Action Panel & Slim Footer */
             .closing-panel {
-                background-color: var(--bg-card);
+                background: linear-gradient(165deg, rgba(28, 25, 19, 0.78) 0%, rgba(12, 11, 9, 0.88) 100%);
+                -webkit-backdrop-filter: blur(18px) saturate(145%);
+                backdrop-filter: blur(18px) saturate(145%);
                 border: 1px solid var(--hairline-strong);
                 border-radius: var(--radius-card);
                 padding: clamp(var(--space-6), 4vw, var(--space-12));
@@ -1127,14 +1153,16 @@
                 align-items: center;
                 justify-content: space-between;
                 gap: var(--space-6);
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.18), 0 24px 52px -26px rgba(0, 0, 0, 0.9);
             }
 
             .closing-title {
                 margin: 0;
-                font-size: clamp(1.375rem, 1.1rem + 0.9vw, 1.875rem);
-                font-weight: 500;
-                line-height: 1.2;
-                letter-spacing: -0.02em;
+                font-size: clamp(1.75rem, 1.2rem + 1.8vw, 2.75rem);
+                font-weight: 200;
+                line-height: 1.12;
+                letter-spacing: -0.025em;
+                text-wrap: balance;
                 color: var(--ink-primary);
             }
 
@@ -1258,20 +1286,20 @@
             <section class="hero-section" aria-labelledby="hero-heading">
                 <div>
                     <div class="hero-kicker" data-enter style="--enter-order: 0;">
-                        <span>Laravel Reverb · OBS WebSocket v5</span>
+                        <span>OBS Studio · Remote Deck · Live Overlays</span>
                     </div>
 
                     <h1 id="hero-heading" class="hero-title" data-enter style="--enter-order: 1;">
-                        Control every OBS frame <span class="accent">from any device</span>
+                        Run OBS Studio <span class="accent">from any screen.</span>
                     </h1>
 
                     <p class="hero-lead" data-enter style="--enter-order: 2;">
-                        Switch scenes, fire multi-step broadcast macros, and update Browser Source overlays in real time through an outbound local relay—zero router port-forwarding required.
+                        Switch scenes from your phone, run countdowns and scoreboards, and update overlays in one browser source.
                     </p>
 
                     <div class="hero-actions" data-enter style="--enter-order: 3;">
-                        <a href="{{ route('studio.index') }}" class="btn btn-primary">Launch Studio Center</a>
-                        <a href="{{ route('obs.deck.index') }}" class="btn btn-secondary">Mobile wireless deck</a>
+                        <a href="{{ route('studio.index') }}" class="btn btn-primary">Open Studio</a>
+                        <a href="{{ route('obs.deck.index') }}" class="btn btn-secondary">Mobile Deck</a>
                     </div>
 
                     <div class="hero-metrics" data-enter style="--enter-order: 4;">
@@ -1281,11 +1309,11 @@
                         </div>
                         <div class="metric-item">
                             <span class="metric-value">{{ $metrics['screens_total'] }}</span>
-                            <span class="metric-label">Live overlays</span>
+                            <span class="metric-label">Overlays</span>
                         </div>
                         <div class="metric-item">
                             <span class="metric-value">{{ $metrics['macros_total'] }}</span>
-                            <span class="metric-label">Saved macros</span>
+                            <span class="metric-label">Macros</span>
                         </div>
                     </div>
                 </div>
@@ -1293,25 +1321,25 @@
                 {{-- Coded Interactive OBS Switcher & Overlay Monitor --}}
                 <aside class="console-frame" aria-label="Interactive broadcast switcher preview" data-enter style="--enter-order: 5;">
                     <div class="console-bar">
-                        <span class="console-title">Live program monitor</span>
-                        <span class="console-badge" id="preview-status-chip">{{ $metrics['studios_online'] > 0 ? 'PGM · Relay connected' : 'PGM · Relay ready' }}</span>
+                        <span class="console-title">Program preview</span>
+                        <span class="console-badge" id="preview-status-chip">{{ $metrics['studios_online'] > 0 ? 'Live · Connected' : 'Ready · Standby' }}</span>
                     </div>
 
                     <div id="hero-monitor" class="monitor-stage">
                         <div class="monitor-top">
                             <span class="monitor-chip is-pgm" id="preview-scene-pill">Scene · Starting Soon</span>
-                            <span class="monitor-chip" id="preview-stream-chip">1080p60 · Ready</span>
+                            <span class="monitor-chip" id="preview-stream-chip">1080p60</span>
                         </div>
 
                         <div class="monitor-scene-stage">
-                            <span class="monitor-scene-meta" id="preview-scene-meta">Program output</span>
+                            <span class="monitor-scene-meta" id="preview-scene-meta">Pre-show slate</span>
                             <h2 class="monitor-scene-heading" id="preview-scene-heading">Starting Soon</h2>
                         </div>
 
                         <div class="monitor-hud" id="preview-lower-third">
                             <div>
                                 <div class="hud-guest-name" id="preview-lt-name">Obsisstant Studio</div>
-                                <div class="hud-guest-role" id="preview-lt-role">Browser Source Overlay · Lower Thirds</div>
+                                <div class="hud-guest-role" id="preview-lt-role">Lower Thirds · Live Overlay</div>
                             </div>
                             <span class="hud-state-tag" id="preview-lt-state">On air</span>
                         </div>
@@ -1322,11 +1350,11 @@
                             <span>Starting Soon</span>
                             <span class="pad-sub">Scene 01</span>
                         </button>
-                        <button type="button" class="pad-key" data-demo-scene="Main Camera" data-demo-meta="Studio A feed" aria-pressed="false">
+                        <button type="button" class="pad-key" data-demo-scene="Main Camera" data-demo-meta="Main studio cam" aria-pressed="false">
                             <span>Main Camera</span>
                             <span class="pad-sub">Scene 02</span>
                         </button>
-                        <button type="button" class="pad-key" data-demo-scene="Screen Share" data-demo-meta="Workstation capture" aria-pressed="false">
+                        <button type="button" class="pad-key" data-demo-scene="Screen Share" data-demo-meta="Desktop capture" aria-pressed="false">
                             <span>Screen Share</span>
                             <span class="pad-sub">Scene 03</span>
                         </button>
@@ -1341,65 +1369,65 @@
             {{-- Asymmetric Architecture Band --}}
             <section id="features" class="band" aria-labelledby="features-heading">
                 <div class="band-header" data-reveal>
-                    <span class="band-eyebrow">Architecture</span>
-                    <h2 id="features-heading" class="band-heading">Outbound WebSocket control with zero firewall changes</h2>
+                    <span class="band-eyebrow">How it works</span>
+                    <h2 id="features-heading" class="band-heading">Built for live shows.</h2>
                     <p class="band-copy">
-                        Your local relay agent dials out to Laravel Reverb over TLS and bridges every button tap straight to local OBS Studio on port 4455.
+                        A small helper runs beside OBS on your computer—no router setup needed.
                     </p>
                 </div>
 
                 <div class="architecture-split">
                     <ul class="capability-list" data-reveal>
                         <li class="capability-item">
-                            <h3 class="capability-title">Wireless mobile &amp; desktop decks</h3>
-                            <p class="capability-desc">Switch scenes, trigger transitions, toggle streams, and balance audio faders from phone or panel.</p>
+                            <h3 class="capability-title">Phone &amp; tablet deck</h3>
+                            <p class="capability-desc">Tap to cut scenes, start recording, or adjust audio levels.</p>
                         </li>
                         <li class="capability-item">
-                            <h3 class="capability-title">Multi-step macro sequences</h3>
-                            <p class="capability-desc">Chain source visibility, scene cuts, and timed delays into reliable single-tap broadcast cues.</p>
+                            <h3 class="capability-title">One browser source</h3>
+                            <p class="capability-desc">Timers, scoreboards, lower thirds, and alerts live in a single OBS source.</p>
                         </li>
                         <li class="capability-item">
-                            <h3 class="capability-title">Token-scoped Browser Sources</h3>
-                            <p class="capability-desc">Push instant headline updates, guest lower-thirds, and alerts to transparent OBS overlay URLs.</p>
+                            <h3 class="capability-title">Quick macros</h3>
+                            <p class="capability-desc">Chain scene switches and source toggles into one button.</p>
                         </li>
                     </ul>
 
                     <div class="pipeline-panel" aria-label="Broadcast command signal path" data-reveal>
                         <div class="pipeline-head">
-                            <h3 class="pipeline-title">Command signal path</h3>
-                            <span class="stage-tag is-gold">Sub-second relay</span>
+                            <h3 class="pipeline-title">How a tap reaches OBS</h3>
+                            <span class="stage-tag is-gold">Instant</span>
                         </div>
 
                         <div class="pipeline-nodes">
                             <div class="pipeline-row">
                                 <span class="pipeline-step-num">01</span>
                                 <div>
-                                    <span class="pipeline-step-name">Operator Deck or Panel</span>
-                                    <span class="pipeline-step-sub">Mobile wireless deck or Filament control surface</span>
+                                    <span class="pipeline-step-name">Your Phone or Browser</span>
+                                    <span class="pipeline-step-sub">Tap a scene, timer, or macro button</span>
                                 </div>
-                                <span class="pipeline-tag">HTTPS</span>
+                                <span class="pipeline-tag">Deck</span>
                             </div>
                             <div class="pipeline-row">
                                 <span class="pipeline-step-num">02</span>
                                 <div>
-                                    <span class="pipeline-step-name">Laravel Reverb Broker</span>
-                                    <span class="pipeline-step-sub">Authorized studio channel fan-out</span>
+                                    <span class="pipeline-step-name">Live Sync</span>
+                                    <span class="pipeline-step-sub">Sent straight to your studio channel</span>
                                 </div>
                                 <span class="pipeline-tag">WSS</span>
                             </div>
                             <div class="pipeline-row">
                                 <span class="pipeline-step-num">03</span>
                                 <div>
-                                    <span class="pipeline-step-name">Local Relay Daemon</span>
-                                    <span class="pipeline-step-sub">Authenticated agent beside OBS Studio</span>
+                                    <span class="pipeline-step-name">Desktop Helper</span>
+                                    <span class="pipeline-step-sub">Runs quietly next to OBS Studio</span>
                                 </div>
-                                <span class="pipeline-tag">Outbound</span>
+                                <span class="pipeline-tag">Agent</span>
                             </div>
                             <div class="pipeline-row">
                                 <span class="pipeline-step-num">04</span>
                                 <div>
-                                    <span class="pipeline-step-name">OBS Studio v5 Engine</span>
-                                    <span class="pipeline-step-sub">Scene cuts, audio mixers &amp; replay buffers</span>
+                                    <span class="pipeline-step-name">OBS Studio</span>
+                                    <span class="pipeline-step-sub">Cuts scenes, audio &amp; overlays locally</span>
                                 </div>
                                 <span class="pipeline-tag">ws://:4455</span>
                             </div>
@@ -1425,10 +1453,10 @@
 
             <section id="overlays" class="band" aria-labelledby="overlays-heading">
                 <div class="band-header" data-reveal>
-                    <span class="band-eyebrow">Browser Source Studio</span>
-                    <h2 id="overlays-heading" class="band-heading">Broadcast canvases ready for any scene</h2>
+                    <span class="band-eyebrow">Overlays</span>
+                    <h2 id="overlays-heading" class="band-heading">Ready-made stage views.</h2>
                     <p class="band-copy">
-                        Select any built-in preset to inspect how Obsisstant renders full-frame slates and transparent lower-thirds inside OBS Studio.
+                        Pick a preset to preview how your overlays look in OBS.
                     </p>
                 </div>
 
@@ -1460,20 +1488,20 @@
 
                             <div class="preset-copy-block" id="preset-copy-region">
                                 <h3 class="preset-headline" id="preset-headline">{{ $firstPreset['state']['headline'] ?? $firstPreset['label'] }}</h3>
-                                <p class="preset-subheadline" id="preset-subheadline">{{ $firstPreset['state']['subheadline'] ?? 'Broadcast overlay synced through Reverb.' }}</p>
+                                <p class="preset-subheadline" id="preset-subheadline">{{ $firstPreset['state']['subheadline'] ?? 'Updates live in OBS.' }}</p>
                             </div>
 
                             <div class="preset-lower-strip">
                                 <div>
                                     <div class="hud-guest-name" id="preset-guest">{{ $firstPreset['state']['guest_name'] ?? 'Obsisstant Studio' }}</div>
-                                    <div class="hud-guest-role" id="preset-role">{{ $firstPreset['state']['guest_role'] ?? 'Real-Time Overlay' }}</div>
+                                    <div class="hud-guest-role" id="preset-role">{{ $firstPreset['state']['guest_role'] ?? 'Live Overlay' }}</div>
                                 </div>
-                                <span class="stage-tag is-gold" id="preset-extra">{{ ! empty($firstPreset['state']['show_countdown']) ? 'Timer active' : (! empty($firstPreset['state']['show_webcam_frame']) ? 'Cam frame' : 'Reverb sync') }}</span>
+                                <span class="stage-tag is-gold" id="preset-extra">{{ ! empty($firstPreset['state']['show_countdown']) ? 'Timer active' : (! empty($firstPreset['state']['show_webcam_frame']) ? 'Cam frame' : 'Live sync') }}</span>
                             </div>
                         </div>
 
                         <div class="preset-meta-footer">
-                            <span id="preset-side-type">Preset key: {{ $firstPreset['key'] }}</span>
+                            <span id="preset-side-type">Preset: {{ $firstPreset['key'] }}</span>
                             <span id="preset-side-title">{{ $firstPreset['label'] }}</span>
                         </div>
                     </div>
@@ -1484,13 +1512,13 @@
             <section class="band" aria-labelledby="closing-heading">
                 <div class="closing-panel" data-reveal>
                     <div>
-                        <h2 id="closing-heading" class="closing-title">Open your broadcast console</h2>
+                        <h2 id="closing-heading" class="closing-title">Ready when you go live.</h2>
                         <p class="closing-sub">
-                            Configure studio relay profiles, customize live Browser Sources, or launch the mobile wireless control deck.
+                            Open Studio to design your views, or jump straight to your Mobile Deck.
                         </p>
                     </div>
                     <div class="hero-actions" style="margin-block-start: 0;">
-                        <a href="{{ route('studio.index') }}" class="btn btn-primary">Launch Control Center</a>
+                        <a href="{{ route('studio.index') }}" class="btn btn-primary">Open Studio</a>
                         <a href="{{ url('/admin/obs-control-deck') }}" class="btn btn-secondary">Admin Panel</a>
                     </div>
                 </div>

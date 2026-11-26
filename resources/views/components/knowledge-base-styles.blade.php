@@ -6,8 +6,10 @@
     }
 
     .obs-kb-hero {
-        background-color: #121210;
-        border: 1px solid rgba(205, 173, 105, 0.24);
+        background: linear-gradient(165deg, rgba(24, 22, 18, 0.76) 0%, rgba(12, 11, 9, 0.86) 100%);
+        -webkit-backdrop-filter: blur(18px) saturate(145%);
+        backdrop-filter: blur(18px) saturate(145%);
+        border: 1px solid rgba(205, 173, 105, 0.26);
         border-radius: 1rem;
         padding: clamp(1.25rem, 2.5vw, 1.75rem);
         display: flex;
@@ -15,6 +17,7 @@
         align-items: flex-end;
         justify-content: space-between;
         gap: 1rem;
+        box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.16), 0 20px 44px -24px rgba(0, 0, 0, 0.88);
     }
 
     .obs-kb-kicker {
@@ -26,9 +29,9 @@
 
     .obs-kb-title {
         margin: 0;
-        font-size: clamp(1.375rem, 1.1rem + 0.9vw, 1.875rem);
-        font-weight: 500;
-        line-height: 1.2;
+        font-size: clamp(1.5rem, 1.15rem + 1.2vw, 2.25rem);
+        font-weight: 300;
+        line-height: 1.15;
         letter-spacing: -0.02em;
         color: #FAF7EE;
     }
@@ -86,12 +89,15 @@
     }
 
     .obs-kb-sidebar {
-        background-color: #121210;
-        border: 1px solid rgba(205, 173, 105, 0.16);
+        background: rgba(18, 17, 14, 0.74);
+        -webkit-backdrop-filter: blur(18px) saturate(145%);
+        backdrop-filter: blur(18px) saturate(145%);
+        border: 1px solid rgba(205, 173, 105, 0.22);
         border-radius: 1rem;
         padding: 0.75rem;
         display: grid;
         gap: 0.375rem;
+        box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.14), 0 18px 40px -24px rgba(0, 0, 0, 0.85);
     }
 
     .obs-kb-rail-label {
@@ -144,12 +150,15 @@
     }
 
     .obs-kb-article {
-        background-color: #121210;
-        border: 1px solid rgba(205, 173, 105, 0.16);
+        background: rgba(18, 17, 14, 0.74);
+        -webkit-backdrop-filter: blur(18px) saturate(145%);
+        backdrop-filter: blur(18px) saturate(145%);
+        border: 1px solid rgba(205, 173, 105, 0.22);
         border-radius: 1rem;
         padding: clamp(1.25rem, 2.5vw, 2rem);
         display: grid;
         gap: 1rem;
+        box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.14), 0 18px 40px -24px rgba(0, 0, 0, 0.85);
     }
 
     .obs-kb-article[hidden] {
