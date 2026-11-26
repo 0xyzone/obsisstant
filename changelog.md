@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.22.2] - 2026-11-27 | type: macro
+
+> Added an always-reachable "Ask Oxy" floating launcher button and attached the "Ask Oxy" pill directly to Oxy as it flies across sections on scroll so users can open Oxy's chat drawer from anywhere at any time.
+
+### Improved
+- **Always-Reachable Ask Oxy Launcher**: Added a persistent fixed `.oxy-fab-launcher` button in the bottom-right corner across all pages, kept `.obs-mascot-ask-pill` attached to the flying 3D mascot when scrolling past the hero, and wired all `[data-lumi-toggle]` buttons (plus tapping the floating mascot) to toggle the Oxy chat drawer at any scroll position.
+
 ## [v1.22.1] - 2026-11-27 | type: macro
 
 > Fixed the Wave reaction speech bubble in `public/js/obs-mascot.js` so it says "Ask Oxy" instead of "Ask Lumi", and updated the default Gemini Interactions endpoint to `v1beta/interactions` for direct compatibility with Google AI Studio keys.

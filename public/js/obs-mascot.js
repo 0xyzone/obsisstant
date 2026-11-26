@@ -428,7 +428,7 @@ function createMascotInstance(canvas, options = {}) {
 
 function wireAssistantDrawer(host, instance, showBriefSpeech) {
     const drawer = host.querySelector('[data-lumi-drawer]');
-    const toggleBtn = host.querySelector('[data-lumi-toggle]');
+    const toggleBtns = host.querySelectorAll('[data-lumi-toggle]');
     const closeBtn = host.querySelector('[data-lumi-close]');
     const form = host.querySelector('[data-lumi-form]');
     const input = host.querySelector('[data-lumi-input]');
@@ -443,15 +443,17 @@ function wireAssistantDrawer(host, instance, showBriefSpeech) {
 
     const setOpen = (open) => {
         drawer.hidden = !open;
-        if (toggleBtn) toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggleBtns.forEach((btn) => btn.setAttribute('aria-expanded', open ? 'true' : 'false'));
         if (open) {
             setTimeout(() => input.focus(), 40);
         }
     };
 
-    toggleBtn?.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        setOpen(drawer.hidden);
+    toggleBtns.forEach((btn) => {
+        btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            setOpen(drawer.hidden);
+        });
     });
 
     closeBtn?.addEventListener('click', (ev) => {
@@ -772,7 +774,7 @@ function initMascots() {
                 showBriefSpeech('Staying right here for 5s!', 2500);
             } else {
                 instance.triggerReaction();
-                if (!isHeroGuide && drawerCtrl) {
+                if (drawerCtrl && (!isHeroGuide || flyerEl.dataset.side !== 'hero')) {
                     drawerCtrl.setOpen(!drawerCtrl.isOpen());
                 }
             }

@@ -46,10 +46,14 @@
         <div class="obs-mascot-flyer-canvas">
             <canvas data-mascot-canvas aria-label="Oxy 3D Assistant — tap to animate or ask, drag to move"></canvas>
         </div>
-        @if (! $isHero)
-            <button type="button" class="obs-mascot-ask-pill" data-lumi-toggle aria-expanded="false">Ask Oxy</button>
-        @endif
+        <button type="button" class="obs-mascot-ask-pill" data-lumi-toggle aria-expanded="false">Ask Oxy</button>
     </div>
+
+    {{-- Always-reachable fixed Ask Oxy launcher --}}
+    <button type="button" class="oxy-fab-launcher" data-lumi-toggle aria-expanded="false" aria-label="Open Oxy Assistant">
+        <span class="oxy-fab-dot" aria-hidden="true"></span>
+        <span>Ask Oxy</span>
+    </button>
 
     {{-- Built-in Smart AI Assistant Drawer --}}
     <section class="lumi-drawer" data-lumi-drawer hidden aria-label="Oxy Assistant">
@@ -154,7 +158,7 @@
             padding: 0.32rem 0.85rem;
             border-radius: 9999px;
             border: 1px solid rgba(244, 225, 133, 0.55);
-            background: rgba(16, 15, 12, 0.88);
+            background: rgba(16, 15, 12, 0.9);
             -webkit-backdrop-filter: blur(14px);
             backdrop-filter: blur(14px);
             color: #F4E185;
@@ -164,6 +168,56 @@
             white-space: nowrap;
             cursor: pointer;
             box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.9);
+            transition: opacity 200ms ease, border-color 150ms ease, background-color 150ms ease;
+        }
+
+        .obs-mascot-ask-pill:hover {
+            border-color: #F4E185;
+            background: rgba(34, 30, 22, 0.95);
+        }
+
+        .obs-mascot-flyer[data-side="hero"] .obs-mascot-ask-pill {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .oxy-fab-launcher {
+            position: fixed;
+            inset-inline-end: 1.15rem;
+            inset-block-end: 1.15rem;
+            z-index: 48;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-block-size: 2.45rem;
+            padding: 0.4rem 1.05rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(244, 225, 133, 0.6);
+            background: linear-gradient(180deg, rgba(28, 25, 19, 0.92) 0%, rgba(12, 11, 9, 0.96) 100%);
+            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+            color: #FAF7EE;
+            font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.28), 0 14px 30px -10px rgba(0, 0, 0, 0.92);
+            transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+        }
+
+        .oxy-fab-launcher:hover {
+            transform: translateY(-2px);
+            border-color: #F4E185;
+            color: #F4E185;
+        }
+
+        .oxy-fab-dot {
+            inline-size: 0.5rem;
+            block-size: 0.5rem;
+            border-radius: 9999px;
+            background: linear-gradient(180deg, #F6E496 0%, #D9B768 100%);
+            box-shadow: 0 0 10px rgba(244, 225, 133, 0.8);
         }
 
         /* Brief, highly readable speech bubble (fades out automatically) */
@@ -437,14 +491,20 @@
         @media (max-width: 63.99rem) {
             .obs-mascot-flyer[data-side="left"] .obs-mascot-bubble,
             .obs-mascot-flyer[data-side="right"] .obs-mascot-bubble {
-                font-size: 1.55rem;
-                min-inline-size: 18rem;
-                max-inline-size: 24rem;
-                padding: 0.8rem 1.2rem;
+                font-size: 0.88rem;
+                min-inline-size: 11rem;
+                max-inline-size: min(64vw, 15.5rem);
+                padding: 0.5rem 0.85rem;
             }
             .obs-mascot-ask-pill {
-                font-size: 1.55rem;
-                padding: 0.5rem 1.35rem;
+                font-size: 0.76rem;
+                padding: 0.3rem 0.8rem;
+            }
+            .oxy-fab-launcher {
+                inset-inline-end: 0.85rem;
+                inset-block-end: 4.85rem;
+                font-size: 0.78rem;
+                padding: 0.35rem 0.9rem;
             }
         }
     </style>
