@@ -78,12 +78,19 @@
                 text-decoration: none;
                 font-size: 0.85rem;
                 font-weight: 500;
-                transition: color 150ms ease;
+                padding: 0.35rem 0.55rem;
+                border-radius: 0.45rem 0.45rem 0 0;
+                transition: color 150ms ease, background-color 150ms ease;
             }
 
             .header-nav a:hover,
             .header-nav a[aria-current="page"] {
                 color: var(--gold-light);
+            }
+
+            .header-nav a[aria-current="page"] {
+                background: rgba(205, 173, 105, 0.1);
+                box-shadow: inset 0 -2px 0 var(--gold-light);
             }
 
             .nav-cta {

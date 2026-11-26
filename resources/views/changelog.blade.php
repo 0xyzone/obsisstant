@@ -209,6 +209,16 @@
                 text-decoration: none;
                 font-size: 0.85rem;
                 font-weight: 500;
+                transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
+            }
+
+            .nav-link[aria-current="page"] {
+                border-color: rgba(244, 225, 133, 0.55);
+                background: rgba(205, 173, 105, 0.14);
+                color: var(--gold-100);
+                box-shadow: inset 0 -2px 0 var(--gold-100);
+            }
+                font-weight: 500;
                 transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
             }
 
@@ -707,8 +717,10 @@
                 </div>
 
                 <nav class="nav-actions" aria-label="Changelog navigation">
-                    <a class="nav-link" href="{{ url('/') }}">Home</a>
+                    <a class="nav-link" href="{{ url('/') }}">Overview</a>
+                    <a class="nav-link" href="{{ route('pricing') }}">Pricing</a>
                     <a class="nav-link" href="{{ route('knowledge-base') }}">Knowledge Base</a>
+                    <a class="nav-link" href="{{ route('changelog') }}" aria-current="page">Changelog</a>
                     <a class="nav-link" href="{{ url('/admin') }}">Admin Panel</a>
                 </nav>
             </header>

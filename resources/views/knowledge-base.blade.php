@@ -180,6 +180,7 @@
                 <div class="header-end">
                     <nav class="header-nav" aria-label="Knowledge Base navigation">
                         <a href="{{ route('home') }}">Overview</a>
+                        <a href="{{ route('pricing') }}">Pricing</a>
                         <a href="{{ route('knowledge-base') }}" aria-current="page">Knowledge Base</a>
                         <a href="{{ route('changelog') }}">Changelog</a>
                         <a href="{{ url('/admin/obs-control-deck') }}" class="nav-cta">Control Deck</a>

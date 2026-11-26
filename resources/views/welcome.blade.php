@@ -390,12 +390,14 @@
                 padding: var(--space-2) var(--space-3);
             }
 
-            .site-header.is-wide .site-menu a[aria-current="page"] {
-                background-color: transparent;
+            .site-header.is-wide .site-menu a[aria-current="page"],
+            .site-header.is-wide .site-menu a[aria-current="location"] {
+                background-color: rgba(205, 173, 105, 0.1);
                 border-color: transparent;
-                box-shadow: inset 0 -2px 0 var(--gold-accent);
+                box-shadow: inset 0 -2px 0 var(--gold-light);
                 border-radius: var(--radius-ctl) var(--radius-ctl) 0 0;
-                color: var(--ink-primary);
+                color: var(--gold-light);
+                font-weight: 500;
             }
 
             .site-header.is-measuring * {
@@ -1867,6 +1869,36 @@
                             }
                         });
                     });
+                }
+
+                // Scroll-spy for Overview, Architecture (#features), and Overlays (#overlays)
+                if (menu) {
+                    const overviewLink = menu.querySelector('a[href="{{ route('home') }}"]');
+                    const sectionLinks = [
+                        { id: 'features', el: menu.querySelector('a[href="#features"]') },
+                        { id: 'overlays', el: menu.querySelector('a[href="#overlays"]') },
+                    ].filter((item) => item.el && document.getElementById(item.id));
+
+                    const updateNavSpy = () => {
+                        let activeEl = overviewLink;
+                        const triggerY = window.innerHeight * 0.36;
+
+                        for (const item of sectionLinks) {
+                            const rect = document.getElementById(item.id).getBoundingClientRect();
+                            if (rect.top <= triggerY) {
+                                activeEl = item.el;
+                            }
+                        }
+
+                        menu.querySelectorAll('a[aria-current]').forEach((a) => a.removeAttribute('aria-current'));
+                        if (activeEl) {
+                            activeEl.setAttribute('aria-current', activeEl === overviewLink ? 'page' : 'location');
+                        }
+                    };
+
+                    window.addEventListener('scroll', updateNavSpy, { passive: true });
+                    window.addEventListener('hashchange', updateNavSpy);
+                    updateNavSpy();
                 }
 
                 // Fallback IntersectionObserver scroll reveals for browsers without View Timeline

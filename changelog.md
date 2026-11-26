@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.24.1] - 2026-11-27 | type: macro
+
+> Fixed navigation active-state highlighting across the homepage (scroll-spy for Overview, Architecture, and Overlays), Changelog, Knowledge Base, and Pricing pages.
+
+### Fixed
+- Added scroll-spy in `resources/views/welcome.blade.php` so `Overview`, `Architecture` (`#features`), and `Overlays` (`#overlays`) dynamically highlight in bright metallic gold as you scroll or jump to each section.
+- Added active `aria-current="page"` styling and consistent `Overview`, `Pricing`, `Knowledge Base`, and `Changelog` links across `changelog.blade.php`, `knowledge-base.blade.php`, and `pricing.blade.php`.
+
 ## [v1.24.0] - 2026-11-27 | type: minor
 
 > Added public Pricing & Demo Application page (`/pricing`, `POST /demo-requests`, and `/hq/demo-requests`), a metallic animated Obsisstant brand logo across the app, and matching brushed silver (local) & metallic gold (production) favicons.
