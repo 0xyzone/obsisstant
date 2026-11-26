@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\ChangelogService;
 use App\Services\ReverbStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ObsidianUiThemeTest extends TestCase
@@ -350,5 +351,37 @@ class ObsidianUiThemeTest extends TestCase
             ->postJson(route('oxy.ask'), ['message' => 'Check studio status', 'studio_slug' => $studio->slug])
             ->assertOk()
             ->assertJsonPath('ok', true);
+
+        // When GEMINI_API_KEY is configured, signed-in operators get Gemini Interactions API responses (while guests stay on local engine)
+        config(['services.gemini.key' => 'test-gemini-key', 'services.gemini.model' => 'gemini-3.5-flash-lite']);
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'id' => 'int_oxy_test',
+                'steps' => [
+                    [
+                        'type' => 'model_output',
+                        'content' => [
+                            ['type' => 'text', 'text' => 'Hey! Here is a custom Gemini tip for your stream setup.'],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        auth()->logout();
+        $this->app['auth']->forgetGuards();
+
+        // Guest still uses local engine (0 HTTP calls to Gemini)
+        $this->postJson(route('oxy.ask'), ['message' => 'Can you give me a custom streaming tip?'])
+            ->assertOk()
+            ->assertDontSee('custom Gemini tip');
+        Http::assertNothingSent();
+
+        // Signed-in user uses Gemini Interactions API
+        $this->actingAs($user)
+            ->postJson(route('oxy.ask'), ['message' => 'Can you give me a custom streaming tip?', 'studio_slug' => $studio->slug])
+            ->assertOk()
+            ->assertJsonPath('reply', 'Hey! Here is a custom Gemini tip for your stream setup.');
+        Http::assertSentCount(1);
     }
 }

@@ -8,6 +8,8 @@ use App\Models\ScreenCollection;
 use App\Models\ScreenView;
 use App\Models\User;
 use App\Services\KnowledgeBaseService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class OxyAssistantService
 {
@@ -45,30 +47,17 @@ class OxyAssistantService
             );
         }
 
-        // 1. Conversational small talk, identity, gratitude & vibe checks
-        $chatResponse = $this->trySmallTalk($lower, $user, $studio, $collection);
-        if ($chatResponse !== null) {
-            return $chatResponse;
-        }
-
-        // 2. Follow-up requests ("tell me more", "what else?", "and then?") using recent history
-        if ($this->isFollowUp($lower) && $history !== []) {
-            $followUp = $this->answerFollowUp($history, $user, $studio, $collection);
-            if ($followUp !== null) {
-                return $followUp;
-            }
-        }
-
-        // 3. Copy / Overlay Text Suggestions (works for both guests and signed-in users)
-        if ($this->matchesAny($lower, ['suggest', 'idea', 'copy', 'headline', 'ticker text', 'lower third text', 'write me', 'brainstorm', 'examples for'])) {
-            return $this->buildCopySuggestions($lower, $collection);
-        }
-
-        // 4. Live Studio / OBS Actions (authenticated users only)
+        // 1. Live Studio / OBS Actions (authenticated users only — deterministic, 0 tokens)
         if ($user instanceof User) {
             $actionResult = $this->tryExecuteLiveAction($clean, $lower, $user, $studio, $collection);
             if ($actionResult !== null) {
                 return $actionResult;
+            }
+
+            // 2. Signed-in Studio Operator Gemini AI (when GEMINI_API_KEY is configured, with cache + local fallback)
+            $geminiReply = $this->tryAskGemini($clean, $user, $studio, $collection, $history);
+            if ($geminiReply !== null) {
+                return $geminiReply;
             }
         } elseif ($this->looksLikeLiveCommand($lower)) {
             return $this->makeResponse(
@@ -79,8 +68,176 @@ class OxyAssistantService
             );
         }
 
-        // 5. Deep Knowledge Base & OBS WebSocket v5 Q&A
+        // 3. Built-in conversational small talk, identity, gratitude & vibe checks (Guests & fallback)
+        $chatResponse = $this->trySmallTalk($lower, $user, $studio, $collection);
+        if ($chatResponse !== null) {
+            return $chatResponse;
+        }
+
+        // 4. Follow-up requests ("tell me more", "what else?", "and then?") using recent history
+        if ($this->isFollowUp($lower) && $history !== []) {
+            $followUp = $this->answerFollowUp($history, $user, $studio, $collection);
+            if ($followUp !== null) {
+                return $followUp;
+            }
+        }
+
+        // 5. Copy / Overlay Text Suggestions (Guests & fallback)
+        if ($this->matchesAny($lower, ['suggest', 'idea', 'copy', 'headline', 'ticker text', 'lower third text', 'write me', 'brainstorm', 'examples for'])) {
+            return $this->buildCopySuggestions($lower, $collection);
+        }
+
+        // 6. Deep Knowledge Base & OBS WebSocket v5 Q&A
         return $this->answerFromKnowledgeBase($lower, $user, $studio, $collection);
+    }
+
+    /**
+     * Call Google Gemini Interactions API for signed-in operators when GEMINI_API_KEY is set.
+     *
+     * @param  array<int, array{role: string, text: string}>  $history
+     * @return array<string, mixed>|null
+     */
+    private function tryAskGemini(
+        string $message,
+        User $user,
+        ?ObsStudio $studio,
+        ?ScreenCollection $collection,
+        array $history,
+    ): ?array {
+        $apiKey = trim((string) config('services.gemini.key', ''));
+        if ($apiKey === '') {
+            return null;
+        }
+
+        $model = trim((string) config('services.gemini.model', 'gemini-3.5-flash-lite')) ?: 'gemini-3.5-flash-lite';
+        $endpoint = trim((string) config('services.gemini.endpoint', 'https://generativelanguage.googleapis.com/v1/interactions'));
+
+        $studioKey = $studio?->id ?? 0;
+        $historyFingerprint = md5((string) json_encode(array_slice($history, -2)));
+        $cacheKey = 'oxy_gemini_v1_'.md5($model.'|'.$studioKey.'|'.mb_strtolower($message).'|'.$historyFingerprint);
+
+        $cachedText = Cache::get($cacheKey);
+        if (is_string($cachedText) && $cachedText !== '') {
+            return $this->makeResponse(
+                reply: $cachedText,
+                reaction: 'cheer',
+                suggestions: $this->defaultSuggestions($user, $studio, $collection),
+            );
+        }
+
+        $systemInstruction = $this->buildGeminiSystemInstruction($user, $studio, $collection);
+        $transcriptLines = [];
+        foreach (array_slice($history, -6) as $turn) {
+            $roleLabel = ($turn['role'] ?? '') === 'assistant' ? 'Oxy' : 'User';
+            $turnText = trim((string) ($turn['text'] ?? ''));
+            if ($turnText !== '') {
+                $transcriptLines[] = "{$roleLabel}: {$turnText}";
+            }
+        }
+        $transcriptLines[] = "User: {$message}";
+        $inputPrompt = implode("\n", $transcriptLines);
+
+        try {
+            $response = Http::timeout(8)
+                ->withHeaders([
+                    'x-goog-api-key' => $apiKey,
+                    'Content-Type' => 'application/json',
+                ])
+                ->post($endpoint, [
+                    'model' => $model,
+                    'system_instruction' => $systemInstruction,
+                    'input' => $inputPrompt,
+                    'store' => false,
+                    'generation_config' => [
+                        'max_output_tokens' => 240,
+                        'temperature' => 0.65,
+                    ],
+                ]);
+
+            if (! $response->successful()) {
+                return null;
+            }
+
+            $text = $this->extractGeminiOutputText($response->json());
+            if ($text === '') {
+                return null;
+            }
+
+            Cache::put($cacheKey, $text, now()->addHours(12));
+
+            return $this->makeResponse(
+                reply: $text,
+                reaction: 'cheer',
+                suggestions: $this->defaultSuggestions($user, $studio, $collection),
+            );
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function buildGeminiSystemInstruction(
+        User $user,
+        ?ObsStudio $studio,
+        ?ScreenCollection $collection,
+    ): string {
+        $firstName = trim(explode(' ', $user->name)[0] ?? 'friend');
+        $studioSummary = $studio instanceof ObsStudio
+            ? "Active Studio: \"{$studio->name}\" (".($studio->isOnline() ? 'ONLINE' : 'OFFLINE').', OBS Scene: '.($studio->getCurrentProgramScene() ?: 'none').').'
+            : 'No active studio created yet.';
+        $collectionSummary = $collection instanceof ScreenCollection
+            ? "Active Screen Collection: \"{$collection->name}\" (Active Stage View: \"".($collection->activeView?->name ?? 'none').'").'
+            : 'No active Screen Collection.';
+
+        $kbSummaries = [];
+        foreach (KnowledgeBaseService::getArticles() as $article) {
+            $kbSummaries[] = "- {$article['title']}: {$article['summary']}";
+        }
+        $kbContext = implode("\n", $kbSummaries);
+
+        return <<<PROMPT
+You are Oxy, the friendly, cute 3D black-and-gold studio sidekick inside Obsisstant (a web control center, mobile deck, and single-URL browser-source overlay engine for OBS Studio v28+ using OBS WebSocket v5 and Laravel Reverb).
+Speak like a warm, helpful human broadcast crewmate talking to {$firstName} — casual, clear, encouraging, and concise (2 to 4 short sentences max, or up to 3 clean bullet points when giving overlay copy). Never sound robotic or stiff.
+Live Context:
+{$studioSummary}
+{$collectionSummary}
+Knowledge Base Reference:
+{$kbContext}
+PROMPT;
+    }
+
+    private function extractGeminiOutputText(mixed $payload): string
+    {
+        if (! is_array($payload)) {
+            return '';
+        }
+
+        if (is_string($payload['output_text'] ?? null) && trim($payload['output_text']) !== '') {
+            return trim($payload['output_text']);
+        }
+
+        $chunks = [];
+        foreach (($payload['steps'] ?? []) as $step) {
+            if (! is_array($step) || ($step['type'] ?? '') !== 'model_output') {
+                continue;
+            }
+            foreach (($step['content'] ?? []) as $part) {
+                if (is_array($part) && ($part['type'] ?? '') === 'text' && is_string($part['text'] ?? null)) {
+                    $chunks[] = trim($part['text']);
+                }
+            }
+        }
+
+        if ($chunks !== []) {
+            return trim(implode("\n", array_filter($chunks)));
+        }
+
+        foreach (($payload['outputs'] ?? []) as $out) {
+            if (is_array($out) && is_string($out['text'] ?? null)) {
+                $chunks[] = trim($out['text']);
+            }
+        }
+
+        return trim(implode("\n", array_filter($chunks)));
     }
 
     /**

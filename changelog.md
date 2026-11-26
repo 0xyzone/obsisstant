@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.22.0] - 2026-11-27 | type: minor
+
+> Added hybrid Google Gemini AI support (`gemini-3.5-flash-lite` via the Interactions v1 API) for signed-in Studio operators in Oxy, with 12-hour response caching, zero-token local execution for live Studio/OBS commands, and automatic local fallback for guests or when no API key is configured.
+
+### Added
+- **Hybrid Google Gemini AI for Oxy (`services.gemini`)**: Signed-in operators now receive context-aware Gemini AI responses powered by `GEMINI_API_KEY` (`gemini-3.5-flash-lite` default), while guest visitors and live studio commands (`Start 5m timer`, `Show lower third`, `Switch view`, `Check studio status`) execute locally at 0 API tokens.
+
 ## [v1.21.1] - 2026-11-27 | type: macro
 
 > Renamed the 3D mascot and assistant from Lumi to Oxy, and upgraded the chat engine with natural human-like conversation, small talk, multi-turn follow-up memory, richer Knowledge Base excerpts, and smarter live studio command parsing.
