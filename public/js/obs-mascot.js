@@ -1,10 +1,10 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js';
-import { RoomEnvironment } from 'https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/environments/RoomEnvironment.js';
+import * as THREE from 'https://esm.sh/three@0.186.0';
+import { RoomEnvironment } from 'https://esm.sh/three@0.186.0/examples/jsm/environments/RoomEnvironment.js';
 
 const REACTIONS = ['wave', 'spin', 'cheer', 'dance', 'peek'];
 
 const REACTION_LINES = {
-    wave: 'Hey there! Tap me anytime!',
+    wave: 'Hey! Tap me anytime!',
     spin: 'Wheee! Everything stays synced live.',
     cheer: 'Looking sharp! Ready to go live.',
     dance: 'Vibing with your stream setup!',
@@ -12,7 +12,6 @@ const REACTION_LINES = {
 };
 
 function createMascotInstance(canvas, options = {}) {
-    const mode = options.mode || 'badge';
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
     let renderer;
@@ -27,23 +26,24 @@ function createMascotInstance(canvas, options = {}) {
         return null;
     }
 
+    renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
+    renderer.toneMappingExposure = 1.28;
 
     const scene = new THREE.Scene();
 
     const pmrem = new THREE.PMREMGenerator(renderer);
     const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = envTex;
-    scene.environmentIntensity = 1.2;
+    scene.environmentIntensity = 1.25;
 
     const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
     camera.position.set(0, 0.15, 4.45);
 
     // Studio lighting for glossy obsidian black + shiny metallic gold
     const hemi = new THREE.HemisphereLight(0xfff6dc, 0x16130f, 1.0);
-    const keyLight = new THREE.DirectionalLight(0xfff0c8, 2.6);
+    const keyLight = new THREE.DirectionalLight(0xfff0c8, 2.7);
     keyLight.position.set(2.5, 4.0, 4.5);
     const rimLight = new THREE.PointLight(0xf4e185, 9, 12, 2);
     rimLight.position.set(-2.4, 1.8, -1.6);
@@ -104,17 +104,15 @@ function createMascotInstance(canvas, options = {}) {
     headGroup.position.set(0, 0.3, 0);
     floatGroup.add(headGroup);
 
-    // Main rounded wide head
     const headMain = new THREE.Mesh(new THREE.SphereGeometry(0.78, 40, 32), obsidianShellMat);
     headMain.scale.set(1.16, 0.88, 0.96);
     headGroup.add(headMain);
 
-    // Subtle tapered cute top crown leading to antenna
     const headCrown = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.42, 32), obsidianShellMat);
     headCrown.position.set(0, 0.63, 0);
     headGroup.add(headCrown);
 
-    // Large soft oval cream/pearl face screen
+    // Large soft oval pearl-cream face
     const faceOval = new THREE.Mesh(new THREE.SphereGeometry(0.62, 36, 28), pearlFaceMat);
     faceOval.scale.set(1.14, 0.78, 0.46);
     faceOval.position.set(0, -0.02, 0.49);
@@ -153,14 +151,12 @@ function createMascotInstance(canvas, options = {}) {
 
     faceFeatures.add(leftEyeGroup, rightEyeGroup);
 
-    // Cute curved smile arc
     const smileGeo = new THREE.TorusGeometry(0.085, 0.017, 12, 24, Math.PI * 0.72);
     const smile = new THREE.Mesh(smileGeo, glossyBlackEyeMat);
     smile.rotation.z = Math.PI * 1.14;
     smile.position.set(0, -0.08, 0.02);
     faceFeatures.add(smile);
 
-    // Soft blush cheeks
     const cheekGeo = new THREE.SphereGeometry(0.068, 16, 12);
     const leftCheek = new THREE.Mesh(cheekGeo, blushMat);
     leftCheek.scale.set(1.3, 0.75, 0.35);
@@ -247,6 +243,7 @@ function createMascotInstance(canvas, options = {}) {
     let blinkTimer = 2.4;
     let blinkProgress = -1;
     let pointDirection = 0;
+    let flightBankZ = 0;
     let onSpeechCallback = typeof options.onSpeech === 'function' ? options.onSpeech : null;
 
     const triggerReaction = (name = null, customLine = null) => {
@@ -260,8 +257,9 @@ function createMascotInstance(canvas, options = {}) {
         }
     };
 
-    const setPointDirection = (dir) => {
+    const setPointDirection = (dir, bank = 0) => {
         pointDirection = Math.max(-1, Math.min(1, Number(dir || 0)));
+        flightBankZ = Math.max(-0.3, Math.min(0.3, Number(bank || 0)));
     };
 
     const handlePointerMove = (ev) => {
@@ -300,10 +298,10 @@ function createMascotInstance(canvas, options = {}) {
 
         pointerCurrent.lerp(pointerTarget, Math.min(1, delta * 7));
 
-        let bobY = reducedMotion ? 0 : Math.sin(elapsed * 2.4) * 0.075;
+        let bobY = reducedMotion ? 0 : Math.sin(elapsed * 2.4) * 0.085;
         let rotY = pointerCurrent.x * 0.34;
         let rotX = -pointerCurrent.y * 0.14;
-        let rotZ = 0;
+        let rotZ = flightBankZ;
         let headTiltZ = -pointerCurrent.x * 0.1;
         let lArmY = -0.68 + (reducedMotion ? 0 : Math.sin(elapsed * 2.4 + 0.5) * 0.05);
         let rArmY = -0.68 + (reducedMotion ? 0 : Math.sin(elapsed * 2.4 + 0.5) * 0.05);
@@ -359,7 +357,7 @@ function createMascotInstance(canvas, options = {}) {
                 blushMat.opacity = 0.78;
                 sparkleBoost = 2.4;
             } else if (activeReaction === 'dance') {
-                rotZ = Math.sin(elapsed * 9) * 0.16 * env;
+                rotZ += Math.sin(elapsed * 9) * 0.16 * env;
                 rotY += Math.sin(elapsed * 4.5) * 0.35 * env;
                 lArmY = -0.52 + Math.sin(elapsed * 9) * 0.16;
                 rArmY = -0.52 - Math.sin(elapsed * 9) * 0.16;
@@ -466,6 +464,7 @@ function initMascots() {
             });
         });
 
+        // Scroll-guided boxless flying companion on Homepage
         if (mode === 'hero-guide') {
             const floatGuide = document.getElementById('mascot-scroll-guide');
             const floatCanvas = floatGuide?.querySelector('[data-mascot-float-canvas]');
@@ -482,11 +481,11 @@ function initMascots() {
             }
 
             const stops = [
-                { id: 'features', side: 'right', dir: -1, line: 'Taps reach OBS in under a second!', reaction: 'wave' },
-                { id: 'overlays', side: 'left', dir: 1, line: 'Try these live controls right here!', reaction: 'cheer' },
-                { id: 'features-showcase', side: 'right', dir: -1, line: 'Everything built for smooth streams!', reaction: 'dance' },
-                { id: 'faqs', side: 'left', dir: 1, line: 'Got questions? Quick answers here.', reaction: 'peek' },
-                { id: 'closing-heading', side: 'right', dir: -1, line: 'Ready? Open Studio or Mobile Deck!', reaction: 'spin' },
+                { id: 'features', xPct: 84, yPct: 68, dir: -1, line: 'Taps reach OBS in under a second!', reaction: 'wave' },
+                { id: 'overlays', xPct: 12, yPct: 60, dir: 1, line: 'Try these live controls right here!', reaction: 'cheer' },
+                { id: 'features-showcase', xPct: 86, yPct: 42, dir: -1, line: 'Everything built for smooth streams!', reaction: 'dance' },
+                { id: 'faqs', xPct: 14, yPct: 54, dir: 1, line: 'Got questions? Quick answers here.', reaction: 'peek' },
+                { id: 'closing-heading', xPct: 84, yPct: 72, dir: -1, line: 'Ready? Open Studio or Mobile Deck!', reaction: 'spin' },
             ];
 
             let lastStopId = null;
@@ -494,7 +493,7 @@ function initMascots() {
             const updateScrollGuide = () => {
                 if (!floatGuide || !floatInstance) return;
                 const heroRect = host.getBoundingClientRect();
-                const shouldFloat = heroRect.bottom < 120;
+                const shouldFloat = heroRect.bottom < 140;
                 floatGuide.classList.toggle('is-visible', shouldFloat);
                 floatGuide.setAttribute('aria-hidden', shouldFloat ? 'false' : 'true');
 
@@ -514,8 +513,26 @@ function initMascots() {
                 }
 
                 const isMobile = window.innerWidth < 1024;
-                floatGuide.dataset.side = isMobile ? 'right' : activeStop.side;
-                floatInstance.setPointDirection(isMobile ? -1 : activeStop.dir);
+                const docMax = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+                const scrollFrac = Math.max(0, Math.min(1, window.scrollY / docMax));
+
+                if (isMobile) {
+                    floatGuide.dataset.side = 'right';
+                    floatGuide.style.left = 'auto';
+                    floatGuide.style.right = '0.5rem';
+                    floatGuide.style.top = 'auto';
+                    floatGuide.style.bottom = '0.65rem';
+                    floatInstance.setPointDirection(-1, 0);
+                } else {
+                    const swayX = Math.sin(scrollFrac * Math.PI * 4) * 2.5;
+                    const swayY = Math.cos(scrollFrac * Math.PI * 3) * 4;
+                    floatGuide.dataset.side = activeStop.dir > 0 ? 'left' : 'right';
+                    floatGuide.style.right = 'auto';
+                    floatGuide.style.bottom = 'auto';
+                    floatGuide.style.left = `calc(${activeStop.xPct + swayX}vw - 5.5rem)`;
+                    floatGuide.style.top = `calc(${activeStop.yPct + swayY}vh - 5.5rem)`;
+                    floatInstance.setPointDirection(activeStop.dir, activeStop.dir * 0.08);
+                }
 
                 if (lastStopId !== activeStop.id) {
                     lastStopId = activeStop.id;

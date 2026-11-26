@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.20.1] - 2026-11-27 | type: macro
+
+> Fixed Three.js module resolution (`esm.sh`) so the 3D mascot renders cleanly with zero console errors, removed all card/box containers around the mascot, and enabled free scroll-guided flight across the page.
+
+### Fixed
+- Resolved `Failed to resolve module specifier "three"` by importing Three.js and `RoomEnvironment` via `esm.sh` in `public/js/obs-mascot.js`.
+- Removed background/border boxes from `<x-obs-mascot />` and `#mascot-scroll-guide` so the 3D black-and-gold mascot floats freely and flies across the viewport as you scroll.
+
 ## [v1.20.0] - 2026-11-27 | type: minor
 
 > Redesigned the 3D mascot to a cute black-and-gold chibi silhouette with floating body, teardrop arms, halo antenna, and glossy eyes, fixed the homepage Live Toolkit tab visibility, and added Features Showcase and FAQs sections.
