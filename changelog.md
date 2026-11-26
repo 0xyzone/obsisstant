@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.13.3] - 2026-11-26 | type: macro
+
+> Fixed persistent Install OBS Agent prompts and multi-device online/offline flapping when Obsisstant is open across multiple computers or mobile devices.
+
+### Fixed
+- Protected active online studios with a 75s per-agent lease in ObsAgentController and deterministic agent_instance_id tracking in obs-agent so idle secondary PCs can no longer downgrade a live studio to Offline or overwrite succeeded commands with failed acks
+- Auto-hid the OBS Agent offline banner in Unified Screen Mode across Studio Control Center and Mobile Deck, switched modal and banner dismissal persistence from sessionStorage to localStorage, added Dismiss buttons across Studio, Mobile Deck, and Admin Dashboard, and stopped auto-opening the Install Agent modal once any studio in the workspace has connected
+
 ## [v1.13.2] - 2026-11-26 | type: macro
 
 > Fixed countdown timer offset bug caused by server/client clock skew by anchoring timer math to server-computed milliseconds and monotonic browser time.

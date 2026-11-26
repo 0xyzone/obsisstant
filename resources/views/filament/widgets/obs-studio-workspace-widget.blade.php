@@ -59,6 +59,15 @@
                             Guided Setup in Studio
                         </a>
                     @endif
+                    <button
+                        type="button"
+                        id="obs-dashboard-install-dismiss"
+                        class="obs-link-quiet"
+                        style="background: transparent; border: none; cursor: pointer;"
+                        onclick="try { localStorage.setItem('obs_dashboard_install_dismissed_v2', '1'); } catch {} document.getElementById('obs-dashboard-install-prompt')?.setAttribute('hidden', 'hidden');"
+                    >
+                        Dismiss
+                    </button>
                 </div>
             </div>
 
@@ -92,6 +101,15 @@
                 </div>
             </details>
         </section>
+        <script>
+            (() => {
+                try {
+                    if (localStorage.getItem('obs_dashboard_install_dismissed_v2') === '1') {
+                        document.getElementById('obs-dashboard-install-prompt')?.setAttribute('hidden', 'hidden');
+                    }
+                } catch {}
+            })();
+        </script>
     @endif
 
     <div class="obs-workspace-split">

@@ -881,9 +881,14 @@
                         App Screen View tiles still update your live Browser Source immediately. Start <code>obs-agent</code> only when controlling OBS outputs or legacy scenes.
                     </span>
                 </div>
-                <a href="{{ route('studio.show', ['studio' => $studio->slug], false) }}" class="deck-pill-btn is-gold">
-                    Connect / Install Agent
-                </a>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem;">
+                    <a href="{{ route('studio.show', ['studio' => $studio->slug], false) }}" class="deck-pill-btn is-gold">
+                        Connect / Install Agent
+                    </a>
+                    <button type="button" id="deck-offline-dismiss-btn" class="deck-pill-btn is-outline" aria-label="Dismiss OBS offline banner">
+                        Dismiss
+                    </button>
+                </div>
             </section>
 
             {{-- PRIMARY MODE: Configurable Single-Browser Stage Tile Deck --}}
@@ -1240,6 +1245,7 @@
             (() => {
                 const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
                 const studioId = @json($studio->id);
+                const studioSlug = @json($studio->slug);
                 const deckUrls = @json($deckUrls);
                 const transitionOptions = @json($transitionTypes ?? []);
                 const macrosList = @json($macrosPayload ?? []);
@@ -1351,9 +1357,28 @@
                     setTimeout(poll, isEchoReady() ? 1150 : 250);
                 });
 
+                const deckOfflineDismissKey = `obs_deck_offline_dismissed_v2_${studioSlug}`;
+                const isDeckOfflineDismissed = () => {
+                    try {
+                        return localStorage.getItem(deckOfflineDismissKey) === '1';
+                    } catch {
+                        return false;
+                    }
+                };
+                const syncDeckOfflineBanner = () => {
+                    const offlineBanner = document.getElementById('deck-offline-banner');
+                    if (!offlineBanner) return;
+                    offlineBanner.hidden = studioOnline || controlMode === 'screens' || isDeckOfflineDismissed();
+                };
+                document.getElementById('deck-offline-dismiss-btn')?.addEventListener('click', () => {
+                    try {
+                        localStorage.setItem(deckOfflineDismissKey, '1');
+                    } catch {}
+                    syncDeckOfflineBanner();
+                });
+
                 const applyLiveState = (status, isOnlineFlag, liveState) => {
                     const statusEl = document.getElementById('studio-status');
-                    const offlineBanner = document.getElementById('deck-offline-banner');
                     const normalizedStatus = String(status || '').toLowerCase();
 
                     if (typeof isOnlineFlag === 'boolean') studioOnline = isOnlineFlag;
@@ -1365,7 +1390,7 @@
                             ? 'status-pill--streaming'
                             : (studioOnline ? 'status-pill--online' : ''));
                     }
-                    if (offlineBanner) offlineBanner.hidden = studioOnline;
+                    syncDeckOfflineBanner();
 
                     if (!liveState || typeof liveState !== 'object') return;
                     if (liveState.currentProgramScene) currentProgramScene = liveState.currentProgramScene;
@@ -2060,6 +2085,7 @@
                     const uniSec = document.getElementById('deck-unified-screen-section');
                     if (classicWrap) classicWrap.hidden = isScreens;
                     if (uniSec) uniSec.hidden = !isScreens;
+                    syncDeckOfflineBanner();
 
                     const colSel = document.getElementById('deck-uni-collection-select');
                     const col = getActiveCollection();
@@ -2814,6 +2840,15 @@
                         applyLiveState(payload?.status, payload?.is_online, payload?.live_state);
                     };
                     const handleCommandAck = (payload) => {
+                        const isWhisperPayload = payload && !('response_data' in payload);
+                        if (
+                            isWhisperPayload
+                            && payload?.status === 'failed'
+                            && studioOnline
+                            && String(payload?.error_message || '').toLowerCase().includes('not currently connected')
+                        ) {
+                            return;
+                        }
                         const resolver = pendingResolvers.get(payload?.command_uuid);
                         if (resolver) resolver(payload);
                         if (payload?.status === 'failed' && payload?.error_message) {

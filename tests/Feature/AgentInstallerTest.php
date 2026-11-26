@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ObsCommandLog;
 use App\Models\ObsStudio;
 use App\Models\User;
 use App\Services\ReverbStatusService;
@@ -202,5 +203,177 @@ class AgentInstallerTest extends TestCase
             ->getJson(route('studio.snapshot', ['studio' => $agentRunningStudio->slug]))
             ->assertOk()
             ->assertJsonPath('agent_reachable', true);
+    }
+
+    public function test_idle_second_pc_heartbeat_and_failed_ack_cannot_downgrade_active_online_studio(): void
+    {
+        $user = User::factory()->create(['relay_token' => 'usr_multi_pc_relay_token_123']);
+        $studio = ObsStudio::factory()->for($user)->create([
+            'name' => 'Office OBS',
+            'status' => 'offline',
+            'last_seen_at' => null,
+        ]);
+
+        $authHeaders = ['Authorization' => 'Bearer usr_multi_pc_relay_token_123'];
+
+        // PC A connects OBS and brings Office OBS online
+        $this->withHeaders($authHeaders)
+            ->postJson('/api/obs-agent/state', [
+                'studio_id' => $studio->id,
+                'agent_instance_id' => 'office-pc-aaa111',
+                'status' => 'online',
+                'live_state' => [
+                    'currentProgramScene' => 'Obsisstant Stage',
+                    'stats' => ['activeFps' => 30.0, 'cpuUsage' => 1.5],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'online');
+
+        $this->assertSame('online', $studio->fresh()->status);
+        $this->assertTrue($studio->fresh()->isOnline());
+
+        // PC B (idle relay without OBS open) sends offline heartbeat -> must NOT downgrade Office OBS
+        $this->withHeaders($authHeaders)
+            ->postJson('/api/obs-agent/heartbeat', [
+                'studio_id' => $studio->id,
+                'agent_instance_id' => 'macbook-bbb222',
+                'status' => 'offline',
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'online')
+            ->assertJsonPath('active_on_other_agent', true)
+            ->assertJsonPath('ignored_stale_offline', true);
+
+        $this->assertSame('online', $studio->fresh()->status);
+
+        // Legacy PC C (older obs-agent without agent_instance_id) sends offline heartbeat -> also ignored
+        $this->withHeaders($authHeaders)
+            ->postJson('/api/obs-agent/heartbeat', [
+                'studio_id' => $studio->id,
+                'status' => 'offline',
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'online')
+            ->assertJsonPath('active_on_other_agent', true)
+            ->assertJsonPath('ignored_stale_offline', true);
+
+        $this->assertSame('online', $studio->fresh()->status);
+
+        // PC B tries to push offline state -> rejected because PC A holds the active lease
+        $this->withHeaders($authHeaders)
+            ->postJson('/api/obs-agent/state', [
+                'studio_id' => $studio->id,
+                'agent_instance_id' => 'macbook-bbb222',
+                'status' => 'offline',
+                'live_state' => ['currentProgramScene' => null],
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'online')
+            ->assertJsonPath('ignored_stale_offline', true);
+
+        $this->assertSame('online', $studio->fresh()->status);
+
+        // Idle PC B receives a command while OBS is closed locally and reports "not currently connected" -> ignored
+        $log = ObsCommandLog::query()->create([
+            'obs_studio_id' => $studio->id,
+            'user_id' => $user->id,
+            'command_uuid' => '11111111-2222-4333-8444-555555555555',
+            'request_type' => 'obsisstant.RefreshAllState',
+            'request_data' => [],
+            'status' => 'dispatched',
+        ]);
+
+        $this->withHeaders($authHeaders)
+            ->postJson("/api/obs-agent/commands/{$log->command_uuid}/ack", [
+                'studio_id' => $studio->id,
+                'agent_instance_id' => 'macbook-bbb222',
+                'status' => 'failed',
+                'error_message' => 'OBS Studio WebSocket is not currently connected.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('ignored_idle_agent', true);
+
+        $this->assertSame('dispatched', $log->fresh()->status);
+
+        // Online PC A acknowledges the command as succeeded
+        $this->withHeaders($authHeaders)
+            ->postJson("/api/obs-agent/commands/{$log->command_uuid}/ack", [
+                'studio_id' => $studio->id,
+                'agent_instance_id' => 'office-pc-aaa111',
+                'status' => 'succeeded',
+                'response_data' => ['refreshed' => true],
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'succeeded');
+
+        $this->assertSame('succeeded', $log->fresh()->status);
+
+        // A late failed ack from another PC can NEVER overwrite an already-succeeded command
+        $this->withHeaders($authHeaders)
+            ->postJson("/api/obs-agent/commands/{$log->command_uuid}/ack", [
+                'studio_id' => $studio->id,
+                'agent_instance_id' => 'macbook-bbb222',
+                'status' => 'failed',
+                'error_message' => 'Some late relay error',
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'succeeded')
+            ->assertJsonPath('ignored_stale_failure', true);
+
+        $this->assertSame('succeeded', $log->fresh()->status);
+
+        // When PC A itself closes OBS, its offline state transition succeeds cleanly
+        $this->withHeaders($authHeaders)
+            ->postJson('/api/obs-agent/state', [
+                'studio_id' => $studio->id,
+                'agent_instance_id' => 'office-pc-aaa111',
+                'status' => 'offline',
+                'live_state' => ['currentProgramScene' => 'Obsisstant Stage'],
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'offline');
+
+        $this->assertSame('offline', $studio->fresh()->status);
+    }
+
+    public function test_unified_screen_mode_hides_agent_banner_and_surfaces_persistent_dismiss_controls(): void
+    {
+        ReverbStatusService::fakeUsing(static fn (): bool => true);
+
+        $user = User::factory()->create();
+        ObsStudio::factory()->for($user)->create([
+            'name' => 'Previous PC',
+            'status' => 'offline',
+            'last_seen_at' => now()->subHour(),
+            'control_mode' => 'obs',
+        ]);
+        $unifiedStudio = ObsStudio::factory()->for($user)->create([
+            'name' => 'Office OBS',
+            'status' => 'offline',
+            'last_seen_at' => null,
+            'control_mode' => 'screens',
+        ]);
+
+        $controlCenterHtml = $this->actingAs($user)
+            ->get(route('studio.show', ['studio' => $unifiedStudio->slug]))
+            ->assertOk()
+            ->assertSee('agent-banner-dismiss-btn', false)
+            ->assertSee('const hasAnyConnectedStudio = true;', false)
+            ->assertSee('obs_install_dialog_dismissed_v2', false)
+            ->getContent();
+
+        $this->assertMatchesRegularExpression('/id="agent-offline-banner"\s+hidden/', (string) $controlCenterHtml);
+
+        $this->actingAs($user)
+            ->get(route('obs.deck.show', ['studio' => $unifiedStudio->slug]))
+            ->assertOk()
+            ->assertSee('deck-offline-dismiss-btn', false)
+            ->assertSee('syncDeckOfflineBanner', false);
+
+        $this->actingAs($user)
+            ->get('/admin')
+            ->assertOk()
+            ->assertSee('obs-dashboard-install-dismiss', false);
     }
 }

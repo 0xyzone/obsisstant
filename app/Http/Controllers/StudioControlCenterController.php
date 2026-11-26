@@ -99,6 +99,7 @@ class StudioControlCenterController extends Controller
             'echoConfig' => ReverbStatusService::clientEchoConfig(),
             'mediaStoragePath' => app(ObsMediaStorageService::class)->resolveConfiguredDirectory($studio, $user),
             'agentReachable' => $studio->isAgentReachable(),
+            'hasAnyConnectedStudio' => $studios->contains(static fn (ObsStudio $item): bool => $item->last_seen_at !== null),
             'installerPayload' => app(ObsAgentInstallerService::class)->issueBootstrapPayload($user),
         ]);
     }

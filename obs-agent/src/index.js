@@ -22,6 +22,21 @@ if (!globalThis.WebSocket) {
 
 const BASE_URL = (process.env.OBSISSTANT_URL || '').replace(/\/+$/, '');
 const AUTH_TOKEN = (process.env.OBSISSTANT_RELAY_TOKEN || process.env.OBSISSTANT_AGENT_TOKEN || '').trim();
+const AGENT_INSTANCE_ID = (() => {
+    const host = os.hostname() || 'agent';
+    let userName = '';
+    try {
+        userName = os.userInfo().username || '';
+    } catch {
+        userName = '';
+    }
+    const fingerprint = crypto
+        .createHash('sha256')
+        .update(`${host}|${userName}|${os.homedir()}|${os.platform()}|${os.arch()}`)
+        .digest('hex')
+        .slice(0, 10);
+    return `${host}-${fingerprint}`.slice(0, 120);
+})();
 
 if (!BASE_URL || !AUTH_TOKEN) {
     console.error('[obs-agent] OBSISSTANT_URL and OBSISSTANT_RELAY_TOKEN (or OBSISSTANT_AGENT_TOKEN) are required in obs-agent/.env');
@@ -97,6 +112,7 @@ class StudioWorker {
         this.pendingCommands = entry.pending_commands || [];
         this.obs = new OBSWebSocket();
         this.obsConnected = false;
+        this.remoteAgentOnline = false;
         this.stopped = false;
         this.reconnectTimer = null;
         this.statsTimer = null;
@@ -165,12 +181,18 @@ class StudioWorker {
         try {
             const payload = {
                 studio_id: this.studio.id,
+                agent_instance_id: AGENT_INSTANCE_ID,
                 live_state: partial ?? this.liveState,
             };
             if (statusOverride) {
                 payload.status = statusOverride;
             }
-            await apiRequest('/api/obs-agent/state', 'POST', payload);
+            const res = await apiRequest('/api/obs-agent/state', 'POST', payload);
+            if (statusOverride === 'offline') {
+                this.remoteAgentOnline = Boolean(res?.active_on_other_agent);
+            } else {
+                this.remoteAgentOnline = false;
+            }
             this.lastHeartbeatAt = Date.now();
         } catch (error) {
             console.error(`${this.logPrefix()} Failed to push state:`, error.message);
@@ -182,10 +204,12 @@ class StudioWorker {
             return;
         }
         try {
-            await apiRequest('/api/obs-agent/heartbeat', 'POST', {
+            const res = await apiRequest('/api/obs-agent/heartbeat', 'POST', {
                 studio_id: this.studio.id,
+                agent_instance_id: AGENT_INSTANCE_ID,
                 status,
             });
+            this.remoteAgentOnline = Boolean(res?.active_on_other_agent);
             this.lastHeartbeatAt = Date.now();
         } catch {
             // Transient heartbeat error
@@ -937,12 +961,16 @@ class StudioWorker {
             return;
         }
         const retryDelays = [0, 350, 750, 1400];
+        const ackPayload = {
+            ...body,
+            agent_instance_id: AGENT_INSTANCE_ID,
+        };
         for (let attempt = 0; attempt < retryDelays.length; attempt++) {
             if (retryDelays[attempt] > 0) {
                 await new Promise((resolve) => setTimeout(resolve, retryDelays[attempt]));
             }
             try {
-                await apiRequest(`/api/obs-agent/commands/${uuid}/ack`, 'POST', body);
+                await apiRequest(`/api/obs-agent/commands/${uuid}/ack`, 'POST', ackPayload);
                 return;
             } catch (error) {
                 const isNotFound = String(error?.message || '').includes('(404)');
@@ -969,6 +997,12 @@ class StudioWorker {
 
         try {
             if (!this.obsConnected) {
+                if (this.remoteAgentOnline) {
+                    if (requestType !== 'obsisstant.SetPreviewStream') {
+                        console.log(`${this.logPrefix()} Skipping ${requestType} (${uuid || 'whisper'}) — studio is active on another PC.`);
+                    }
+                    return;
+                }
                 throw new Error('OBS Studio WebSocket is not currently connected.');
             }
 
@@ -1246,6 +1280,7 @@ class StudioWorker {
                 rpcVersion: 1,
             });
             this.obsConnected = true;
+            this.remoteAgentOnline = false;
             console.log(`${this.logPrefix()} Connected to OBS Studio at ${wsUrl}`);
             await this.refreshAllState();
         } catch (error) {

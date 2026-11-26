@@ -13,6 +13,7 @@ use App\Services\Obs\ObsCommandService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Pusher\Pusher;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,6 +21,8 @@ use Throwable;
 
 class ObsAgentController extends Controller
 {
+    private const ONLINE_LEASE_TTL_SECONDS = 75;
+
     public function bootstrap(Request $request): JsonResponse
     {
         $isRelayMode = (bool) $request->attributes->get('obs_relay_mode', false);
@@ -162,9 +165,12 @@ class ObsAgentController extends Controller
 
         $validated = $request->validate([
             'studio_id' => ['nullable', 'integer'],
+            'agent_instance_id' => ['nullable', 'string', 'max:120'],
             'status' => ['nullable', 'string', 'in:offline,online,streaming,recording'],
             'live_state' => ['required', 'array'],
         ]);
+
+        $agentInstanceId = $this->normalizeAgentInstanceId($validated['agent_instance_id'] ?? null);
 
         $mergedState = array_replace_recursive($studio->live_state ?? [], $validated['live_state']);
 
@@ -176,6 +182,21 @@ class ObsAgentController extends Controller
         }
 
         $status = $validated['status'] ?? $this->deriveStatus($mergedState);
+
+        if ($status === 'offline') {
+            if ($this->hasConflictingAgentLease($studio, $agentInstanceId, requireExplicitConflict: true)) {
+                return response()->json([
+                    'ok' => true,
+                    'status' => $studio->status,
+                    'active_on_other_agent' => true,
+                    'ignored_stale_offline' => true,
+                ]);
+            }
+
+            $this->clearOnlineLease($studio);
+        } else {
+            $this->refreshOnlineLease($studio, $agentInstanceId);
+        }
 
         $studio->update([
             'status' => $status,
@@ -258,10 +279,27 @@ class ObsAgentController extends Controller
     public function heartbeat(Request $request): JsonResponse
     {
         $studio = $this->resolveStudio($request);
+        $agentInstanceId = $this->normalizeAgentInstanceId($request->input('agent_instance_id'));
 
         $status = $request->input('status');
         if (! in_array($status, ['offline', 'online', 'streaming', 'recording'], true)) {
             $status = $studio->status === 'offline' ? 'online' : $studio->status;
+        }
+
+        if ($status === 'offline') {
+            if ($this->hasConflictingAgentLease($studio, $agentInstanceId, requireExplicitConflict: false)) {
+                return response()->json([
+                    'ok' => true,
+                    'status' => $studio->status,
+                    'active_on_other_agent' => true,
+                    'ignored_stale_offline' => true,
+                    'server_time' => now()->toIso8601String(),
+                ]);
+            }
+
+            $this->clearOnlineLease($studio);
+        } else {
+            $this->refreshOnlineLease($studio, $agentInstanceId);
         }
 
         $studio->update([
@@ -271,6 +309,8 @@ class ObsAgentController extends Controller
 
         return response()->json([
             'ok' => true,
+            'status' => $status,
+            'active_on_other_agent' => false,
             'server_time' => now()->toIso8601String(),
         ]);
     }
@@ -286,10 +326,36 @@ class ObsAgentController extends Controller
 
         $validated = $request->validate([
             'studio_id' => ['nullable', 'integer'],
+            'agent_instance_id' => ['nullable', 'string', 'max:120'],
             'status' => ['required', 'string', 'in:succeeded,failed'],
             'response_data' => ['nullable', 'array'],
             'error_message' => ['nullable', 'string'],
         ]);
+
+        $agentInstanceId = $this->normalizeAgentInstanceId($validated['agent_instance_id'] ?? null);
+
+        if ($commandLog->status === 'succeeded' && $validated['status'] === 'failed') {
+            return response()->json([
+                'ok' => true,
+                'command_uuid' => $commandLog->command_uuid,
+                'status' => $commandLog->status,
+                'ignored_stale_failure' => true,
+            ]);
+        }
+
+        $errorMessage = (string) ($validated['error_message'] ?? '');
+        if (
+            $validated['status'] === 'failed'
+            && str_contains(strtolower($errorMessage), 'not currently connected')
+            && $this->hasConflictingAgentLease($studio, $agentInstanceId, requireExplicitConflict: false)
+        ) {
+            return response()->json([
+                'ok' => true,
+                'command_uuid' => $commandLog->command_uuid,
+                'status' => $commandLog->status,
+                'ignored_idle_agent' => true,
+            ]);
+        }
 
         $commandLog->update([
             'status' => $validated['status'],
@@ -406,6 +472,68 @@ class ObsAgentController extends Controller
         } catch (Throwable $exception) {
             report($exception);
         }
+    }
+
+    private function onlineLeaseKey(ObsStudio $studio): string
+    {
+        return "obs.studio.{$studio->id}.online_lease";
+    }
+
+    private function normalizeAgentInstanceId(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed !== '' ? substr($trimmed, 0, 120) : null;
+    }
+
+    private function refreshOnlineLease(ObsStudio $studio, ?string $agentInstanceId): void
+    {
+        Cache::put(
+            $this->onlineLeaseKey($studio),
+            [
+                'agent_id' => $agentInstanceId,
+                'at' => now()->timestamp,
+            ],
+            now()->addSeconds(self::ONLINE_LEASE_TTL_SECONDS),
+        );
+    }
+
+    private function clearOnlineLease(ObsStudio $studio): void
+    {
+        Cache::forget($this->onlineLeaseKey($studio));
+    }
+
+    /**
+     * Protect an active online studio from being downgraded by a secondary idle PC's relay agent.
+     */
+    private function hasConflictingAgentLease(ObsStudio $studio, ?string $agentInstanceId, bool $requireExplicitConflict): bool
+    {
+        $lease = Cache::get($this->onlineLeaseKey($studio));
+        $leaseAgentId = is_array($lease) ? ($lease['agent_id'] ?? null) : null;
+
+        if ($agentInstanceId !== null && is_string($leaseAgentId) && $leaseAgentId === $agentInstanceId) {
+            return false;
+        }
+
+        if (is_array($lease)) {
+            if ($requireExplicitConflict) {
+                return $agentInstanceId !== null && is_string($leaseAgentId) && $leaseAgentId !== $agentInstanceId;
+            }
+
+            return $studio->isOnline();
+        }
+
+        if ($requireExplicitConflict) {
+            return false;
+        }
+
+        return $studio->isOnline()
+            && $studio->last_seen_at !== null
+            && $studio->last_seen_at->greaterThan(now()->subSeconds(self::ONLINE_LEASE_TTL_SECONDS));
     }
 
     /**

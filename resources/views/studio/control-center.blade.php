@@ -1403,7 +1403,7 @@
                     <section class="sources-workspace-panel" aria-label="Scene Sources and Source Editor">
                 <div
                     id="agent-offline-banner"
-                    @if ($studio->isOnline()) hidden @endif
+                    @if ($studio->isOnline() || ($controlMode ?? 'obs') === 'screens') hidden @endif
                     style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0.875rem; border-radius: 0.5rem; border: 1px solid rgba(205, 173, 105, 0.35); background: rgba(205, 173, 105, 0.08);"
                 >
                     <div style="display: grid; gap: 0.125rem;">
@@ -1416,9 +1416,12 @@
                                 : 'Install the pre-configured OBS Agent in one click — no terminal coding or token setup needed.' }}
                         </span>
                     </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
                         <button type="button" id="agent-banner-cta" class="s-btn s-btn-gold s-btn-xs" commandfor="install-agent-dialog" command="show-modal">
                             {{ $agentReachable ? 'Install on Another PC' : 'Install OBS Agent' }}
+                        </button>
+                        <button type="button" id="agent-banner-dismiss-btn" class="s-btn s-btn-xs" aria-label="Dismiss OBS Agent banner">
+                            Dismiss
                         </button>
                     </div>
                 </div>
@@ -2107,6 +2110,7 @@
                 let liveState = @json($liveState ?: new stdClass());
                 let studioStatus = @json($studio->status);
                 let agentReachable = @json($agentReachable);
+                const hasAnyConnectedStudio = @json($hasAnyConnectedStudio ?? false);
                 let editingScene = @json($initialEditingScene);
                 let selectedSceneItemId = null;
                 let studioChannel = null;
@@ -4186,21 +4190,41 @@
 
                 const installDialog = document.getElementById('install-agent-dialog');
                 const installBanner = document.getElementById('agent-offline-banner');
+                const installBannerDismissBtn = document.getElementById('agent-banner-dismiss-btn');
                 const installModalText = document.getElementById('install-modal-live-text');
                 const installBannerTitle = document.getElementById('agent-banner-title');
                 const installBannerCopy = document.getElementById('agent-banner-copy');
                 const installBannerCta = document.getElementById('agent-banner-cta');
                 const topbarInstallBtn = document.getElementById('open-install-agent-btn');
+                const INSTALL_DIALOG_DISMISS_KEY = 'obs_install_dialog_dismissed_v2';
+                const INSTALL_BANNER_DISMISS_KEY = `obs_install_banner_dismissed_v2_${studioSlug}`;
                 let installPollTimer = null;
                 let wasStudioOnline = studioStatus !== 'offline';
 
+                const isInstallDialogDismissed = () => {
+                    try {
+                        return localStorage.getItem(INSTALL_DIALOG_DISMISS_KEY) === '1';
+                    } catch {
+                        return false;
+                    }
+                };
+
+                const isInstallBannerDismissed = () => {
+                    try {
+                        return localStorage.getItem(INSTALL_BANNER_DISMISS_KEY) === '1';
+                    } catch {
+                        return false;
+                    }
+                };
+
                 function updateAgentOnboardingState() {
                     const isOnline = studioStatus !== 'offline';
+                    const isScreensMode = controlMode === 'screens';
                     if (installBanner) {
-                        installBanner.hidden = isOnline;
+                        installBanner.hidden = isOnline || isScreensMode || isInstallBannerDismissed();
                     }
                     if (topbarInstallBtn) {
-                        topbarInstallBtn.textContent = isOnline ? 'Add PC' : 'Install Agent';
+                        topbarInstallBtn.textContent = (isOnline || hasAnyConnectedStudio) ? 'Add PC' : 'Install Agent';
                     }
 
                     if (!isOnline) {
@@ -4302,13 +4326,24 @@
 
                 const markInstallDismissed = () => {
                     try {
-                        sessionStorage.setItem(`obs_install_dismissed_${studioSlug}`, '1');
+                        localStorage.setItem(INSTALL_DIALOG_DISMISS_KEY, '1');
                     } catch {
                         // Ignore storage quota / privacy mode errors
                     }
                     clearInterval(installPollTimer);
                     installPollTimer = null;
                 };
+
+                installBannerDismissBtn?.addEventListener('click', () => {
+                    try {
+                        localStorage.setItem(INSTALL_BANNER_DISMISS_KEY, '1');
+                    } catch {
+                        // Ignore storage quota / privacy mode errors
+                    }
+                    if (installBanner) {
+                        installBanner.hidden = true;
+                    }
+                });
 
                 document.getElementById('install-agent-dismiss-btn')?.addEventListener('click', markInstallDismissed);
                 document.getElementById('install-agent-close-x')?.addEventListener('click', markInstallDismissed);
@@ -4349,6 +4384,14 @@
                     };
                     const handleCommandAckEvent = (payload) => {
                         const isWhisperPayload = payload && !('response_data' in payload);
+                        if (
+                            isWhisperPayload
+                            && payload?.status === 'failed'
+                            && studioStatus !== 'offline'
+                            && String(payload?.error_message || '').toLowerCase().includes('not currently connected')
+                        ) {
+                            return;
+                        }
                         const needsFullResponse = payload?.request_type === 'obsisstant.FetchInputSettings'
                             || payload?.request_type === 'obsisstant.PickLocalDirectory';
                         const resolver = pendingCommandResolvers.get(payload?.command_uuid);
@@ -4493,6 +4536,7 @@
                     if (classicCenter) classicCenter.hidden = isScreens;
                     if (uniCenter) uniCenter.hidden = !isScreens;
                     syncUtilityDock();
+                    updateAgentOnboardingState();
 
                     const colSel = document.getElementById('unified-collection-select');
                     const col = getActiveCollection();
@@ -4869,14 +4913,15 @@
                 renderUnifiedWorkspace();
                 renderAll();
 
-                // Prompt user to install OBS Agent automatically once per session if never connected
-                let alreadyDismissed = false;
-                try {
-                    alreadyDismissed = sessionStorage.getItem(`obs_install_dismissed_${studioSlug}`) === '1';
-                } catch {
-                    alreadyDismissed = false;
-                }
-                if (studioStatus === 'offline' && !agentReachable && !alreadyDismissed && installDialog) {
+                // Only auto-open the Install Agent dialog for brand-new workspaces in Classic OBS mode that have never connected any studio
+                if (
+                    studioStatus === 'offline'
+                    && !agentReachable
+                    && !hasAnyConnectedStudio
+                    && controlMode !== 'screens'
+                    && !isInstallDialogDismissed()
+                    && installDialog
+                ) {
                     openDialog(installDialog);
                     startInstallDialogPolling();
                 }
