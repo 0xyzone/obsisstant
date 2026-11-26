@@ -530,12 +530,31 @@
                     }
                 };
 
+                const applyRootThemeVars = (theme) => {
+                    const t = theme || {};
+                    const accent = t.accent_color || '#CDAD69';
+                    const secondary = t.secondary_color && t.secondary_color !== '#F4E185'
+                        ? t.secondary_color
+                        : (accent === '#CDAD69' ? '#F4E185' : accent);
+                    document.documentElement.style.setProperty('--accent', accent);
+                    document.documentElement.style.setProperty('--secondary', secondary);
+                    document.documentElement.style.setProperty('--surface', t.surface_color || '#0B0A08');
+                    document.documentElement.style.setProperty('--text', t.text_color || '#FAF7EE');
+                    document.documentElement.style.setProperty('--muted', t.muted_color || '#ABA291');
+                    document.documentElement.style.setProperty('--blur', `${Number(t.backdrop_blur ?? 18)}px`);
+                    document.documentElement.style.setProperty('--opacity', String(t.glass_opacity ?? 0.82));
+                };
+
                 const applyViewThemeVars = (slot, view) => {
                     const base = stageData?.theme || {};
                     const ov = view?.theme_override || {};
                     const merged = { ...base, ...Object.fromEntries(Object.entries(ov).filter(([, v]) => v !== null && v !== '')) };
-                    slot.style.setProperty('--v-accent', merged.accent_color || '#CDAD69');
-                    slot.style.setProperty('--v-secondary', merged.secondary_color || '#F4E185');
+                    const accent = merged.accent_color || '#CDAD69';
+                    const secondary = merged.secondary_color && merged.secondary_color !== '#F4E185'
+                        ? merged.secondary_color
+                        : (accent === '#CDAD69' ? '#F4E185' : accent);
+                    slot.style.setProperty('--v-accent', accent);
+                    slot.style.setProperty('--v-secondary', secondary);
                     slot.style.setProperty('--v-surface', merged.surface_color || '#0B0A08');
                     slot.style.setProperty('--v-text', merged.text_color || '#FAF7EE');
                     slot.style.setProperty('--v-muted', merged.muted_color || '#ABA291');
@@ -545,6 +564,30 @@
                     return merged;
                 };
 
+                const resolveEffectiveBackground = (view, theme) => {
+                    const viewMode = view?.background_mode || 'theme';
+                    if (viewMode === 'transparent') {
+                        return { mode: 'transparent' };
+                    }
+                    if (viewMode === 'solid') {
+                        return { mode: 'solid', color: view.background_color || theme.surface_color || '#0B0A08' };
+                    }
+                    if (viewMode === 'asset' && view.background_asset_url) {
+                        return { mode: 'asset', url: view.background_asset_url, assetType: view.background_asset_type || null };
+                    }
+                    const themeMode = theme?.background_mode || 'gradient';
+                    if (themeMode === 'transparent') {
+                        return { mode: 'transparent' };
+                    }
+                    if (themeMode === 'solid') {
+                        return { mode: 'solid', color: theme.background_color || theme.surface_color || '#0B0A08' };
+                    }
+                    if (themeMode === 'asset' && theme.background_asset_url) {
+                        return { mode: 'asset', url: theme.background_asset_url, assetType: theme.background_asset_type || null };
+                    }
+                    return { mode: 'gradient' };
+                };
+
                 const renderViewIntoSlot = (slot, view, slotKey, animateEnter = true) => {
                     slot.innerHTML = '';
                     if (!view) return;
@@ -552,13 +595,15 @@
                     const w = Math.max(320, Number(stageData?.width || 1920));
                     const h = Math.max(180, Number(stageData?.height || 1080));
                     const hiddenSet = new Set(Array.isArray(stageData?.runtime_state?.hidden_layers) ? stageData.runtime_state.hidden_layers : []);
+                    applyRootThemeVars(stageData?.theme);
                     const theme = applyViewThemeVars(slot, view);
+                    const effectiveBg = resolveEffectiveBackground(view, theme);
                     const layers = [...(Array.isArray(view.layers) ? view.layers : [])].sort((a, b) => Number(a.z_index || 0) - Number(b.z_index || 0));
 
                     const visibleCutouts = layers.filter((l) => l.type === 'camera_cutout' && l.visible !== false && !hiddenSet.has(l.id));
                     const maskId = `cutout-mask-${slotKey}-${view.id}`;
 
-                    if (visibleCutouts.length > 0 && view.background_mode !== 'transparent') {
+                    if (visibleCutouts.length > 0 && effectiveBg.mode !== 'transparent') {
                         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                         svg.setAttribute('class', 'svg-defs-host');
                         svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
@@ -598,8 +643,8 @@
                         slot.appendChild(svg);
                     }
 
-                    // Backdrop Layer (opaque/solid/asset — punched by SVG mask if cutouts exist!)
-                    if (view.background_mode !== 'transparent') {
+                    // Backdrop Layer (opaque/solid/video/image — punched by SVG mask if cutouts exist!)
+                    if (effectiveBg.mode !== 'transparent') {
                         const bd = document.createElement('div');
                         bd.className = 'view-backdrop-wrap';
                         if (visibleCutouts.length > 0) {
@@ -607,11 +652,11 @@
                             bd.style.webkitMask = `url(#${maskId})`;
                         }
 
-                        if (view.background_mode === 'asset' && view.background_asset_url) {
-                            if (view.background_asset_type === 'video' || /\.webm$|\.mp4$/i.test(view.background_asset_url)) {
+                        if (effectiveBg.mode === 'asset' && effectiveBg.url) {
+                            if (effectiveBg.assetType === 'video' || effectiveBg.assetType === 'stinger' || /\.(webm|mp4)(\?.*)?$/i.test(effectiveBg.url)) {
                                 const vid = document.createElement('video');
                                 vid.className = 'view-backdrop-media';
-                                vid.src = view.background_asset_url;
+                                vid.src = effectiveBg.url;
                                 vid.autoplay = true;
                                 vid.loop = true;
                                 vid.muted = true;
@@ -620,12 +665,12 @@
                             } else {
                                 const img = document.createElement('img');
                                 img.className = 'view-backdrop-media';
-                                img.src = view.background_asset_url;
+                                img.src = effectiveBg.url;
                                 img.alt = '';
                                 bd.appendChild(img);
                             }
-                        } else if (view.background_mode === 'solid' && view.background_color) {
-                            bd.style.background = view.background_color;
+                        } else if (effectiveBg.mode === 'solid' && effectiveBg.color) {
+                            bd.style.background = effectiveBg.color;
                         } else {
                             const grad = document.createElement('div');
                             grad.className = 'view-backdrop-theme';
@@ -1043,11 +1088,15 @@
                     window.Echo.channel(@json("obs.collection.{$collection->public_token}"))
                         .listen('.obs.collection.updated', (payload) => {
                             lastEchoAt = Date.now();
-                            // If non-switch edit happened in builder (views updated), force fresh render on same view
+                            // If non-switch edit happened in builder (views or theme updated), force fresh render on same view
                             const prevViewJson = JSON.stringify(findView(renderedViewId));
+                            const prevThemeJson = JSON.stringify(stageData?.theme || {});
                             const nextView = (payload?.views || []).find((v) => Number(v.id) === Number(renderedViewId));
-                            if (nextView && JSON.stringify(nextView) !== prevViewJson && Number(payload?.runtime_state?.last_transition?.seq || 0) === lastTransitionSeq) {
+                            const themeChanged = JSON.stringify(payload?.theme || {}) !== prevThemeJson;
+                            if (nextView && (JSON.stringify(nextView) !== prevViewJson || themeChanged) && Number(payload?.runtime_state?.last_transition?.seq || 0) === lastTransitionSeq) {
+                                payload._receivedAtPerf = performance.now();
                                 stageData = payload;
+                                applyRootThemeVars(stageData?.theme);
                                 renderViewIntoSlot(activeSlot, nextView, activeSlot === slotA ? 'a' : 'b', false);
                                 return;
                             }

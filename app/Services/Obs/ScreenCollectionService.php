@@ -98,6 +98,18 @@ class ScreenCollectionService
             ];
         })->values()->all();
 
+        $mergedTheme = $collection->getMergedTheme();
+        $themeBgAssetId = ! empty($mergedTheme['background_asset_id']) ? (int) $mergedTheme['background_asset_id'] : null;
+        if ($themeBgAssetId !== null && isset($assetsMap[$themeBgAssetId])) {
+            $mergedTheme['background_asset_id'] = $themeBgAssetId;
+            $mergedTheme['background_asset_url'] = $assetsMap[$themeBgAssetId]['url'];
+            $mergedTheme['background_asset_type'] = $assetsMap[$themeBgAssetId]['type'];
+        } else {
+            $mergedTheme['background_asset_id'] = null;
+            $mergedTheme['background_asset_url'] = null;
+            $mergedTheme['background_asset_type'] = null;
+        }
+
         $defaultTransition = $collection->getMergedTransition();
         if (! empty($defaultTransition['stinger_asset_id']) && isset($assetsMap[(int) $defaultTransition['stinger_asset_id']])) {
             $defaultTransition['stinger_url'] = $assetsMap[(int) $defaultTransition['stinger_asset_id']]['url'];
@@ -123,7 +135,7 @@ class ScreenCollectionService
             'active_view_id' => $collection->active_view_id ?? ($views[0]['id'] ?? null),
             'obs_scene_name' => $collection->obs_scene_name,
             'obs_source_name' => $collection->obs_source_name,
-            'theme' => $collection->getMergedTheme(),
+            'theme' => $mergedTheme,
             'default_transition' => $defaultTransition,
             'runtime_state' => $runtimeState,
             'deck_layout' => $collection->getNormalizedDeckLayout(),

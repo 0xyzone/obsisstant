@@ -465,6 +465,42 @@
                             <input type="color" id="col-sweep-color" class="s-input" style="padding: 0.15rem;">
                         </label>
                     </div>
+
+                    <div class="stack" style="padding: 0.55rem; border-radius: 0.5rem; background: var(--bg-chrome); border: 1px solid var(--hairline);">
+                        <label class="stack">
+                            <span class="sub-label">Default Background</span>
+                            <select id="col-bg-mode" class="s-select">
+                                <option value="gradient">Theme Gradient</option>
+                                <option value="solid">Solid Color</option>
+                                <option value="transparent">Transparent (OBS Alpha)</option>
+                                <option value="asset">Animated Video / Image Asset</option>
+                            </select>
+                        </label>
+
+                        <label class="stack" id="col-bg-color-wrap" hidden>
+                            <span class="sub-label">Default Background Color</span>
+                            <input type="color" id="col-bg-color" class="s-input" style="padding: 0.15rem;">
+                        </label>
+
+                        <div class="stack" id="col-bg-asset-wrap" hidden>
+                            <label class="stack">
+                                <span class="sub-label">Default Bg Video / Image</span>
+                                <select id="col-bg-asset" class="s-select">
+                                    <option value="">Select uploaded video or image...</option>
+                                </select>
+                            </label>
+                            <label class="stack">
+                                <span class="sub-label">Upload Animated BG Video (.mp4/.webm) or Image</span>
+                                <input type="file" id="col-bg-upload-input" class="s-input" accept="video/mp4,video/webm,image/*">
+                            </label>
+                        </div>
+
+                        <div id="col-bg-override-hint" class="stack" style="padding: 0.45rem; border-radius: 0.4rem; background: rgba(205, 173, 105, 0.1); border: 1px solid rgba(205, 173, 105, 0.28);" hidden>
+                            <span id="col-bg-override-text" class="sub-label" style="color: var(--gold-light);"></span>
+                            <button type="button" id="btn-view-inherit-bg" class="s-btn s-btn-xs">Use Collection Default BG on this View</button>
+                        </div>
+                    </div>
+
                     <label class="stack">
                         <span class="sub-label">Default Transition</span>
                         <select id="col-default-tx" class="s-select">
@@ -475,12 +511,12 @@
                     </label>
                     <div class="grid-2">
                         <label class="stack">
-                            <span class="sub-label">Duration (ms)</span>
-                            <input type="number" id="col-tx-duration" class="s-input" min="0" max="5000" step="50">
+                            <span class="sub-label">Duration (ms, max 3000)</span>
+                            <input type="number" id="col-tx-duration" class="s-input" min="0" max="3000" step="50">
                         </label>
                         <label class="stack">
                             <span class="sub-label">Swap Point (ms)</span>
-                            <input type="number" id="col-tx-swap" class="s-input" min="0" max="5000" step="25">
+                            <input type="number" id="col-tx-swap" class="s-input" min="0" max="3000" step="25">
                         </label>
                     </div>
                     <label class="stack">
@@ -622,33 +658,37 @@
                     <label class="stack">
                         <span class="sub-label">Background Mode</span>
                         <select id="vp-bg-mode" class="s-select">
-                            <option value="theme">Collection Gradient (Cutouts Punch Alpha)</option>
+                            <option value="theme">Inherit Collection Default Theme</option>
+                            <option value="transparent">Transparent (OBS Alpha Overlay)</option>
                             <option value="solid">Solid Color (Cutouts Punch Alpha)</option>
-                            <option value="transparent">Full Transparent Overlay Canvas</option>
-                            <option value="asset">Uploaded Image / Video Backdrop</option>
+                            <option value="asset">Animated Video / Image Backdrop</option>
                         </select>
                     </label>
-                    <div class="grid-2">
-                        <label class="stack">
-                            <span class="sub-label">Solid Bg Color</span>
-                            <input type="color" id="vp-bg-color" class="s-input" style="padding: 0.15rem;">
-                        </label>
+                    <label class="stack" id="vp-bg-color-wrap" hidden>
+                        <span class="sub-label">Solid Bg Color</span>
+                        <input type="color" id="vp-bg-color" class="s-input" style="padding: 0.15rem;">
+                    </label>
+                    <div class="stack" id="vp-bg-asset-wrap" hidden>
                         <label class="stack">
                             <span class="sub-label">Bg Media Asset</span>
                             <select id="vp-bg-asset" class="s-select">
                                 <option value="">None</option>
                             </select>
                         </label>
+                        <label class="stack">
+                            <span class="sub-label">Upload View BG Video (.mp4/.webm) or Image</span>
+                            <input type="file" id="vp-bg-upload-input" class="s-input" accept="video/mp4,video/webm,image/*">
+                        </label>
                     </div>
 
                     <div class="grid-2">
                         <label class="stack">
                             <span class="sub-label">View Accent Override</span>
-                            <input type="text" id="vp-theme-accent" class="s-input" placeholder="Inherit (#CDAD69)">
+                            <input type="text" id="vp-theme-accent" class="s-input" placeholder="Inherit Collection">
                         </label>
                         <label class="stack">
                             <span class="sub-label">View Surface Override</span>
-                            <input type="text" id="vp-theme-surface" class="s-input" placeholder="Inherit (#0B0A08)">
+                            <input type="text" id="vp-theme-surface" class="s-input" placeholder="Inherit Collection">
                         </label>
                     </div>
 
@@ -663,8 +703,8 @@
                             </select>
                         </label>
                         <label class="stack">
-                            <span class="sub-label">Transition ms</span>
-                            <input type="number" id="vp-tx-dur" class="s-input" placeholder="450">
+                            <span class="sub-label">Transition ms (max 3000)</span>
+                            <input type="number" id="vp-tx-dur" class="s-input" min="0" max="3000" step="50" placeholder="450">
                         </label>
                     </div>
 
@@ -713,6 +753,8 @@
                 let selectedLayerId = null;
                 let dragActive = false;
                 let isDirty = false;
+                let themeDirty = false;
+                let lastEffectiveBgLabel = '';
                 const endpoints = @json($builderEndpoints);
 
                 const setDirty = (dirty) => {
@@ -758,13 +800,77 @@
                     if (rect.width > 0) {
                         logical.style.transform = `scale(${rect.width / w})`;
                     }
-                    document.getElementById('canvas-meta-readout').textContent = `Canvas: ${w} × ${h} px`;
+                    document.getElementById('canvas-meta-readout').textContent = lastEffectiveBgLabel
+                        ? `Canvas: ${w} × ${h} px · ${lastEffectiveBgLabel}`
+                        : `Canvas: ${w} × ${h} px`;
                 };
 
                 if (window.ResizeObserver) {
                     new ResizeObserver(updateCanvasScale).observe(document.getElementById('canvas-stage-wrap'));
                 }
                 window.addEventListener('resize', updateCanvasScale);
+
+                const resolveEffectiveBackground = (view, theme) => {
+                    const viewMode = view?.background_mode || 'theme';
+                    if (viewMode === 'transparent') {
+                        return { mode: 'transparent', label: 'Transparent (OBS Alpha)' };
+                    }
+                    if (viewMode === 'solid') {
+                        return { mode: 'solid', color: view.background_color || theme.surface_color || '#0B0A08', label: 'Solid Color' };
+                    }
+                    if (viewMode === 'asset' && view.background_asset_url) {
+                        const isVid = view.background_asset_type === 'video'
+                            || view.background_asset_type === 'stinger'
+                            || /\.(webm|mp4)(\?.*)?$/i.test(view.background_asset_url);
+                        return { mode: 'asset', url: view.background_asset_url, isVideo: isVid, label: isVid ? 'Animated Video BG' : 'Image Backdrop' };
+                    }
+                    const themeMode = theme?.background_mode || 'gradient';
+                    if (themeMode === 'transparent') {
+                        return { mode: 'transparent', label: 'Transparent (Collection Default)' };
+                    }
+                    if (themeMode === 'solid') {
+                        return { mode: 'solid', color: theme.background_color || theme.surface_color || '#0B0A08', label: 'Solid Color (Collection Default)' };
+                    }
+                    if (themeMode === 'asset' && theme.background_asset_url) {
+                        const isVid = theme.background_asset_type === 'video'
+                            || theme.background_asset_type === 'stinger'
+                            || /\.(webm|mp4)(\?.*)?$/i.test(theme.background_asset_url);
+                        return { mode: 'asset', url: theme.background_asset_url, isVideo: isVid, label: isVid ? 'Animated Video BG (Default)' : 'Image BG (Default)' };
+                    }
+                    return { mode: 'gradient', label: 'Theme Gradient' };
+                };
+
+                const getMergedViewTheme = (view) => {
+                    const cleanOverride = Object.fromEntries(
+                        Object.entries(view?.theme_override || {}).filter(([, val]) => val !== null && val !== '')
+                    );
+                    return { ...(colData.theme || {}), ...cleanOverride };
+                };
+
+                const syncBackgroundFieldVisibility = () => {
+                    const colBgMode = document.getElementById('col-bg-mode')?.value || 'gradient';
+                    const colColorWrap = document.getElementById('col-bg-color-wrap');
+                    const colAssetWrap = document.getElementById('col-bg-asset-wrap');
+                    if (colColorWrap) colColorWrap.hidden = colBgMode !== 'solid';
+                    if (colAssetWrap) colAssetWrap.hidden = colBgMode !== 'asset';
+
+                    const vpBgMode = document.getElementById('vp-bg-mode')?.value || 'theme';
+                    const vpColorWrap = document.getElementById('vp-bg-color-wrap');
+                    const vpAssetWrap = document.getElementById('vp-bg-asset-wrap');
+                    if (vpColorWrap) vpColorWrap.hidden = vpBgMode !== 'solid';
+                    if (vpAssetWrap) vpAssetWrap.hidden = vpBgMode !== 'asset';
+
+                    const view = getCurrentView();
+                    const overrideHint = document.getElementById('col-bg-override-hint');
+                    const overrideText = document.getElementById('col-bg-override-text');
+                    if (overrideHint && overrideText && view) {
+                        const isOverridden = (view.background_mode || 'theme') !== 'theme';
+                        overrideHint.hidden = !isOverridden;
+                        if (isOverridden) {
+                            overrideText.textContent = `Current view "${view.name}" uses its own "${view.background_mode}" background instead of Collection Default.`;
+                        }
+                    }
+                };
 
                 const renderCanvas = () => {
                     if (dragActive) return;
@@ -775,20 +881,43 @@
                     document.getElementById('editing-view-title').textContent = view.name || 'View';
                     logical.innerHTML = '';
 
-                    const theme = { ...(colData.theme || {}), ...(view.theme_override || {}) };
+                    const theme = getMergedViewTheme(view);
                     const accent = theme.accent_color || '#CDAD69';
                     const surface = theme.surface_color || '#0B0A08';
+                    const textColor = theme.text_color || '#FAF7EE';
+                    const mutedColor = theme.muted_color || '#ABA291';
+                    const secondary = theme.secondary_color && theme.secondary_color !== '#F4E185'
+                        ? theme.secondary_color
+                        : (accent === '#CDAD69' ? '#F4E185' : accent);
+                    const effectiveBg = resolveEffectiveBackground(view, theme);
+
+                    logical.style.color = textColor;
 
                     const bg = document.createElement('div');
                     bg.className = 'canvas-backdrop';
-                    if (view.background_mode === 'transparent') {
+                    if (effectiveBg.mode === 'transparent') {
                         bg.style.background = 'transparent';
-                    } else if (view.background_mode === 'solid') {
-                        bg.style.background = view.background_color || surface;
-                    } else if (view.background_mode === 'asset' && view.background_asset_url) {
-                        bg.style.background = `url(${view.background_asset_url}) center / cover no-repeat, #080807`;
+                    } else if (effectiveBg.mode === 'solid') {
+                        bg.style.background = effectiveBg.color;
+                    } else if (effectiveBg.mode === 'asset' && effectiveBg.url) {
+                        if (effectiveBg.isVideo) {
+                            const bgVid = document.createElement('video');
+                            bgVid.src = effectiveBg.url;
+                            bgVid.autoplay = true;
+                            bgVid.loop = true;
+                            bgVid.muted = true;
+                            bgVid.playsInline = true;
+                            bgVid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;';
+                            bg.appendChild(bgVid);
+                        } else {
+                            const bgImg = document.createElement('img');
+                            bgImg.src = effectiveBg.url;
+                            bgImg.alt = '';
+                            bgImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;';
+                            bg.appendChild(bgImg);
+                        }
                     } else {
-                        bg.style.background = `radial-gradient(circle at 18% 20%, ${accent}33, transparent 48%), linear-gradient(155deg, ${surface} 0%, #050507 100%)`;
+                        bg.style.background = `radial-gradient(circle at 16% 18%, color-mix(in oklab, ${accent} 32%, transparent), transparent 46%), radial-gradient(circle at 84% 22%, color-mix(in oklab, ${secondary} 20%, transparent), transparent 46%), radial-gradient(circle at 48% 88%, color-mix(in oklab, ${accent} 16%, transparent), transparent 48%), linear-gradient(155deg, color-mix(in oklab, ${surface} 96%, #000) 0%, #050507 100%)`;
                     }
                     logical.appendChild(bg);
 
@@ -814,6 +943,7 @@
                         }
 
                         const p = layer.props || {};
+                        const glassBorder = `color-mix(in oklab, ${accent} 42%, transparent)`;
                         if (layer.type === 'camera_cutout') {
                             box.style.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.09) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.09) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.09) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.09) 75%)';
                             box.style.backgroundSize = '32px 32px';
@@ -824,11 +954,14 @@
                             hint.textContent = p.label || 'OBS Camera / Capture Shows Here';
                             box.appendChild(hint);
                         } else if (layer.type === 'asset' && p.url) {
-                            if (p.media_kind === 'video' || /\.webm$|\.mp4$/i.test(p.url)) {
+                            if (p.media_kind === 'video' || /\.(webm|mp4)(\?.*)?$/i.test(p.url)) {
                                 const vid = document.createElement('video');
                                 vid.src = p.url;
+                                vid.autoplay = true;
+                                vid.loop = true;
                                 vid.muted = true;
-                                vid.style.cssText = 'width:100%;height:100%;object-fit:contain;pointer-events:none;';
+                                vid.playsInline = true;
+                                vid.style.cssText = `width:100%;height:100%;object-fit:${p.fit || 'contain'};pointer-events:none;`;
                                 box.appendChild(vid);
                             } else {
                                 const img = document.createElement('img');
@@ -840,28 +973,34 @@
                         } else if (layer.type === 'text') {
                             const preview = document.createElement('div');
                             preview.textContent = p.text || 'Text';
-                            preview.style.cssText = `width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:${Number(p.font_size || 48)}px;font-weight:700;color:${p.text_color || '#FAF7EE'};pointer-events:none;`;
+                            preview.style.cssText = `width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:${Number(p.font_size || 48)}px;font-weight:700;color:${p.text_color || textColor};pointer-events:none;`;
+                            if (p.bg_color) preview.style.background = p.bg_color;
                             box.appendChild(preview);
                         } else if (layer.type === 'timer') {
-                            box.style.background = `${surface}D9`;
-                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;place-content:center;text-align:center;pointer-events:none;"><div style="font-size:20px;letter-spacing:0.12em;color:#ABA291;">${p.label || 'LIVE IN'}</div><div style="font-family:JetBrains Mono,monospace;font-size:${Number(p.font_size || 72)}px;font-weight:700;color:${accent};">05:00</div></div>`;
+                            box.style.background = `color-mix(in oklab, ${surface} 85%, transparent)`;
+                            if (String(layer.id) !== String(selectedLayerId)) box.style.borderColor = glassBorder;
+                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;place-content:center;text-align:center;pointer-events:none;"><div style="font-size:20px;letter-spacing:0.12em;color:${mutedColor};">${p.label || 'LIVE IN'}</div><div style="font-family:JetBrains Mono,monospace;font-size:${Number(p.font_size || 72)}px;font-weight:700;color:${p.text_color || accent};">05:00</div></div>`;
                         } else if (layer.type === 'scoreboard') {
                             const sb = colData.runtime_state?.scoreboard || {};
-                            box.style.background = `${surface}E2`;
-                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 28px;font-size:26px;font-weight:700;pointer-events:none;"><span>${sb.team_a_name || 'Team Alpha'} <strong style="color:${accent};margin-left:12px;">${sb.team_a_score ?? 0}</strong></span><span style="font-size:18px;color:#ABA291;padding:0 20px;">${sb.round_label || 'VS'}</span><span style="text-align:right;"><strong style="color:${accent};margin-right:12px;">${sb.team_b_score ?? 0}</strong> ${sb.team_b_name || 'Team Omega'}</span></div>`;
+                            box.style.background = `color-mix(in oklab, ${surface} 88%, transparent)`;
+                            if (String(layer.id) !== String(selectedLayerId)) box.style.borderColor = glassBorder;
+                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 28px;font-size:26px;font-weight:700;color:${textColor};pointer-events:none;"><span>${sb.team_a_name || 'Team Alpha'} <strong style="color:${accent};margin-left:12px;">${sb.team_a_score ?? 0}</strong></span><span style="font-size:18px;color:${mutedColor};padding:0 20px;">${sb.round_label || 'VS'}</span><span style="text-align:right;"><strong style="color:${accent};margin-right:12px;">${sb.team_b_score ?? 0}</strong> ${sb.team_b_name || 'Team Omega'}</span></div>`;
                         } else if (layer.type === 'lower_third') {
                             const l3 = colData.runtime_state?.lower_third || {};
-                            box.style.background = `${surface}E2`;
+                            box.style.background = `color-mix(in oklab, ${surface} 88%, transparent)`;
+                            if (String(layer.id) !== String(selectedLayerId)) box.style.borderColor = glassBorder;
                             box.style.borderLeft = `6px solid ${accent}`;
-                            box.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 28px;pointer-events:none;"><div style="font-size:32px;font-weight:700;">${l3.title || 'Broadcast Host'}</div><div style="font-size:20px;color:${accent};">${l3.subtitle || 'Live From Studio'}</div></div>`;
+                            box.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 28px;color:${textColor};pointer-events:none;"><div style="font-size:32px;font-weight:700;">${l3.title || 'Broadcast Host'}</div><div style="font-size:20px;color:${accent};">${l3.subtitle || 'Live From Studio'}</div></div>`;
                         } else if (layer.type === 'ticker') {
-                            box.style.background = `${surface}E2`;
-                            box.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;gap:20px;padding:0 24px;font-size:22px;pointer-events:none;overflow:hidden;"><span style="color:${accent};font-weight:700;">LIVE</span><span style="color:#C8C0AF;white-space:nowrap;">Scrolling news and tournament updates appear here...</span></div>`;
+                            box.style.background = `color-mix(in oklab, ${surface} 88%, transparent)`;
+                            if (String(layer.id) !== String(selectedLayerId)) box.style.borderColor = glassBorder;
+                            box.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;gap:20px;padding:0 24px;font-size:22px;color:${textColor};pointer-events:none;overflow:hidden;"><span style="color:${accent};font-weight:700;">LIVE</span><span style="color:${textColor};opacity:0.86;white-space:nowrap;">Scrolling news and tournament updates appear here...</span></div>`;
                         } else if (layer.type === 'embed') {
-                            box.style.background = 'rgba(20, 20, 18, 0.86)';
-                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;place-items:center;font-size:24px;color:#C8C0AF;pointer-events:none;">Web Embed: ${p.url || 'Paste URL in Inspector'}</div>`;
+                            box.style.background = `color-mix(in oklab, ${surface} 86%, transparent)`;
+                            box.innerHTML = `<div style="width:100%;height:100%;display:grid;place-items:center;font-size:24px;color:${mutedColor};pointer-events:none;">Web Embed: ${p.url || 'Paste URL in Inspector'}</div>`;
                         } else {
-                            box.style.background = `${surface}CC`;
+                            box.style.background = p.fill_color || `color-mix(in oklab, ${surface} 82%, transparent)`;
+                            if (String(layer.id) !== String(selectedLayerId)) box.style.borderColor = p.border_color || glassBorder;
                         }
 
                         const tag = document.createElement('div');
@@ -922,6 +1061,7 @@
                         logical.appendChild(box);
                     });
 
+                    lastEffectiveBgLabel = effectiveBg.label;
                     updateCanvasScale();
                 };
 
@@ -1005,6 +1145,7 @@
                     const list = document.getElementById('assets-list');
                     const stingerSel = document.getElementById('col-tx-stinger');
                     const bgAssetSel = document.getElementById('vp-bg-asset');
+                    const colBgAssetSel = document.getElementById('col-bg-asset');
                     const assets = colData.assets || [];
 
                     if (stingerSel) {
@@ -1018,14 +1159,31 @@
                         stingerSel.value = String(colData.default_transition?.stinger_asset_id || '');
                     }
 
+                    const visualAssets = assets.filter((a) => ['video', 'image', 'stinger'].includes(a.type));
+
+                    if (colBgAssetSel) {
+                        colBgAssetSel.innerHTML = '<option value="">Select uploaded video or image...</option>';
+                        visualAssets.forEach((a) => {
+                            const o = document.createElement('option');
+                            o.value = String(a.id);
+                            o.textContent = `${a.name} (${a.type})`;
+                            colBgAssetSel.appendChild(o);
+                        });
+                        colBgAssetSel.value = String(colData.theme?.background_asset_id || '');
+                    }
+
                     if (bgAssetSel) {
+                        const curView = getCurrentView();
                         bgAssetSel.innerHTML = '<option value="">None</option>';
-                        assets.filter((a) => ['image', 'video'].includes(a.type)).forEach((a) => {
+                        visualAssets.forEach((a) => {
                             const o = document.createElement('option');
                             o.value = String(a.id);
                             o.textContent = `${a.name} (${a.type})`;
                             bgAssetSel.appendChild(o);
                         });
+                        if (curView) {
+                            bgAssetSel.value = String(curView.background_asset_id || '');
+                        }
                     }
 
                     list.innerHTML = assets.length === 0 ? '<div class="empty-hint">Upload images, video loops, or .webm stingers above.</div>' : '';
@@ -1099,7 +1257,20 @@
                         rmBtn.addEventListener('click', async () => {
                             await apiJson(endpoints.deleteAssetTpl.replace('__ASSET__', a.id), 'DELETE', {});
                             colData.assets = (colData.assets || []).filter((x) => x.id !== a.id);
+                            if (Number(colData.theme?.background_asset_id) === Number(a.id)) {
+                                colData.theme.background_asset_id = null;
+                                colData.theme.background_asset_url = null;
+                                colData.theme.background_asset_type = null;
+                            }
+                            (colData.views || []).forEach((v) => {
+                                if (Number(v.background_asset_id) === Number(a.id)) {
+                                    v.background_asset_id = null;
+                                    v.background_asset_url = null;
+                                    v.background_asset_type = null;
+                                }
+                            });
                             renderAssetsList();
+                            renderCanvas();
                             showToast('Asset deleted');
                         });
 
@@ -1289,6 +1460,7 @@
                     document.getElementById('vp-tx-dur').value = view.transition_override?.duration_ms ?? '';
                     document.getElementById('vp-logic-action').value = view.logic_rules?.on_timer_end_action || 'none';
                     document.getElementById('vp-logic-target-view').value = String(view.logic_rules?.on_timer_end_target_view_id || '');
+                    syncBackgroundFieldVisibility();
                 };
 
                 const populateCollectionSettings = () => {
@@ -1298,10 +1470,14 @@
                     document.getElementById('col-surface-color').value = th.surface_color || '#0B0A08';
                     document.getElementById('col-text-color').value = th.text_color || '#FAF7EE';
                     document.getElementById('col-sweep-color').value = tx.sweep_color || th.accent_color || '#CDAD69';
+                    document.getElementById('col-bg-mode').value = th.background_mode || 'gradient';
+                    document.getElementById('col-bg-color').value = th.background_color || th.surface_color || '#0B0A08';
+                    document.getElementById('col-bg-asset').value = String(th.background_asset_id || '');
                     document.getElementById('col-default-tx').value = tx.type || 'fade';
-                    document.getElementById('col-tx-duration').value = String(tx.duration_ms ?? 450);
-                    document.getElementById('col-tx-swap').value = String(tx.swap_point_ms ?? 225);
+                    document.getElementById('col-tx-duration').value = String(Math.min(3000, Number(tx.duration_ms ?? 450)));
+                    document.getElementById('col-tx-swap').value = String(Math.min(3000, Number(tx.swap_point_ms ?? 225)));
                     document.getElementById('col-tx-stinger').value = String(tx.stinger_asset_id || '');
+                    syncBackgroundFieldVisibility();
                 };
 
                 const renderAll = () => {
@@ -1314,21 +1490,65 @@
                     renderCanvas();
                 };
 
+                const saveCollectionSettings = async (silent = false) => {
+                    const accent = document.getElementById('col-accent-color').value;
+                    const txType = document.getElementById('col-default-tx').value;
+                    const txDur = txType === 'cut'
+                        ? 0
+                        : Math.min(3000, Math.max(80, Math.round(Number(document.getElementById('col-tx-duration').value || 450))));
+                    const txSwap = Math.min(txDur, Math.max(0, Math.round(Number(document.getElementById('col-tx-swap').value || Math.round(txDur / 2)))));
+                    const bgAssetIdVal = document.getElementById('col-bg-asset').value;
+
+                    const res = await apiJson(endpoints.updateCollection, 'PUT', {
+                        theme: {
+                            accent_color: accent,
+                            secondary_color: accent === '#CDAD69' ? '#F4E185' : accent,
+                            surface_color: document.getElementById('col-surface-color').value,
+                            text_color: document.getElementById('col-text-color').value,
+                            background_mode: document.getElementById('col-bg-mode').value || 'gradient',
+                            background_color: document.getElementById('col-bg-color').value || '#0B0A08',
+                            background_asset_id: bgAssetIdVal ? Number(bgAssetIdVal) : null,
+                        },
+                        default_transition: {
+                            type: txType,
+                            duration_ms: txDur,
+                            swap_point_ms: txSwap,
+                            stinger_asset_id: document.getElementById('col-tx-stinger').value ? Number(document.getElementById('col-tx-stinger').value) : null,
+                            sweep_color: document.getElementById('col-sweep-color').value,
+                        },
+                    });
+                    themeDirty = false;
+                    if (!silent) {
+                        colData = res.collection;
+                        setDirty(false);
+                        renderAll();
+                        showToast('Collection settings saved & synced live');
+                    }
+                    return res.collection;
+                };
+
                 const saveCurrentView = async () => {
                     const view = getCurrentView();
                     if (!view) return;
+                    if (themeDirty) {
+                        await saveCollectionSettings(true);
+                    }
+                    const accentOv = document.getElementById('vp-theme-accent').value.trim();
+                    const surfaceOv = document.getElementById('vp-theme-surface').value.trim();
+                    const themeOverride = {};
+                    if (accentOv) themeOverride.accent_color = accentOv;
+                    if (surfaceOv) themeOverride.surface_color = surfaceOv;
+                    const txTypeVal = document.getElementById('vp-tx-type').value;
+                    const txDurVal = txTypeVal === 'cut'
+                        ? 0
+                        : Math.min(3000, Math.max(80, Math.round(Number(document.getElementById('vp-tx-dur').value || 450))));
                     const res = await apiJson(endpoints.updateViewTpl.replace('__VIEW__', view.id), 'PUT', {
                         name: document.getElementById('vp-name').value.trim() || view.name,
                         background_mode: document.getElementById('vp-bg-mode').value,
                         background_color: document.getElementById('vp-bg-color').value,
                         background_asset_id: document.getElementById('vp-bg-asset').value ? Number(document.getElementById('vp-bg-asset').value) : null,
-                        theme_override: {
-                            accent_color: document.getElementById('vp-theme-accent').value.trim() || null,
-                            surface_color: document.getElementById('vp-theme-surface').value.trim() || null,
-                        },
-                        transition_override: document.getElementById('vp-tx-type').value
-                            ? { type: document.getElementById('vp-tx-type').value, duration_ms: Number(document.getElementById('vp-tx-dur').value || 450) }
-                            : null,
+                        theme_override: Object.keys(themeOverride).length > 0 ? themeOverride : null,
+                        transition_override: txTypeVal ? { type: txTypeVal, duration_ms: txDurVal } : null,
                         layers: view.layers || [],
                         logic_rules: {
                             on_timer_end_action: document.getElementById('vp-logic-action').value,
@@ -1469,47 +1689,153 @@
                     populateLayerInspector();
                 });
 
-                document.getElementById('asset-file-input').addEventListener('change', async (ev) => {
-                    const file = ev.target.files?.[0];
-                    if (!file) return;
+                const uploadMediaAsset = async (file, explicitType = null) => {
+                    if (!file) return null;
+                    const inferredType = explicitType || (
+                        /^video\/|\.(mp4|webm)$/i.test(file.type || file.name) ? 'video' : 'image'
+                    );
                     const fd = new FormData();
                     fd.append('file', file);
-                    fd.append('type', document.getElementById('asset-upload-type').value);
+                    fd.append('type', inferredType);
                     const res = await fetch(endpoints.uploadAsset, {
                         method: 'POST',
                         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
                         body: fd,
                     });
                     const data = await res.json();
-                    ev.target.value = '';
                     if (!res.ok) {
                         showToast(data.message || 'Upload failed');
-                        return;
+                        return null;
                     }
-                    colData = data.collection;
+                    colData.assets = data.collection?.assets || colData.assets || [];
                     renderAssetsList();
-                    showToast(`Uploaded: ${data.asset.name}`);
+                    return data.asset || null;
+                };
+
+                const applyLiveThemeFromInputs = () => {
+                    colData.theme = colData.theme || {};
+                    colData.default_transition = colData.default_transition || {};
+
+                    const accent = document.getElementById('col-accent-color').value || '#CDAD69';
+                    const surface = document.getElementById('col-surface-color').value || '#0B0A08';
+                    const textColor = document.getElementById('col-text-color').value || '#FAF7EE';
+                    const bgMode = document.getElementById('col-bg-mode').value || 'gradient';
+                    const bgColor = document.getElementById('col-bg-color').value || surface;
+                    const bgAssetIdRaw = document.getElementById('col-bg-asset').value;
+                    const bgAsset = bgAssetIdRaw
+                        ? (colData.assets || []).find((a) => String(a.id) === String(bgAssetIdRaw)) || null
+                        : null;
+
+                    colData.theme.accent_color = accent;
+                    colData.theme.secondary_color = accent === '#CDAD69' ? '#F4E185' : accent;
+                    colData.theme.surface_color = surface;
+                    colData.theme.text_color = textColor;
+                    colData.theme.background_mode = bgMode;
+                    colData.theme.background_color = bgColor;
+                    colData.theme.background_asset_id = bgAsset ? bgAsset.id : null;
+                    colData.theme.background_asset_url = bgAsset ? bgAsset.url : null;
+                    colData.theme.background_asset_type = bgAsset ? bgAsset.type : null;
+                    colData.default_transition.sweep_color = document.getElementById('col-sweep-color').value || accent;
+
+                    syncBackgroundFieldVisibility();
+                    themeDirty = true;
+                    setDirty(true);
+                    renderCanvas();
+                };
+
+                const applyLiveViewSettingsFromInputs = () => {
+                    const view = getCurrentView();
+                    if (!view) return;
+                    const bgMode = document.getElementById('vp-bg-mode').value || 'theme';
+                    const bgColor = document.getElementById('vp-bg-color').value || '#0B0A08';
+                    const bgAssetIdRaw = document.getElementById('vp-bg-asset').value;
+                    const bgAsset = bgAssetIdRaw
+                        ? (colData.assets || []).find((a) => String(a.id) === String(bgAssetIdRaw)) || null
+                        : null;
+                    const accentOv = document.getElementById('vp-theme-accent').value.trim();
+                    const surfaceOv = document.getElementById('vp-theme-surface').value.trim();
+                    const nextOverride = {};
+                    if (accentOv) nextOverride.accent_color = accentOv;
+                    if (surfaceOv) nextOverride.surface_color = surfaceOv;
+
+                    view.name = document.getElementById('vp-name').value || view.name;
+                    view.background_mode = bgMode;
+                    view.background_color = bgColor;
+                    view.background_asset_id = bgAsset ? bgAsset.id : null;
+                    view.background_asset_url = bgAsset ? bgAsset.url : null;
+                    view.background_asset_type = bgAsset ? bgAsset.type : null;
+                    view.theme_override = Object.keys(nextOverride).length > 0 ? nextOverride : null;
+
+                    syncBackgroundFieldVisibility();
+                    setDirty(true);
+                    renderCanvas();
+                };
+
+                ['col-accent-color', 'col-surface-color', 'col-text-color', 'col-sweep-color', 'col-bg-mode', 'col-bg-color', 'col-bg-asset'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.addEventListener('input', applyLiveThemeFromInputs);
+                    el.addEventListener('change', applyLiveThemeFromInputs);
                 });
 
-                document.getElementById('btn-save-collection-settings').addEventListener('click', async () => {
-                    const res = await apiJson(endpoints.updateCollection, 'PUT', {
-                        theme: {
-                            accent_color: document.getElementById('col-accent-color').value,
-                            surface_color: document.getElementById('col-surface-color').value,
-                            text_color: document.getElementById('col-text-color').value,
-                        },
-                        default_transition: {
-                            type: document.getElementById('col-default-tx').value,
-                            duration_ms: Number(document.getElementById('col-tx-duration').value || 450),
-                            swap_point_ms: Number(document.getElementById('col-tx-swap').value || 225),
-                            stinger_asset_id: document.getElementById('col-tx-stinger').value ? Number(document.getElementById('col-tx-stinger').value) : null,
-                            sweep_color: document.getElementById('col-sweep-color').value,
-                        },
+                ['col-default-tx', 'col-tx-duration', 'col-tx-swap', 'col-tx-stinger'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.addEventListener('change', () => {
+                        themeDirty = true;
+                        setDirty(true);
                     });
-                    colData = res.collection;
-                    renderAll();
-                    showToast('Collection settings updated live');
                 });
+
+                ['vp-name', 'vp-bg-mode', 'vp-bg-color', 'vp-bg-asset', 'vp-theme-accent', 'vp-theme-surface'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.addEventListener('input', applyLiveViewSettingsFromInputs);
+                    el.addEventListener('change', applyLiveViewSettingsFromInputs);
+                });
+
+                document.getElementById('btn-view-inherit-bg')?.addEventListener('click', () => {
+                    const vpMode = document.getElementById('vp-bg-mode');
+                    if (vpMode) vpMode.value = 'theme';
+                    applyLiveViewSettingsFromInputs();
+                    showToast('View now uses Collection Default Background (remember to save view)');
+                });
+
+                document.getElementById('asset-file-input').addEventListener('change', async (ev) => {
+                    const file = ev.target.files?.[0];
+                    if (!file) return;
+                    const asset = await uploadMediaAsset(file, document.getElementById('asset-upload-type').value);
+                    ev.target.value = '';
+                    if (asset) showToast(`Uploaded: ${asset.name}`);
+                });
+
+                document.getElementById('col-bg-upload-input')?.addEventListener('change', async (ev) => {
+                    const file = ev.target.files?.[0];
+                    if (!file) return;
+                    showToast('Uploading default background...');
+                    const asset = await uploadMediaAsset(file);
+                    ev.target.value = '';
+                    if (!asset) return;
+                    document.getElementById('col-bg-mode').value = 'asset';
+                    document.getElementById('col-bg-asset').value = String(asset.id);
+                    applyLiveThemeFromInputs();
+                    showToast(`Default BG uploaded: ${asset.name} — click Save Collection Settings to push live`);
+                });
+
+                document.getElementById('vp-bg-upload-input')?.addEventListener('change', async (ev) => {
+                    const file = ev.target.files?.[0];
+                    if (!file) return;
+                    showToast('Uploading view background...');
+                    const asset = await uploadMediaAsset(file);
+                    ev.target.value = '';
+                    if (!asset) return;
+                    document.getElementById('vp-bg-mode').value = 'asset';
+                    document.getElementById('vp-bg-asset').value = String(asset.id);
+                    applyLiveViewSettingsFromInputs();
+                    showToast(`View BG uploaded: ${asset.name} — click Save View to push live`);
+                });
+
+                document.getElementById('btn-save-collection-settings').addEventListener('click', () => saveCollectionSettings(false));
 
                 document.getElementById('builder-save-view-btn').addEventListener('click', saveCurrentView);
                 document.getElementById('lp-save-btn').addEventListener('click', saveCurrentView);

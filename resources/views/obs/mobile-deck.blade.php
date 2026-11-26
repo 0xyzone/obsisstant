@@ -1827,11 +1827,17 @@
 
                 const buildMiniViewThumb = (col, view, isActive) => {
                     const thumb = document.createElement('div');
-                    thumb.className = `tile-thumb${view?.background_mode === 'transparent' ? ' is-transparent' : ''}`;
+                    const isTransparent = view?.background_mode === 'transparent'
+                        || (view?.background_mode === 'theme' && col.theme?.background_mode === 'transparent');
+                    thumb.className = `tile-thumb${isTransparent ? ' is-transparent' : ''}`;
                     if (view?.background_mode === 'solid' && view.background_color) {
                         thumb.style.background = view.background_color;
-                    } else if (view?.background_mode === 'theme' && col.theme?.background_color) {
-                        thumb.style.background = col.theme.background_color;
+                    } else if (view?.background_mode === 'theme' && !isTransparent) {
+                        if (col.theme?.background_mode === 'solid' && col.theme?.background_color) {
+                            thumb.style.background = col.theme.background_color;
+                        } else {
+                            thumb.style.background = `radial-gradient(circle at 20% 20%, ${col.theme?.accent_color || '#CDAD69'}33, transparent 55%), ${col.theme?.surface_color || '#0B0A08'}`;
+                        }
                     }
 
                     const stageW = Math.max(320, Number(col.width || 1920));

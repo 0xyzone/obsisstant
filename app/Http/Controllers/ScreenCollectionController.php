@@ -182,7 +182,14 @@ class ScreenCollectionController extends Controller
             'obs_scene_name' => ['sometimes', 'required', 'string', 'max:180'],
             'obs_source_name' => ['sometimes', 'required', 'string', 'max:180'],
             'theme' => ['sometimes', 'array'],
+            'theme.*' => ['nullable'],
+            'theme.background_mode' => ['nullable', 'string', 'in:gradient,solid,transparent,asset'],
+            'theme.background_color' => ['nullable', 'string', 'max:40'],
+            'theme.background_asset_id' => ['nullable', 'integer'],
             'default_transition' => ['sometimes', 'array'],
+            'default_transition.*' => ['nullable'],
+            'default_transition.duration_ms' => ['nullable', 'integer', 'min:0', 'max:3000'],
+            'default_transition.swap_point_ms' => ['nullable', 'integer', 'min:0', 'max:3000'],
         ]);
 
         $updates = [];
@@ -192,10 +199,26 @@ class ScreenCollectionController extends Controller
             }
         }
         if (array_key_exists('theme', $validated)) {
-            $updates['theme'] = array_merge($collection->getMergedTheme(), $validated['theme']);
+            $themeInput = $validated['theme'];
+            unset($themeInput['background_asset_url'], $themeInput['background_asset_type']);
+            if (! empty($themeInput['background_asset_id'])) {
+                ScreenAsset::query()->ownedBy($user)->findOrFail((int) $themeInput['background_asset_id']);
+                $themeInput['background_asset_id'] = (int) $themeInput['background_asset_id'];
+            } elseif (array_key_exists('background_asset_id', $themeInput)) {
+                $themeInput['background_asset_id'] = null;
+            }
+            $updates['theme'] = array_merge($collection->getMergedTheme(), $themeInput);
         }
         if (array_key_exists('default_transition', $validated)) {
-            $updates['default_transition'] = array_merge($collection->getMergedTransition(), $validated['default_transition']);
+            $txInput = $validated['default_transition'];
+            unset($txInput['stinger_url']);
+            if (! empty($txInput['stinger_asset_id'])) {
+                ScreenAsset::query()->ownedBy($user)->findOrFail((int) $txInput['stinger_asset_id']);
+                $txInput['stinger_asset_id'] = (int) $txInput['stinger_asset_id'];
+            } elseif (array_key_exists('stinger_asset_id', $txInput)) {
+                $txInput['stinger_asset_id'] = null;
+            }
+            $updates['default_transition'] = array_merge($collection->getMergedTransition(), $txInput);
         }
 
         $collection->forceFill($updates)->save();
@@ -434,6 +457,25 @@ class ScreenCollectionController extends Controller
 
         if (! empty($validated['background_asset_id'])) {
             ScreenAsset::query()->ownedBy($user)->findOrFail((int) $validated['background_asset_id']);
+        }
+
+        if (array_key_exists('theme_override', $validated)) {
+            if (is_array($validated['theme_override'])) {
+                $cleanedOverride = array_filter(
+                    $validated['theme_override'],
+                    static fn (mixed $v): bool => $v !== null && $v !== '',
+                );
+                $validated['theme_override'] = $cleanedOverride !== [] ? $cleanedOverride : null;
+            } else {
+                $validated['theme_override'] = null;
+            }
+        }
+
+        if (is_array($validated['transition_override'] ?? null) && isset($validated['transition_override']['duration_ms'])) {
+            $txType = (string) ($validated['transition_override']['type'] ?? 'fade');
+            $validated['transition_override']['duration_ms'] = $txType === 'cut'
+                ? 0
+                : max(80, min(3000, (int) $validated['transition_override']['duration_ms']));
         }
 
         $view->forceFill($validated)->save();

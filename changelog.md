@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.13.6] - 2026-11-26 | type: macro
+
+> Fixed real-time Canvas Editor theme reflection and added Transparent and Animated Video/Image options for the Collection Default Background with 1:1 Stage Player sync.
+
+### Added
+- Added Collection Default Background controls in Canvas Builder (Theme Gradient, Solid Color, Transparent OBS Alpha, and Animated Video/Image Asset) with direct MP4/WebM/image upload pickers in both Theme and View tabs
+
+### Fixed
+- Fixed blank view theme_override fields persisting nulls that clobbered Collection Theme colors back to gold, wired real-time input/change listeners across all Theme and View controls, rendered live looping video backdrops and theme text/surface/accent colors inside Canvas Editor, and synced live Reverb theme updates directly to Stage Player
+
 ## [v1.13.5] - 2026-11-26 | type: macro
 
 > Fixed continuous OBS reconnect loops and cross-PC collisions when running 2 or more OBS clients/studios simultaneously.

@@ -589,4 +589,123 @@ class ScreenCollectionStageTest extends TestCase
         $created = ScreenCollection::query()->where('name', 'Summer League')->firstOrFail();
         $this->assertCount(5, $created->views);
     }
+
+    public function test_collection_theme_supports_transparent_and_animated_video_default_bg_without_view_override_clobber(): void
+    {
+        Storage::fake('public');
+        Event::fake([ScreenCollectionUpdated::class]);
+
+        $user = User::factory()->create();
+        $stranger = User::factory()->create();
+        $studio = ObsStudio::factory()->for($user)->create();
+        $collection = ScreenCollection::factory()->for($user)->create(['obs_studio_id' => $studio->id]);
+        $view = ScreenView::factory()->create([
+            'screen_collection_id' => $collection->id,
+            'name' => 'Start',
+            'background_mode' => 'theme',
+        ]);
+        $collection->update(['active_view_id' => $view->id]);
+
+        // Saving a view with blank theme_override fields persists null instead of { accent_color: null }
+        $this->actingAs($user)
+            ->putJson(route('studio.collections.views.update', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+                'view' => $view->id,
+            ]), [
+                'name' => 'Start',
+                'background_mode' => 'theme',
+                'theme_override' => [
+                    'accent_color' => null,
+                    'surface_color' => '',
+                ],
+                'layers' => [],
+            ])
+            ->assertOk();
+
+        $this->assertNull($view->fresh()->theme_override);
+
+        // Setting Collection Default Theme to Transparent + Custom Accent / Text color
+        $transparentRes = $this->actingAs($user)
+            ->putJson(route('studio.collections.update', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+            ]), [
+                'theme' => [
+                    'accent_color' => '#E05297',
+                    'secondary_color' => '#E05297',
+                    'surface_color' => '#141118',
+                    'text_color' => '#FFF5FA',
+                    'background_mode' => 'transparent',
+                    'background_asset_id' => null,
+                ],
+            ])
+            ->assertOk();
+
+        $transparentRes->assertJsonPath('collection.theme.accent_color', '#E05297');
+        $transparentRes->assertJsonPath('collection.theme.text_color', '#FFF5FA');
+        $transparentRes->assertJsonPath('collection.theme.background_mode', 'transparent');
+        $transparentRes->assertJsonPath('collection.theme.background_asset_url', null);
+
+        // Uploading an animated MP4 background video and assigning it as the Collection Default Background
+        $videoUpload = $this->actingAs($user)
+            ->post(route('studio.collections.assets.store', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+            ]), [
+                'file' => UploadedFile::fake()->create('neon-loop.mp4', 256, 'video/mp4'),
+                'type' => 'video',
+            ], ['Accept' => 'application/json'])
+            ->assertCreated();
+
+        $videoAssetId = (int) $videoUpload->json('asset.id');
+        $this->assertSame('video', $videoUpload->json('asset.type'));
+
+        $videoBgRes = $this->actingAs($user)
+            ->putJson(route('studio.collections.update', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+            ]), [
+                'theme' => [
+                    'background_mode' => 'asset',
+                    'background_asset_id' => $videoAssetId,
+                ],
+            ])
+            ->assertOk();
+
+        $videoBgRes->assertJsonPath('collection.theme.background_mode', 'asset');
+        $videoBgRes->assertJsonPath('collection.theme.background_asset_id', $videoAssetId);
+        $videoBgRes->assertJsonPath('collection.theme.background_asset_type', 'video');
+        $this->assertNotEmpty($videoBgRes->json('collection.theme.background_asset_url'));
+
+        // Stranger's asset cannot be attached as default background
+        $foreignAsset = ScreenAsset::factory()->create(['user_id' => $stranger->id, 'type' => 'video']);
+        $this->actingAs($user)
+            ->putJson(route('studio.collections.update', [
+                'studio' => $studio->slug,
+                'collection' => $collection->id,
+            ]), [
+                'theme' => [
+                    'background_mode' => 'asset',
+                    'background_asset_id' => $foreignAsset->id,
+                ],
+            ])
+            ->assertNotFound();
+
+        // Canvas Builder and Stage Player render the new live theme + default BG controls and helpers
+        $this->actingAs($user)
+            ->get(route('studio.collections.builder', ['studio' => $studio->slug, 'collection' => $collection->id]))
+            ->assertOk()
+            ->assertSee('id="col-bg-mode"', false)
+            ->assertSee('id="col-bg-asset"', false)
+            ->assertSee('id="col-bg-upload-input"', false)
+            ->assertSee('id="vp-bg-upload-input"', false)
+            ->assertSee('applyLiveThemeFromInputs', false)
+            ->assertSee('resolveEffectiveBackground', false);
+
+        $this->get(route('obs.collection.show', ['token' => $collection->public_token]))
+            ->assertOk()
+            ->assertSee('resolveEffectiveBackground', false)
+            ->assertSee('applyRootThemeVars', false);
+    }
 }
