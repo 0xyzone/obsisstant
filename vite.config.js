@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
+import tailwindcss from '@tailwindcss/vite';
 
 const keyPath = '/Applications/MAMP/conf/apache/ssl/ob.key';
 const certPath = '/Applications/MAMP/conf/apache/ssl/ob.crt';
@@ -8,6 +9,7 @@ const hasMampSsl = fs.existsSync(keyPath) && fs.existsSync(certPath);
 
 export default defineConfig({
     plugins: [
+        tailwindcss(),
         laravel({
             input: ['resources/js/app.js', 'resources/css/app.css'],
             refresh: [

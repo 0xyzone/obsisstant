@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.17.2] - 2026-11-26 | type: macro
+
+> Registered the Tailwind CSS v4 Vite plugin (`@tailwindcss/vite`) in `vite.config.js` to eliminate Lightning CSS `Unknown at rule` warnings during production builds.
+
+### Fixed
+- Added `tailwindcss()` from `@tailwindcss/vite` to `plugins` in `vite.config.js` so `@import 'tailwindcss'`, `@source`, and `@theme` directives in `resources/css/app.css` are compiled before CSS minification.
+
 ## [v1.17.1] - 2026-11-26 | type: macro
 
 > Fixed layer rotation not being applied when loop/enter animations are active or when editing the currently live Screen View without switching views.
