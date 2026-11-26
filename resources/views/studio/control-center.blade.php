@@ -58,7 +58,10 @@
             html, body {
                 margin: 0;
                 min-block-size: 100dvb;
-                background-color: var(--bg-canvas);
+                background:
+                    radial-gradient(circle at 10% 0%, rgba(205, 173, 105, 0.13), transparent 42%),
+                    radial-gradient(circle at 90% 10%, rgba(244, 225, 133, 0.07), transparent 40%),
+                    var(--bg-canvas);
                 color: var(--ink-primary);
                 font-family: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
                 font-size: 0.875rem;
@@ -177,15 +180,17 @@
             }
 
             .s-btn-gold {
-                background-image: linear-gradient(180deg, #DFC27D 0%, #CDAD69 100%);
+                background-image: linear-gradient(180deg, #F6E496 0%, #D9B768 48%, #B89143 100%);
                 color: #070706;
                 font-weight: 600;
-                border-color: rgba(244, 225, 133, 0.45);
+                border-color: rgba(244, 225, 133, 0.65);
+                box-shadow: inset 0 1px 0 rgba(255, 252, 232, 0.65), 0 6px 18px -8px rgba(205, 173, 105, 0.5);
             }
 
             .s-btn-gold:hover {
-                background-image: linear-gradient(180deg, #E8CE8D 0%, #D6B773 100%);
+                background-image: linear-gradient(180deg, #FFF0AE 0%, #E7C97B 48%, #C9A04E 100%);
                 color: #070706;
+                box-shadow: inset 0 1px 0 rgba(255, 254, 240, 0.78), 0 8px 22px -8px rgba(244, 225, 133, 0.65);
             }
 
             .s-btn-danger {
@@ -251,16 +256,18 @@
             }
 
             .broadcast-strip {
-                background: linear-gradient(180deg, #141411 0%, #0F0F0D 100%);
-                border: 1px solid var(--hairline);
-                border-radius: 0.75rem;
+                background: rgba(18, 17, 14, 0.76);
+                -webkit-backdrop-filter: blur(18px) saturate(145%);
+                backdrop-filter: blur(18px) saturate(145%);
+                border: 1px solid rgba(205, 173, 105, 0.24);
+                border-radius: 0.85rem;
                 padding: 0.5rem 0.875rem;
                 display: flex;
                 flex-wrap: wrap;
                 align-items: center;
                 justify-content: space-between;
                 gap: 0.625rem 1rem;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.14), 0 14px 34px -22px rgba(0, 0, 0, 0.85);
             }
 
             .strip-group {
@@ -317,11 +324,14 @@
             }
 
             .dock-panel {
-                background-color: var(--bg-card);
-                border: 1px solid var(--hairline);
-                border-radius: 0.875rem;
+                background: rgba(18, 17, 14, 0.74);
+                -webkit-backdrop-filter: blur(18px) saturate(145%);
+                backdrop-filter: blur(18px) saturate(145%);
+                border: 1px solid rgba(205, 173, 105, 0.24);
+                border-radius: 0.95rem;
                 padding: 0.875rem;
                 display: grid;
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.14), 0 20px 44px -24px rgba(0, 0, 0, 0.88);
                 gap: 0.75rem;
                 align-content: start;
                 box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
@@ -411,11 +421,14 @@
 
             /* Center Broadcast Sources Manager & Editor */
             .sources-workspace-panel {
-                background-color: var(--bg-card);
-                border: 1px solid var(--hairline);
-                border-radius: 0.875rem;
+                background: rgba(18, 17, 14, 0.74);
+                -webkit-backdrop-filter: blur(18px) saturate(145%);
+                backdrop-filter: blur(18px) saturate(145%);
+                border: 1px solid rgba(205, 173, 105, 0.24);
+                border-radius: 0.95rem;
                 padding: 0.875rem;
                 display: grid;
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.14), 0 20px 44px -24px rgba(0, 0, 0, 0.88);
                 gap: 0.875rem;
                 min-inline-size: 0;
                 box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
@@ -1096,12 +1109,15 @@
             }
 
             .console-card {
-                background: var(--bg-chrome);
-                border: 1px solid var(--hairline);
-                border-radius: 0.875rem;
+                background: rgba(12, 11, 9, 0.72);
+                -webkit-backdrop-filter: blur(14px) saturate(135%);
+                backdrop-filter: blur(14px) saturate(135%);
+                border: 1px solid rgba(205, 173, 105, 0.22);
+                border-radius: 0.9rem;
                 padding: 0.875rem;
                 display: grid;
                 gap: 0.875rem;
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.1);
             }
 
             .console-tab-row {

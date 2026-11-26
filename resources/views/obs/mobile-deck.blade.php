@@ -78,11 +78,13 @@
             }
 
             .glass {
-                background: linear-gradient(180deg, rgba(22, 21, 18, 0.92) 0%, rgba(13, 13, 11, 0.96) 100%);
-                border: 1px solid var(--hairline);
+                background: linear-gradient(180deg, rgba(22, 20, 16, 0.78) 0%, rgba(12, 11, 9, 0.86) 100%);
+                -webkit-backdrop-filter: blur(18px) saturate(145%);
+                backdrop-filter: blur(18px) saturate(145%);
+                border: 1px solid rgba(205, 173, 105, 0.24);
                 border-radius: 1.1rem;
                 padding: 0.9rem 1rem;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 14px 36px -20px rgba(0, 0, 0, 0.85);
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.15), 0 18px 42px -22px rgba(0, 0, 0, 0.88);
             }
 
             .topbar {

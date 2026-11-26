@@ -32,9 +32,15 @@
             html, body {
                 margin: 0;
                 min-block-size: 100dvb;
-                background-color: var(--bg-canvas);
+                background:
+                    radial-gradient(circle at 12% 0%, rgba(205, 173, 105, 0.13), transparent 42%),
+                    radial-gradient(circle at 88% 12%, rgba(244, 225, 133, 0.07), transparent 40%),
+                    var(--bg-canvas);
                 color: var(--ink-primary);
-                font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+                font-family: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
+                font-size: 0.875rem;
+                line-height: 1.5;
+                -webkit-font-smoothing: antialiased;
             }
 
             .topbar {
@@ -47,8 +53,11 @@
                 justify-content: space-between;
                 gap: 0.75rem;
                 padding: 0.625rem 1rem;
-                background-color: var(--bg-chrome);
-                border-block-end: 1px solid var(--hairline);
+                background: rgba(14, 13, 11, 0.78);
+                -webkit-backdrop-filter: blur(20px) saturate(145%);
+                backdrop-filter: blur(20px) saturate(145%);
+                border-block-end: 1px solid rgba(205, 173, 105, 0.26);
+                box-shadow: inset 0 -1px 0 rgba(244, 225, 133, 0.08), 0 12px 32px -18px rgba(0, 0, 0, 0.85);
             }
 
             .bar-group {
@@ -106,12 +115,17 @@
                 color: var(--gold-light);
             }
             .s-btn-gold {
-                background: linear-gradient(180deg, #DFC27D 0%, #CDAD69 100%);
+                background: linear-gradient(180deg, #F6E496 0%, #D9B768 48%, #B89143 100%);
                 color: #070706;
                 font-weight: 600;
-                border-color: rgba(244, 225, 133, 0.45);
+                border-color: rgba(244, 225, 133, 0.65);
+                box-shadow: inset 0 1px 0 rgba(255, 252, 232, 0.65), 0 6px 18px -8px rgba(205, 173, 105, 0.5);
             }
-            .s-btn-gold:hover { background: linear-gradient(180deg, #E8CE8D 0%, #D6B773 100%); color: #070706; }
+            .s-btn-gold:hover {
+                background: linear-gradient(180deg, #FFF0AE 0%, #E7C97B 48%, #C9A04E 100%);
+                color: #070706;
+                box-shadow: inset 0 1px 0 rgba(255, 254, 240, 0.78), 0 8px 22px -8px rgba(244, 225, 133, 0.65);
+            }
             .s-btn-danger {
                 border-color: rgba(229, 72, 77, 0.36);
                 background: rgba(229, 72, 77, 0.12);
@@ -169,14 +183,17 @@
             }
 
             .panel {
-                background: var(--bg-card);
-                border: 1px solid var(--hairline);
-                border-radius: 0.875rem;
+                background: rgba(18, 17, 14, 0.74);
+                -webkit-backdrop-filter: blur(18px) saturate(145%);
+                backdrop-filter: blur(18px) saturate(145%);
+                border: 1px solid rgba(205, 173, 105, 0.24);
+                border-radius: 0.95rem;
                 padding: 0.875rem;
                 display: grid;
                 gap: 0.75rem;
                 position: sticky;
                 top: 4rem;
+                box-shadow: inset 0 1px 0 rgba(244, 225, 133, 0.14), 0 20px 44px -24px rgba(0, 0, 0, 0.88);
             }
 
             .panel-head {

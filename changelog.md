@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.17.4] - 2026-11-26 | type: macro
+
+> Unified the application's visual theme with a metallic gold and frosted glassmorphism design system while keeping Poppins typography across every workspace.
+
+### Changed
+- Standardized Canvas Builder (`collection-builder.blade.php`) body typography to `Poppins` for consistent readability across the entire application.
+- Upgraded Studio Control Center, Canvas Builder, Mobile Deck, and Filament Admin Panel surfaces, panels, topbars, and primary metallic gold buttons with coordinated frosted glassmorphism (`backdrop-filter: blur(...) saturate(145%)`), ambient gold radial lighting, and specular top-edge highlights.
+
 ## [v1.17.3] - 2026-11-26 | type: macro
 
 > Added a global ultra-thin shiny metallic gold pill scrollbar (expanding on hover) and metallic gold text selection with black ink across all app pages and the Filament Admin Panel.

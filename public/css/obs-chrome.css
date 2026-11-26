@@ -7,6 +7,12 @@
     --obs-scrollbar-track: #0B0B0A;
     --obs-selection-bg: #E5C158;
     --obs-selection-fg: #070706;
+    --obs-gold-metal: linear-gradient(180deg, #F6E496 0%, #D9B768 48%, #B89143 100%);
+    --obs-gold-metal-hover: linear-gradient(180deg, #FFF0AE 0%, #E7C97B 48%, #C9A04E 100%);
+    --obs-glass-surface: rgba(18, 17, 14, 0.74);
+    --obs-glass-surface-strong: rgba(14, 13, 11, 0.86);
+    --obs-glass-border: rgba(205, 173, 105, 0.24);
+    --obs-glass-specular: inset 0 1px 0 rgba(244, 225, 133, 0.16), 0 18px 42px -24px rgba(0, 0, 0, 0.88);
 }
 
 /* Text Selection: Shiny Metallic Gold Background + Crisp Black Ink */
