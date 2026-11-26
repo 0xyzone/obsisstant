@@ -628,7 +628,7 @@
 
         <main class="builder-grid">
             {{-- Left Column: Tabbed Views / Collection Assets / Theme & Transition --}}
-            <aside class="panel" style="overscroll-behavior-y: scroll; max-height: 80vh; overflow-y: scroll;">
+            <aside class="panel" style="overscroll-behavior-y: scroll; max-height: 80vh; overflow-y: auto;">
                 <div class="tab-row tab-row--3" role="tablist" aria-label="Collection sections">
                     <button type="button" class="tab-btn" role="tab" aria-selected="true" data-left-tab="views">Views</button>
                     <button type="button" class="tab-btn" role="tab" aria-selected="false" data-left-tab="assets">Assets</button>
