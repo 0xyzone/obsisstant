@@ -376,4 +376,121 @@ class AgentInstallerTest extends TestCase
             ->assertOk()
             ->assertSee('obs-dashboard-install-dismiss', false);
     }
+
+    public function test_relay_bootstrap_reports_active_on_other_agent_and_blocks_duplicate_relay_takeover(): void
+    {
+        $user = User::factory()->create(['relay_token' => 'usr_dual_obs_relay_token_456']);
+        $macStudio = ObsStudio::factory()->for($user)->create([
+            'name' => 'Mac OBS',
+            'obs_host' => '127.0.0.1',
+            'obs_port' => 4455,
+            'status' => 'offline',
+            'last_seen_at' => null,
+        ]);
+        $officeStudio = ObsStudio::factory()->for($user)->create([
+            'name' => 'Office OBS',
+            'obs_host' => '127.0.0.1',
+            'obs_port' => 4455,
+            'status' => 'offline',
+            'last_seen_at' => null,
+        ]);
+
+        // PC A connects Mac OBS via relay token
+        $this->withHeaders([
+            'Authorization' => 'Bearer usr_dual_obs_relay_token_456',
+            'X-Obs-Agent-Instance' => 'macbook-pc-111',
+        ])->postJson('/api/obs-agent/state', [
+            'studio_id' => $macStudio->id,
+            'status' => 'online',
+            'live_state' => ['currentProgramScene' => 'Mac Scene'],
+        ])->assertOk()->assertJsonPath('status', 'online');
+
+        // PC B bootstraps via relay token: sees Mac OBS owned by another agent, Office OBS free
+        $pcBBootstrap = $this->withHeaders([
+            'Authorization' => 'Bearer usr_dual_obs_relay_token_456',
+            'X-Obs-Agent-Instance' => 'office-pc-222',
+        ])->getJson('/api/obs-agent/bootstrap')->assertOk();
+
+        $studiosById = collect($pcBBootstrap->json('studios'))->keyBy('studio.id');
+        $this->assertTrue((bool) $studiosById[$macStudio->id]['active_on_other_agent']);
+        $this->assertFalse((bool) $studiosById[$officeStudio->id]['active_on_other_agent']);
+
+        // PC A bootstraps: Mac OBS is NOT active_on_other_agent for its own owner
+        $pcABootstrap = $this->withHeaders([
+            'Authorization' => 'Bearer usr_dual_obs_relay_token_456',
+            'X-Obs-Agent-Instance' => 'macbook-pc-111',
+        ])->getJson('/api/obs-agent/bootstrap')->assertOk();
+
+        $studiosForA = collect($pcABootstrap->json('studios'))->keyBy('studio.id');
+        $this->assertFalse((bool) $studiosForA[$macStudio->id]['active_on_other_agent']);
+
+        // PC B cannot hijack Mac OBS in relay mode while PC A holds the online lease
+        $this->withHeaders([
+            'Authorization' => 'Bearer usr_dual_obs_relay_token_456',
+            'X-Obs-Agent-Instance' => 'office-pc-222',
+        ])->postJson('/api/obs-agent/state', [
+            'studio_id' => $macStudio->id,
+            'status' => 'online',
+            'live_state' => ['currentProgramScene' => 'Accidental Office Hijack'],
+        ])->assertOk()
+            ->assertJsonPath('active_on_other_agent', true)
+            ->assertJsonPath('ignored_duplicate_relay', true);
+
+        $this->assertSame('Mac Scene', $macStudio->fresh()->getCurrentProgramScene());
+
+        // PC B heartbeat for Mac OBS is also told to yield instead of stealing lease
+        $this->withHeaders([
+            'Authorization' => 'Bearer usr_dual_obs_relay_token_456',
+            'X-Obs-Agent-Instance' => 'office-pc-222',
+        ])->postJson('/api/obs-agent/heartbeat', [
+            'studio_id' => $macStudio->id,
+            'status' => 'online',
+        ])->assertOk()
+            ->assertJsonPath('active_on_other_agent', true)
+            ->assertJsonPath('ignored_duplicate_relay', true);
+
+        // PC B cleanly claims Office OBS
+        $this->withHeaders([
+            'Authorization' => 'Bearer usr_dual_obs_relay_token_456',
+            'X-Obs-Agent-Instance' => 'office-pc-222',
+        ])->postJson('/api/obs-agent/state', [
+            'studio_id' => $officeStudio->id,
+            'status' => 'online',
+            'live_state' => ['currentProgramScene' => 'Office Stage'],
+        ])->assertOk()->assertJsonPath('status', 'online');
+
+        $this->assertSame('Office Stage', $officeStudio->fresh()->getCurrentProgramScene());
+
+        // A dedicated studio-scoped agent token explicitly bound to Mac OBS can take over cleanly
+        $this->withHeaders([
+            'Authorization' => "Bearer {$macStudio->agent_token}",
+            'X-Obs-Agent-Instance' => 'dedicated-mac-333',
+        ])->postJson('/api/obs-agent/state', [
+            'status' => 'online',
+            'live_state' => ['currentProgramScene' => 'Dedicated Takeover'],
+        ])->assertOk()->assertJsonPath('status', 'online');
+
+        $this->assertSame('Dedicated Takeover', $macStudio->fresh()->getCurrentProgramScene());
+    }
+
+    public function test_control_center_defaults_installer_to_studio_scoped_when_account_has_multiple_studios(): void
+    {
+        ReverbStatusService::fakeUsing(static fn (): bool => true);
+
+        $user = User::factory()->create();
+        $firstStudio = ObsStudio::factory()->for($user)->create(['name' => 'Mac OBS']);
+
+        $this->actingAs($user)
+            ->get(route('studio.show', ['studio' => $firstStudio->slug]))
+            ->assertOk()
+            ->assertSee('const defaultStudioScopedInstaller = false;', false);
+
+        $secondStudio = ObsStudio::factory()->for($user)->create(['name' => 'Office OBS']);
+
+        $this->actingAs($user)
+            ->get(route('studio.show', ['studio' => $secondStudio->slug]))
+            ->assertOk()
+            ->assertSee('const defaultStudioScopedInstaller = true;', false)
+            ->assertSee('?studio='.urlencode($secondStudio->slug), false);
+    }
 }

@@ -28,10 +28,11 @@ class ObsAgentController extends Controller
         $isRelayMode = (bool) $request->attributes->get('obs_relay_mode', false);
         $relayScope = (string) $request->attributes->get('obs_relay_scope', 'studio');
         $relayUser = $request->attributes->get('obs_relay_user');
+        $agentInstanceId = $this->resolveAgentInstanceId($request);
 
         if ($isRelayMode) {
             $studios = $this->scopedRelayStudios($relayUser instanceof User ? $relayUser : null, $relayScope)
-                ->map(fn (ObsStudio $studio): array => $this->formatStudioBootstrap($studio))
+                ->map(fn (ObsStudio $studio): array => $this->formatStudioBootstrap($studio, $agentInstanceId))
                 ->values();
 
             $relayChannel = ($relayScope === 'user' && $relayUser instanceof User)
@@ -54,7 +55,7 @@ class ObsAgentController extends Controller
         }
 
         $studio = $this->resolveStudio($request);
-        $formatted = $this->formatStudioBootstrap($studio);
+        $formatted = $this->formatStudioBootstrap($studio, $agentInstanceId);
 
         return response()->json([
             'mode' => 'studio',
@@ -170,7 +171,8 @@ class ObsAgentController extends Controller
             'live_state' => ['required', 'array'],
         ]);
 
-        $agentInstanceId = $this->normalizeAgentInstanceId($validated['agent_instance_id'] ?? null);
+        $agentInstanceId = $this->resolveAgentInstanceId($request, $validated['agent_instance_id'] ?? null);
+        $isRelayMode = (bool) $request->attributes->get('obs_relay_mode', false);
 
         $mergedState = array_replace_recursive($studio->live_state ?? [], $validated['live_state']);
 
@@ -195,6 +197,15 @@ class ObsAgentController extends Controller
 
             $this->clearOnlineLease($studio);
         } else {
+            if ($isRelayMode && $this->isOwnedByAnotherAgent($studio, $agentInstanceId)) {
+                return response()->json([
+                    'ok' => true,
+                    'status' => $studio->status,
+                    'active_on_other_agent' => true,
+                    'ignored_duplicate_relay' => true,
+                ]);
+            }
+
             $this->refreshOnlineLease($studio, $agentInstanceId);
         }
 
@@ -279,7 +290,8 @@ class ObsAgentController extends Controller
     public function heartbeat(Request $request): JsonResponse
     {
         $studio = $this->resolveStudio($request);
-        $agentInstanceId = $this->normalizeAgentInstanceId($request->input('agent_instance_id'));
+        $agentInstanceId = $this->resolveAgentInstanceId($request);
+        $isRelayMode = (bool) $request->attributes->get('obs_relay_mode', false);
 
         $status = $request->input('status');
         if (! in_array($status, ['offline', 'online', 'streaming', 'recording'], true)) {
@@ -299,6 +311,16 @@ class ObsAgentController extends Controller
 
             $this->clearOnlineLease($studio);
         } else {
+            if ($isRelayMode && $this->isOwnedByAnotherAgent($studio, $agentInstanceId)) {
+                return response()->json([
+                    'ok' => true,
+                    'status' => $studio->status,
+                    'active_on_other_agent' => true,
+                    'ignored_duplicate_relay' => true,
+                    'server_time' => now()->toIso8601String(),
+                ]);
+            }
+
             $this->refreshOnlineLease($studio, $agentInstanceId);
         }
 
@@ -332,7 +354,7 @@ class ObsAgentController extends Controller
             'error_message' => ['nullable', 'string'],
         ]);
 
-        $agentInstanceId = $this->normalizeAgentInstanceId($validated['agent_instance_id'] ?? null);
+        $agentInstanceId = $this->resolveAgentInstanceId($request, $validated['agent_instance_id'] ?? null);
 
         if ($commandLog->status === 'succeeded' && $validated['status'] === 'failed') {
             return response()->json([
@@ -448,7 +470,7 @@ class ObsAgentController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function formatStudioBootstrap(ObsStudio $studio): array
+    private function formatStudioBootstrap(ObsStudio $studio, ?string $agentInstanceId = null): array
     {
         return [
             'studio' => [
@@ -461,6 +483,8 @@ class ObsAgentController extends Controller
             ],
             'channel' => "private-obs.studio.{$studio->id}.commands",
             'studio_channel' => "private-obs.studio.{$studio->id}",
+            'is_online' => $studio->isOnline(),
+            'active_on_other_agent' => $this->isOwnedByAnotherAgent($studio, $agentInstanceId),
             'pending_commands' => $this->queryPendingCommands($studio),
         ];
     }
@@ -479,6 +503,13 @@ class ObsAgentController extends Controller
         return "obs.studio.{$studio->id}.online_lease";
     }
 
+    private function resolveAgentInstanceId(Request $request, mixed $bodyValue = null): ?string
+    {
+        return $this->normalizeAgentInstanceId(
+            $bodyValue ?? $request->input('agent_instance_id') ?? $request->header('X-Obs-Agent-Instance')
+        );
+    }
+
     private function normalizeAgentInstanceId(mixed $value): ?string
     {
         if (! is_string($value)) {
@@ -488,6 +519,26 @@ class ObsAgentController extends Controller
         $trimmed = trim($value);
 
         return $trimmed !== '' ? substr($trimmed, 0, 120) : null;
+    }
+
+    private function isOwnedByAnotherAgent(ObsStudio $studio, ?string $agentInstanceId): bool
+    {
+        if (! $studio->isOnline()) {
+            return false;
+        }
+
+        $lease = Cache::get($this->onlineLeaseKey($studio));
+        $leaseAgentId = is_array($lease) ? ($lease['agent_id'] ?? null) : null;
+
+        if (! is_string($leaseAgentId) || $leaseAgentId === '') {
+            return false;
+        }
+
+        if ($agentInstanceId !== null && $leaseAgentId === $agentInstanceId) {
+            return false;
+        }
+
+        return true;
     }
 
     private function refreshOnlineLease(ObsStudio $studio, ?string $agentInstanceId): void

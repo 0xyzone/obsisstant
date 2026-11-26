@@ -85,6 +85,13 @@ class StudioControlCenterController extends Controller
         }
         $activeCollectionId ??= $collections->first()?->id;
 
+        $installerService = app(ObsAgentInstallerService::class);
+        $defaultStudioScopedInstaller = $studios->count() > 1;
+        $relayInstallerPayload = $installerService->issueBootstrapPayload($user);
+        $initialInstallerPayload = $defaultStudioScopedInstaller
+            ? $installerService->issueBootstrapPayload($user, $studio)
+            : $relayInstallerPayload;
+
         return view('studio.control-center', [
             'currentVersion' => ChangelogService::getCurrentVersion(),
             'studio' => $studio,
@@ -100,7 +107,9 @@ class StudioControlCenterController extends Controller
             'mediaStoragePath' => app(ObsMediaStorageService::class)->resolveConfiguredDirectory($studio, $user),
             'agentReachable' => $studio->isAgentReachable(),
             'hasAnyConnectedStudio' => $studios->contains(static fn (ObsStudio $item): bool => $item->last_seen_at !== null),
-            'installerPayload' => app(ObsAgentInstallerService::class)->issueBootstrapPayload($user),
+            'defaultStudioScopedInstaller' => $defaultStudioScopedInstaller,
+            'installerPayload' => $initialInstallerPayload,
+            'relayInstallerPayload' => $relayInstallerPayload,
         ]);
     }
 

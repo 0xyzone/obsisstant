@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.13.5] - 2026-11-26 | type: macro
+
+> Fixed continuous OBS reconnect loops and cross-PC collisions when running 2 or more OBS clients/studios simultaneously.
+
+### Changed
+- Defaulted the Studio Control Center Install Agent dialog to Bind to this Studio only when an account has 2 or more studios so each streaming PC binds cleanly to its own OBS Studio
+
+### Fixed
+- Guarded ConnectionClosed against failed initial dial attempts, added a connectObs concurrency lock, prevented multiple local relay workers from colliding on the same ws://127.0.0.1:4455 OBS endpoint, added exponential/auth-failure reconnect backoff, and added Pusher keepalive timeouts in obs-agent
+- Added X-Obs-Agent-Instance header identification, bootstrap active_on_other_agent lease hints, and duplicate-relay takeover prevention in ObsAgentController so multiple PCs never fight over the same studio
+
 ## [v1.13.4] - 2026-11-26 | type: macro
 
 > Added configurable transition duration controls (capped at 3000 ms maximum) to the Mobile Control Deck toolbar and Tile Editor with matching server-side validation.

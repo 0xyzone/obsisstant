@@ -1953,8 +1953,8 @@
                         <button type="button" class="tab-btn" role="tab" aria-selected="false" data-agent-os="windows">Windows 10 / 11</button>
                     </div>
                     <label style="display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.75rem; color: var(--ink-muted); cursor: pointer;">
-                        <input type="checkbox" id="install-studio-only-toggle">
-                        <span>Bind to this Studio only</span>
+                        <input type="checkbox" id="install-studio-only-toggle" @checked($defaultStudioScopedInstaller ?? false)>
+                        <span>Bind to this Studio only ({{ $studio->name }})</span>
                     </label>
                 </div>
 
@@ -2106,6 +2106,8 @@
                 const endpoints = @json($controlCenterEndpoints);
 
                 const initialInstallerPayload = @json($installerPayload);
+                const relayInstallerPayload = @json($relayInstallerPayload ?? $installerPayload);
+                const defaultStudioScopedInstaller = @json($defaultStudioScopedInstaller ?? false);
                 let configuredMediaDir = @json($mediaStoragePath, JSON_UNESCAPED_SLASHES);
                 let liveState = @json($liveState ?: new stdClass());
                 let studioStatus = @json($studio->status);
@@ -4296,6 +4298,10 @@
                 document.getElementById('install-studio-only-toggle')?.addEventListener('change', async (ev) => {
                     const scoped = Boolean(ev.target.checked);
                     if (!scoped) {
+                        applyInstallerPayload(relayInstallerPayload);
+                        return;
+                    }
+                    if (defaultStudioScopedInstaller) {
                         applyInstallerPayload(initialInstallerPayload);
                         return;
                     }

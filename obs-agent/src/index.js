@@ -22,6 +22,7 @@ if (!globalThis.WebSocket) {
 
 const BASE_URL = (process.env.OBSISSTANT_URL || '').replace(/\/+$/, '');
 const AUTH_TOKEN = (process.env.OBSISSTANT_RELAY_TOKEN || process.env.OBSISSTANT_AGENT_TOKEN || '').trim();
+const IS_RELAY_TOKEN = Boolean((process.env.OBSISSTANT_RELAY_TOKEN || '').trim());
 const AGENT_INSTANCE_ID = (() => {
     const host = os.hostname() || 'agent';
     let userName = '';
@@ -30,9 +31,10 @@ const AGENT_INSTANCE_ID = (() => {
     } catch {
         userName = '';
     }
+    const tokenScope = crypto.createHash('sha256').update(AUTH_TOKEN).digest('hex').slice(0, 6);
     const fingerprint = crypto
         .createHash('sha256')
-        .update(`${host}|${userName}|${os.homedir()}|${os.platform()}|${os.arch()}`)
+        .update(`${host}|${userName}|${os.homedir()}|${os.platform()}|${os.arch()}|${tokenScope}`)
         .digest('hex')
         .slice(0, 10);
     return `${host}-${fingerprint}`.slice(0, 120);
@@ -52,11 +54,45 @@ let pendingPollInFlight = false;
 let syncInFlight = false;
 let syncPending = false;
 const workers = new Map();
+const activeLocalEndpoints = new Map();
+
+function normalizeEndpointKey(wsUrl) {
+    try {
+        const parsed = new URL(wsUrl);
+        const rawHost = (parsed.hostname || '127.0.0.1').toLowerCase();
+        const host = ['localhost', '::1', '[::1]', '0.0.0.0'].includes(rawHost) ? '127.0.0.1' : rawHost;
+        const port = parsed.port || (parsed.protocol === 'wss:' ? '443' : '4455');
+        return `${parsed.protocol}//${host}:${port}`;
+    } catch {
+        return String(wsUrl || 'ws://127.0.0.1:4455').toLowerCase();
+    }
+}
+
+function wakeWorkersWaitingForEndpoint(endpointKey, releasedByStudioId) {
+    if (!endpointKey) {
+        return;
+    }
+    for (const worker of workers.values()) {
+        if (worker.stopped || worker.studio.id === releasedByStudioId || worker.obsConnected || worker.connecting) {
+            continue;
+        }
+        if (worker.waitingForEndpointKey === endpointKey && !worker.remoteAgentOnline) {
+            worker.waitingForEndpointKey = null;
+            worker.loggedEndpointStandby = false;
+            if (worker.reconnectTimer) {
+                clearTimeout(worker.reconnectTimer);
+                worker.reconnectTimer = null;
+            }
+            worker.scheduleObsReconnect(250);
+        }
+    }
+}
 
 async function apiRequest(path, method = 'GET', body = null) {
     const headers = {
         Authorization: `Bearer ${AUTH_TOKEN}`,
         Accept: 'application/json',
+        'X-Obs-Agent-Instance': AGENT_INSTANCE_ID,
     };
 
     const options = { method, headers };
@@ -112,7 +148,13 @@ class StudioWorker {
         this.pendingCommands = entry.pending_commands || [];
         this.obs = new OBSWebSocket();
         this.obsConnected = false;
-        this.remoteAgentOnline = false;
+        this.connecting = false;
+        this.remoteAgentOnline = Boolean(entry.active_on_other_agent);
+        this.claimedEndpointKey = null;
+        this.waitingForEndpointKey = null;
+        this.loggedEndpointStandby = false;
+        this.loggedRemoteStandby = false;
+        this.reconnectAttempts = 0;
         this.stopped = false;
         this.reconnectTimer = null;
         this.statsTimer = null;
@@ -174,6 +216,52 @@ class StudioWorker {
         return `[obs-agent][${this.studio.name} #${this.studio.id}]`;
     }
 
+    resolveObsWsUrl() {
+        return (
+            (process.env.OBS_WS_URL || '').trim() ||
+            `ws://${this.studio.obs_host || '127.0.0.1'}:${this.studio.obs_port || 4455}`
+        );
+    }
+
+    releaseLocalEndpoint() {
+        if (!this.claimedEndpointKey) {
+            return;
+        }
+        const key = this.claimedEndpointKey;
+        this.claimedEndpointKey = null;
+        if (activeLocalEndpoints.get(key) === this.studio.id) {
+            activeLocalEndpoints.delete(key);
+            wakeWorkersWaitingForEndpoint(key, this.studio.id);
+        }
+    }
+
+    async yieldToRemoteOwner(reason = 'active on another PC') {
+        this.remoteAgentOnline = true;
+        if (!this.loggedRemoteStandby) {
+            this.loggedRemoteStandby = true;
+            console.log(`${this.logPrefix()} Standing by — studio is already ${reason}.`);
+        }
+        if (this.obsConnected) {
+            this.obsConnected = false;
+            this.releaseLocalEndpoint();
+            await this.obs.disconnect().catch(() => {});
+        } else {
+            this.releaseLocalEndpoint();
+        }
+        this.scheduleObsReconnect(30000);
+    }
+
+    nextReconnectDelayMs(error = null) {
+        const errCode = Number(error?.code || 0);
+        const errMsg = String(error?.message || '').toLowerCase();
+        const isAuthFailure = errCode === 4009 || errMsg.includes('authentication') || errMsg.includes('auth');
+        this.reconnectAttempts = Math.min(this.reconnectAttempts + 1, 10);
+        if (isAuthFailure) {
+            return Math.min(120000, 30000 * this.reconnectAttempts);
+        }
+        return Math.min(20000, 5000 + Math.max(0, this.reconnectAttempts - 1) * 3000);
+    }
+
     async pushState(partial = null, statusOverride = null) {
         if (this.stopped) {
             return;
@@ -188,10 +276,15 @@ class StudioWorker {
                 payload.status = statusOverride;
             }
             const res = await apiRequest('/api/obs-agent/state', 'POST', payload);
+            if (res?.ignored_duplicate_relay) {
+                await this.yieldToRemoteOwner('owned by another relay PC');
+                return;
+            }
             if (statusOverride === 'offline') {
                 this.remoteAgentOnline = Boolean(res?.active_on_other_agent);
             } else {
                 this.remoteAgentOnline = false;
+                this.loggedRemoteStandby = false;
             }
             this.lastHeartbeatAt = Date.now();
         } catch (error) {
@@ -201,7 +294,7 @@ class StudioWorker {
 
     async pushHeartbeat(status = 'offline') {
         if (this.stopped) {
-            return;
+            return null;
         }
         try {
             const res = await apiRequest('/api/obs-agent/heartbeat', 'POST', {
@@ -209,10 +302,19 @@ class StudioWorker {
                 agent_instance_id: AGENT_INSTANCE_ID,
                 status,
             });
+            if (res?.ignored_duplicate_relay) {
+                await this.yieldToRemoteOwner('owned by another relay PC');
+                return res;
+            }
             this.remoteAgentOnline = Boolean(res?.active_on_other_agent);
+            if (!this.remoteAgentOnline) {
+                this.loggedRemoteStandby = false;
+            }
             this.lastHeartbeatAt = Date.now();
+            return res;
         } catch {
             // Transient heartbeat error
+            return null;
         }
     }
 
@@ -997,9 +1099,9 @@ class StudioWorker {
 
         try {
             if (!this.obsConnected) {
-                if (this.remoteAgentOnline) {
+                if (this.remoteAgentOnline || this.waitingForEndpointKey) {
                     if (requestType !== 'obsisstant.SetPreviewStream') {
-                        console.log(`${this.logPrefix()} Skipping ${requestType} (${uuid || 'whisper'}) — studio is active on another PC.`);
+                        console.log(`${this.logPrefix()} Skipping ${requestType} (${uuid || 'whisper'}) — studio is handled by another PC or endpoint.`);
                     }
                     return;
                 }
@@ -1244,19 +1346,21 @@ class StudioWorker {
             await this.pushState({ outputs: this.liveState.outputs });
         });
 
-        this.obs.on('ConnectionClosed', () => {
+        this.obs.on('ConnectionClosed', (err) => {
+            const wasConnected = this.obsConnected;
             this.obsConnected = false;
-            if (this.stopped) {
+            this.releaseLocalEndpoint();
+            if (this.stopped || !wasConnected) {
                 return;
             }
-            console.warn(`${this.logPrefix()} OBS WebSocket closed. Scheduling reconnect...`);
+            console.warn(`${this.logPrefix()} OBS WebSocket closed (${err?.code ?? 'closed'}). Scheduling reconnect...`);
             this.pushState({ ...this.liveState }, 'offline');
-            this.scheduleObsReconnect();
+            this.scheduleObsReconnect(this.nextReconnectDelayMs(err));
         });
     }
 
     scheduleObsReconnect(delayMs = 5000) {
-        if (this.stopped || this.reconnectTimer) {
+        if (this.stopped || this.reconnectTimer || this.obsConnected) {
             return;
         }
         this.reconnectTimer = setTimeout(() => {
@@ -1266,13 +1370,44 @@ class StudioWorker {
     }
 
     async connectObs() {
-        if (this.stopped) {
+        if (this.stopped || this.connecting || this.obsConnected) {
             return;
         }
-        const wsUrl =
-            (process.env.OBS_WS_URL || '').trim() ||
-            `ws://${this.studio.obs_host || '127.0.0.1'}:${this.studio.obs_port || 4455}`;
+
+        // In multi-PC Workspace Relay mode, never dial local OBS for a studio already active on another PC
+        if (IS_RELAY_TOKEN && this.remoteAgentOnline) {
+            const res = await this.pushHeartbeat('offline');
+            if (res?.active_on_other_agent) {
+                if (!this.loggedRemoteStandby) {
+                    this.loggedRemoteStandby = true;
+                    console.log(`${this.logPrefix()} Standing by — studio is active on another PC.`);
+                }
+                this.scheduleObsReconnect(30000);
+                return;
+            }
+            this.remoteAgentOnline = false;
+            this.loggedRemoteStandby = false;
+        }
+
+        const wsUrl = this.resolveObsWsUrl();
+        const endpointKey = normalizeEndpointKey(wsUrl);
+        const ownerStudioId = activeLocalEndpoints.get(endpointKey);
+        if (ownerStudioId !== undefined && ownerStudioId !== this.studio.id) {
+            this.waitingForEndpointKey = endpointKey;
+            if (!this.loggedEndpointStandby) {
+                this.loggedEndpointStandby = true;
+                console.log(`${this.logPrefix()} Standing by — ${endpointKey} is already claimed on this PC by Studio #${ownerStudioId}.`);
+            }
+            this.scheduleObsReconnect(30000);
+            return;
+        }
+
         const password = (process.env.OBS_WS_PASSWORD || '').trim() || this.studio.obs_password || undefined;
+        this.connecting = true;
+        this.waitingForEndpointKey = null;
+        this.loggedEndpointStandby = false;
+        activeLocalEndpoints.set(endpointKey, this.studio.id);
+        this.claimedEndpointKey = endpointKey;
 
         try {
             await this.obs.connect(wsUrl, password, {
@@ -1281,13 +1416,25 @@ class StudioWorker {
             });
             this.obsConnected = true;
             this.remoteAgentOnline = false;
+            this.loggedRemoteStandby = false;
+            this.reconnectAttempts = 0;
             console.log(`${this.logPrefix()} Connected to OBS Studio at ${wsUrl}`);
-            await this.refreshAllState();
         } catch (error) {
             this.obsConnected = false;
-            console.warn(`${this.logPrefix()} Waiting for OBS at ${wsUrl}: ${error.message}`);
+            this.releaseLocalEndpoint();
+            const delayMs = this.nextReconnectDelayMs(error);
+            if (this.reconnectAttempts <= 2 || this.reconnectAttempts % 5 === 0) {
+                console.warn(`${this.logPrefix()} Waiting for OBS at ${wsUrl}: ${error.message} (retry in ${Math.round(delayMs / 1000)}s)`);
+            }
             await this.pushHeartbeat('offline');
-            this.scheduleObsReconnect(5000);
+            this.scheduleObsReconnect(this.remoteAgentOnline ? 30000 : delayMs);
+            return;
+        } finally {
+            this.connecting = false;
+        }
+
+        if (this.obsConnected && !this.stopped) {
+            await this.refreshAllState();
         }
     }
 
@@ -1348,7 +1495,7 @@ class StudioWorker {
                 } catch {
                     // Ignore transient stat poll errors
                 }
-            } else if (Date.now() - this.lastHeartbeatAt >= 20000) {
+            } else if (!this.waitingForEndpointKey && !this.remoteAgentOnline && Date.now() - this.lastHeartbeatAt >= 20000) {
                 await this.pushHeartbeat('offline');
             }
         }, 12000);
@@ -1359,8 +1506,17 @@ class StudioWorker {
         const oldName = this.studio.name;
         this.studio = entry.studio;
 
+        if (!this.obsConnected && typeof entry.active_on_other_agent === 'boolean') {
+            this.remoteAgentOnline = entry.active_on_other_agent;
+            if (!this.remoteAgentOnline) {
+                this.loggedRemoteStandby = false;
+            }
+        }
+
         if (nextSignature !== this.signature) {
             this.signature = nextSignature;
+            this.reconnectAttempts = 0;
+            this.loggedEndpointStandby = false;
             console.log(`${this.logPrefix()} Connection profile updated (${oldName} -> ${this.studio.name}). Reconnecting OBS...`);
             if (this.reconnectTimer) {
                 clearTimeout(this.reconnectTimer);
@@ -1368,7 +1524,10 @@ class StudioWorker {
             }
             if (this.obsConnected) {
                 this.obsConnected = false;
+                this.releaseLocalEndpoint();
                 await this.obs.disconnect().catch(() => {});
+            } else {
+                this.releaseLocalEndpoint();
             }
             await this.connectObs();
         }
@@ -1381,6 +1540,7 @@ class StudioWorker {
     async stop() {
         this.stopped = true;
         this.stopPreviewLoop();
+        this.releaseLocalEndpoint();
         if (this.refreshDebounceTimer) {
             clearTimeout(this.refreshDebounceTimer);
             this.refreshDebounceTimer = null;
@@ -1435,6 +1595,8 @@ function ensurePusherClient(reverbConfig) {
         forceTLS: useTLS,
         enabledTransports: ['ws', 'wss'],
         disableStats: true,
+        activityTimeout: 25000,
+        pongTimeout: 10000,
         authorizer: (channel) => ({
             authorize: async (socketId, callback) => {
                 try {
