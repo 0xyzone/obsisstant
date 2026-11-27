@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.25.2] - 2026-11-27 | type: macro
+
+> Added `all_features` support for Lifetime / All-Access packages so all current and future Obsisstant modules unlock automatically, plus a "Lifetime / Never Expires" toggle and auto-clear expiry UX in `/hq`.
+
+### Added
+- **Lifetime & All Upcoming Features (`all_features`)**: Added `packages.all_features`, seeded **Lifetime All-Access** in `PackageSeeder`, updated `EntitlementService::hasFeature()` to unlock all current and future modules when `all_features` is enabled, and added a **Lifetime / Never Expires** toggle (plus auto-clearing `Expires At` when selecting a `lifetime` package) in `UserResource` and `SubscriptionResource`.
+
 ## [v1.25.1] - 2026-11-27 | type: macro
 
 > Fixed Windows agent background startup (direct `Start-Process node.exe` + resilient bootstrap retry keeping `127.0.0.1:4458` alive), and replaced per-studio `Install Agent` with contextual `Stop Agent` / `Start OBS Agent` actions once a studio has been paired.

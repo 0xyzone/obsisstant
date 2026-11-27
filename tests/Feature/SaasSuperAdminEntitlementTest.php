@@ -214,4 +214,30 @@ class SaasSuperAdminEntitlementTest extends TestCase
         $this->actingAs($customer)->get('/hq/demo-requests')->assertForbidden();
         $this->actingAs($superAdmin)->get('/hq/demo-requests')->assertOk()->assertSee('Suman Shrestha');
     }
+
+    public function test_lifetime_all_features_package_never_expires_and_unlocks_future_features(): void
+    {
+        $entitlements = app(EntitlementService::class);
+
+        $lifetime = Package::factory()->unlimited()->create([
+            'name' => 'Lifetime All-Access',
+            'slug' => 'lifetime-all-access-test',
+            'billing_cycle' => 'lifetime',
+            'all_features' => true,
+            'features' => ['obs_control' => true],
+        ]);
+
+        $user = User::factory()->withoutSubscription()->create();
+        Subscription::factory()->create([
+            'user_id' => $user->id,
+            'package_id' => $lifetime->id,
+            'status' => Subscription::STATUS_ACTIVE,
+            'ends_at' => null,
+        ]);
+
+        $this->assertTrue($entitlements->hasActiveAccess($user));
+        $this->assertTrue($entitlements->hasFeature($user, 'obs_control'));
+        $this->assertTrue($entitlements->hasFeature($user, 'future_ai_director_v2'));
+        $this->assertNull($entitlements->limitFor($user, 'max_studios'));
+    }
 }

@@ -117,7 +117,14 @@ class PackageResource extends Resource
                     ->description('Enable or disable Obsisstant modules included in this package.')
                     ->columnSpanFull()
                     ->columns(2)
-                    ->schema($featureToggles),
+                    ->schema([
+                        Toggle::make('all_features')
+                            ->label('Include All Current & Upcoming Features')
+                            ->helperText('Automatically unlocks all current modules and any new features added in future releases.')
+                            ->columnSpanFull()
+                            ->live(),
+                        ...$featureToggles,
+                    ]),
 
                 Section::make('Numeric Quotas')
                     ->description('Set numeric caps for studios, views, macros, storage, and daily Oxy Gemini AI messages.')

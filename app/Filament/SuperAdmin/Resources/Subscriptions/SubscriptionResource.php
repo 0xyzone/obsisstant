@@ -17,6 +17,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -77,6 +78,16 @@ class SubscriptionResource extends Resource
                             ->relationship('package', 'name')
                             ->searchable()
                             ->preload()
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                if (blank($state)) {
+                                    return;
+                                }
+                                $pkg = Package::query()->find((int) $state);
+                                if ($pkg?->billing_cycle === 'lifetime') {
+                                    $set('ends_at', null);
+                                }
+                            })
                             ->required(),
                         Select::make('status')
                             ->options(Subscription::statusOptions())

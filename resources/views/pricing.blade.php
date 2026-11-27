@@ -365,9 +365,14 @@
 
                         <div>
                             <div class="section-label">Included Modules</div>
+                            @if ($package->all_features)
+                                <div style="margin-bottom: 0.55rem; padding: 0.35rem 0.6rem; border-radius: 0.55rem; border: 1px solid rgba(244, 225, 133, 0.45); background: rgba(244, 225, 133, 0.1); color: #F4E185; font-size: 0.76rem; font-weight: 600;">
+                                    ★ All Current &amp; Upcoming Features Included
+                                </div>
+                            @endif
                             <ul class="feature-list">
                                 @foreach ($featureCatalog as $key => $label)
-                                    @php $enabled = (bool) ($package->features[$key] ?? false); @endphp
+                                    @php $enabled = $package->all_features || (bool) ($package->features[$key] ?? false); @endphp
                                     <li class="{{ $enabled ? 'feature-on' : 'feature-off' }}">
                                         <span aria-hidden="true">{{ $enabled ? '✓' : '—' }}</span>
                                         <span>{{ $label }}</span>

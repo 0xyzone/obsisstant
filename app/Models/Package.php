@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'price_cents',
     'currency',
     'billing_cycle',
+    'all_features',
     'features',
     'limits',
     'is_active',
@@ -116,6 +117,7 @@ class Package extends Model
     {
         return [
             'price_cents' => 'integer',
+            'all_features' => 'boolean',
             'features' => 'array',
             'limits' => 'array',
             'is_active' => 'boolean',

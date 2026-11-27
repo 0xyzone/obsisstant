@@ -24,9 +24,10 @@ class ListUsers extends ListRecords
                     $this->initialPackageId = filled($data['initial_package_id'] ?? null)
                         ? (int) $data['initial_package_id']
                         : null;
-                    $this->initialEndsAt = $data['initial_ends_at'] ?? null;
+                    $neverExpires = (bool) ($data['initial_never_expires'] ?? false);
+                    $this->initialEndsAt = $neverExpires ? null : ($data['initial_ends_at'] ?? null);
 
-                    unset($data['initial_package_id'], $data['initial_ends_at']);
+                    unset($data['initial_package_id'], $data['initial_ends_at'], $data['initial_never_expires']);
 
                     return $data;
                 })

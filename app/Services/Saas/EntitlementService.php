@@ -49,6 +49,10 @@ class EntitlementService
             return (bool) $overrides[$feature];
         }
 
+        if ($subscription->package?->all_features) {
+            return true;
+        }
+
         $packageFeatures = is_array($subscription->package?->features) ? $subscription->package->features : [];
 
         return (bool) ($packageFeatures[$feature] ?? false);

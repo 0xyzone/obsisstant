@@ -17,6 +17,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -84,11 +86,32 @@ class UserResource extends Resource
                             ->label('Package')
                             ->options(fn (): array => Package::query()->where('is_active', true)->orderBy('sort_order')->pluck('name', 'id')->all())
                             ->searchable()
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                if (blank($state)) {
+                                    return;
+                                }
+                                $pkg = Package::query()->find((int) $state);
+                                if ($pkg?->billing_cycle === 'lifetime') {
+                                    $set('initial_never_expires', true);
+                                    $set('initial_ends_at', null);
+                                }
+                            })
                             ->nullable(),
+                        Toggle::make('initial_never_expires')
+                            ->label('Lifetime / Never Expires')
+                            ->default(false)
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, bool $state): void {
+                                if ($state) {
+                                    $set('initial_ends_at', null);
+                                }
+                            }),
                         DateTimePicker::make('initial_ends_at')
                             ->label('Expires At')
                             ->default(now()->addMonth())
-                            ->helperText('Leave blank for no expiration.'),
+                            ->hidden(fn (Get $get): bool => (bool) $get('initial_never_expires'))
+                            ->helperText('Leave blank or toggle Lifetime for no expiration.'),
                     ]),
             ]);
     }
