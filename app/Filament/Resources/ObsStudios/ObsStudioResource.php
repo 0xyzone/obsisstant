@@ -9,6 +9,7 @@ use App\Models\ObsStudio;
 use App\Models\User;
 use App\Services\Obs\ObsAgentInstallerService;
 use App\Services\Obs\ObsCommandService;
+use App\Services\Obs\ObsLocalRelayService;
 use App\Services\Saas\EntitlementService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -178,7 +179,31 @@ class ObsStudioResource extends Resource
                     ->label('Install Agent')
                     ->icon(Heroicon::OutlinedArrowDownTray)
                     ->color('primary')
-                    ->button(),
+                    ->button()
+                    ->visible(fn (ObsStudio $record): bool => $record->last_seen_at === null && $record->status === 'offline' && ! Cache::has("obs_studio_agent_runtime_{$record->id}")),
+                Action::make('startAgent')
+                    ->label('Start OBS Agent')
+                    ->icon(Heroicon::OutlinedPlay)
+                    ->color('success')
+                    ->visible(fn (ObsStudio $record): bool => $record->last_seen_at !== null && $record->status === 'offline' && ! Cache::has("obs_studio_agent_runtime_{$record->id}"))
+                    ->modalHeading(fn (ObsStudio $record): string => "Start OBS Agent for {$record->name}")
+                    ->modalDescription('On your OBS computer, launch "Install & Run Obsisstant Agent" or open your local Agent UI at http://127.0.0.1:4458. If this studio runs on the local server machine, click Start Now below.')
+                    ->modalSubmitActionLabel(fn (): string => app(ObsLocalRelayService::class)->isLocalControlAvailable() ? 'Start Local Agent Now' : 'Open Local Agent UI (127.0.0.1:4458)')
+                    ->extraModalFooterActions([
+                        Action::make('redownloadMac')
+                            ->label('Re-download Mac (.zip)')
+                            ->url(fn (ObsStudio $record): string => route('agent-installer.download', ['platform' => ObsAgentInstallerService::PLATFORM_MAC, 'studio' => $record->slug])),
+                        Action::make('redownloadWin')
+                            ->label('Re-download Windows (.zip)')
+                            ->url(fn (ObsStudio $record): string => route('agent-installer.download', ['platform' => ObsAgentInstallerService::PLATFORM_WINDOWS, 'studio' => $record->slug])),
+                    ])
+                    ->action(function (): void {
+                        $relay = app(ObsLocalRelayService::class);
+                        if ($relay->isLocalControlAvailable()) {
+                            $relay->start();
+                            Notification::make()->success()->title('Local OBS Agent started')->send();
+                        }
+                    }),
                 Action::make('mobileDeck')
                     ->label('Mobile Deck')
                     ->icon(Heroicon::OutlinedDevicePhoneMobile)

@@ -676,26 +676,40 @@ finally {
 }
 
 $RunnerBat = Join-Path $InstallDir 'run-agent.cmd'
-$RunnerContent = "@echo off`r`ncd /d `"%~dp0`"`r`n`"$NodeExe`" `"src\index.js`" >> `"agent.log`" 2>&1`r`n"
+$RunnerContent = "@echo off`r`ncd /d `"$InstallDir`"`r`n`"$NodeExe`" `"src\index.js`" >> `"agent.log`" 2>&1`r`n"
 [IO.File]::WriteAllText($RunnerBat, $RunnerContent, [Text.Encoding]::ASCII)
 
-$VbsPath = Join-Path $InstallDir 'start-hidden.vbs'
-$VbsContent = "Set shell = CreateObject(""WScript.Shell"")`r`nshell.Run """"""$RunnerBat"""""", 0, False`r`n"
-[IO.File]::WriteAllText($VbsPath, $VbsContent, [Text.Encoding]::ASCII)
+$TraySrc = Join-Path $ScriptDir 'obsisstant-tray.ps1'
+$TrayDst = Join-Path $InstallDir 'obsisstant-tray.ps1'
+if (Test-Path $TraySrc) {
+    Copy-Item $TraySrc $TrayDst -Force
+}
 
 $StartupDir = [Environment]::GetFolderPath('Startup')
 $ShortcutPath = Join-Path $StartupDir 'Obsisstant OBS Agent.lnk'
 $WshShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
-$Shortcut.TargetPath = 'wscript.exe'
-$Shortcut.Arguments = "`"$VbsPath`""
+$Shortcut.TargetPath = 'powershell.exe'
+$Shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command `"Start-Process -FilePath '$NodeExe' -ArgumentList 'src\index.js' -WorkingDirectory '$InstallDir' -WindowStyle Hidden`""
 $Shortcut.WorkingDirectory = $InstallDir
 $Shortcut.Description = 'Starts Obsisstant OBS Agent silently at login'
 $Shortcut.Save()
 
+$ErrLogFile = Join-Path $InstallDir 'agent-error.log'
 Write-Host "Starting Obsisstant OBS Agent silently in the background..." -ForegroundColor Cyan
-Start-Process -FilePath 'wscript.exe' -ArgumentList "`"$VbsPath`"" -WindowStyle Hidden
+Start-Process -FilePath $NodeExe -ArgumentList 'src\index.js' -WorkingDirectory $InstallDir -WindowStyle Hidden -RedirectStandardOutput $LogFile -RedirectStandardError $ErrLogFile
+if (Test-Path $TrayDst) {
+    Start-Process -FilePath 'powershell.exe' -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$TrayDst`"" -WindowStyle Hidden
+}
 Start-Sleep -Seconds 2
+
+try {
+    $Health = Invoke-RestMethod -Uri 'http://127.0.0.1:4458/status' -TimeoutSec 3
+    Write-Host "Local Agent Status UI is live at http://127.0.0.1:4458 (PID $($Health.pid))" -ForegroundColor Green
+}
+catch {
+    Write-Host "WARNING: Agent UI did not respond yet on http://127.0.0.1:4458. Check logs below:" -ForegroundColor Yellow
+}
 
 Write-Host ""
 Write-Host "======================================================" -ForegroundColor Green

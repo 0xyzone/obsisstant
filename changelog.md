@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.25.1] - 2026-11-27 | type: macro
+
+> Fixed Windows agent background startup (direct `Start-Process node.exe` + resilient bootstrap retry keeping `127.0.0.1:4458` alive), and replaced per-studio `Install Agent` with contextual `Stop Agent` / `Start OBS Agent` actions once a studio has been paired.
+
+### Fixed
+- **Windows Agent Startup & Tray**: Replaced the fragile VBScript launcher in `buildWindowsInstallPs1()` with direct hidden `Start-Process` for `node.exe` and `obsisstant-tray.ps1`, added a `127.0.0.1:4458/status` health check, and made `obs-agent` keep its local UI alive while retrying failed bootstrap connections every 10s.
+- **Contextual Studio Agent Buttons**: In `ObsStudioResource`, `Install Agent` now hides once a studio has connected an agent (`last_seen_at !== null`) and is replaced by **Stop Agent** (when online/running) or **Start OBS Agent** (when stopped/offline).
+
 ## [v1.25.0] - 2026-11-27 | type: minor
 
 > Added single-instance process locking and 60s idle WebSocket polling in `obs-agent`, 6-digit pairing codes (`POST /api/obs-agent/pair-code`), remote/local **Stop Agent** termination (`obsisstant.StopAgent`), and a local Agent Status & Pairing UI (`http://127.0.0.1:4458`) plus Mac/Windows Stop & Tray launchers.

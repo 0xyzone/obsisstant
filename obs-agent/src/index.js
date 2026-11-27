@@ -2050,7 +2050,16 @@ async function main() {
     await acquireSingleInstanceLock();
     startLocalCompanionServer();
     console.log(`[obs-agent] Bootstrapping from ${BASE_URL}...`);
-    const bootstrap = await syncFromBootstrap();
+
+    let bootstrap = null;
+    while (!bootstrap) {
+        try {
+            bootstrap = await syncFromBootstrap();
+        } catch (err) {
+            console.error(`[obs-agent] Bootstrap failed (${err.message}). Keeping local UI alive at http://127.0.0.1:4458 and retrying in 10s...`);
+            await new Promise((resolve) => setTimeout(resolve, 10000));
+        }
+    }
 
     if (bootstrap?.mode === 'relay') {
         const relayChannel = bootstrap.reverb.relay_channel || 'private-obs.relay';
