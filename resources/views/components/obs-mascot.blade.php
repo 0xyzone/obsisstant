@@ -126,6 +126,14 @@
             will-change: transform;
             z-index: 45;
             pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 180ms ease;
+        }
+
+        .obs-mascot-flyer.is-positioned {
+            opacity: 1;
+            visibility: visible;
         }
 
         .obs-mascot-flyer-canvas {

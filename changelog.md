@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.25.3] - 2026-11-27 | type: macro
+
+> Eliminated the brief top-left "Ask Oxy" flash when navigating between Filament or public pages by keeping `.obs-mascot-flyer` hidden until its initial corner/hero coordinates are computed.
+
+### Fixed
+- **Zero-Flash Mascot Positioning**: Hid `.obs-mascot-flyer` (`opacity: 0; visibility: hidden`) until `obs-mascot.js` applies the first `translate3d` coordinate and adds `.is-positioned`, and added a `livewire:navigated` listener for Filament SPA transitions.
+
 ## [v1.25.2] - 2026-11-27 | type: macro
 
 > Added `all_features` support for Lifetime / All-Access packages so all current and future Obsisstant modules unlock automatically, plus a "Lifetime / Never Expires" toggle and auto-clear expiry UX in `/hq`.

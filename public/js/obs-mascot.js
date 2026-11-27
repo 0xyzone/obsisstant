@@ -806,6 +806,9 @@ function initMascots() {
                 }
                 flyerEl.style.transform = `translate3d(${curX.toFixed(1)}px, ${curY.toFixed(1)}px, 0) scale(${curScale.toFixed(4)})`;
                 flyerEl.style.setProperty('--mascot-inv-scale', (1 / Math.max(curScale, 0.3)).toFixed(3));
+                if (!flyerEl.classList.contains('is-positioned')) {
+                    flyerEl.classList.add('is-positioned');
+                }
                 drawerCtrl?.syncPosition?.(curX, curY, baseSize * curScale);
             },
         });
@@ -892,3 +895,4 @@ if (document.readyState === 'loading') {
 } else {
     initMascots();
 }
+document.addEventListener('livewire:navigated', initMascots);
