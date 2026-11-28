@@ -901,7 +901,7 @@
                                 <option value="{{ $txKey }}">{{ $txLabel }}</option>
                             @endforeach
                         </select>
-                        <label id="deck-uni-tx-dur-wrap" class="tx-dur-wrap" hidden>
+                        <label id="deck-uni-tx-dur-wrap" class="tx-dur-wrap">
                             <input
                                 type="number"
                                 id="deck-uni-tx-duration"
@@ -913,6 +913,20 @@
                                 inputmode="numeric"
                                 aria-label="Transition duration in milliseconds (max 3000 ms)"
                                 title="Transition duration (up to 3000 ms)"
+                            >
+                            <span class="tx-dur-unit">ms</span>
+                            <span class="tx-dur-unit" style="margin-inline-start: 0.25rem;">Mid</span>
+                            <input
+                                type="number"
+                                id="deck-uni-tx-swap"
+                                class="deck-input tx-dur-input"
+                                min="0"
+                                max="3000"
+                                step="50"
+                                value="225"
+                                inputmode="numeric"
+                                aria-label="Transition midpoint in milliseconds (max 3000 ms)"
+                                title="Transition midpoint / swap point (up to 3000 ms)"
                             >
                             <span class="tx-dur-unit">ms</span>
                         </label>
@@ -1756,31 +1770,41 @@
                     return Math.min(MAX_TX_DURATION_MS, Math.max(80, Math.round(parsed)));
                 };
 
-                const syncGlobalTransitionDurationUI = () => {
+                const syncGlobalTransitionDurationUI = (forceCollectionDefaults = false) => {
                     const txSel = document.getElementById('deck-uni-tx-select');
                     const durWrap = document.getElementById('deck-uni-tx-dur-wrap');
                     const durInput = document.getElementById('deck-uni-tx-duration');
+                    const swapInput = document.getElementById('deck-uni-tx-swap');
                     if (!txSel || !durWrap || !durInput) return;
 
-                    const txType = txSel.value || 'default';
-                    if (txType === 'default') {
-                        durWrap.hidden = true;
-                        return;
-                    }
-
                     durWrap.hidden = false;
+                    const txType = txSel.value || 'default';
+                    const col = getActiveCollection();
+                    const colDur = Math.min(MAX_TX_DURATION_MS, Math.max(0, Number(col?.default_transition?.duration_ms ?? 450)));
+                    const colSwap = Math.min(colDur, Math.max(0, Number(col?.default_transition?.swap_point_ms ?? Math.round(colDur / 2))));
+
                     if (txType === 'cut') {
                         durInput.value = '0';
                         durInput.disabled = true;
+                        if (swapInput) {
+                            swapInput.value = '0';
+                            swapInput.disabled = true;
+                        }
+                        return;
+                    }
+
+                    durInput.disabled = false;
+                    if (swapInput) swapInput.disabled = false;
+
+                    if (forceCollectionDefaults || !window.__deckTxDirty) {
+                        if (document.activeElement !== durInput) durInput.value = String(colDur);
+                        if (swapInput && document.activeElement !== swapInput) swapInput.value = String(colSwap);
                     } else {
-                        durInput.disabled = false;
-                        const col = getActiveCollection();
-                        const colDefault = col?.default_transition?.duration_ms ?? 450;
-                        const current = Number(durInput.value);
-                        if (!durInput.value || !Number.isFinite(current) || current <= 0) {
-                            durInput.value = String(clampTransitionDurationMs(colDefault, txType, 450));
-                        } else if (current > MAX_TX_DURATION_MS) {
-                            durInput.value = String(MAX_TX_DURATION_MS);
+                        const curDur = Math.min(MAX_TX_DURATION_MS, Math.max(0, Number(durInput.value || colDur)));
+                        durInput.value = String(curDur);
+                        if (swapInput) {
+                            const curSwap = Math.min(curDur, Math.max(0, Number(swapInput.value || colSwap)));
+                            swapInput.value = String(curSwap);
                         }
                     }
                 };
@@ -1799,13 +1823,28 @@
                         }
                         const globalTx = document.getElementById('deck-uni-tx-select')?.value || 'default';
                         const globalDurRaw = document.getElementById('deck-uni-tx-duration')?.value;
-                        const defaultDur = col.default_transition?.duration_ms ?? 450;
+                        const globalSwapRaw = document.getElementById('deck-uni-tx-swap')?.value;
+                        const defaultDur = Math.min(MAX_TX_DURATION_MS, Math.max(0, Number(col.default_transition?.duration_ms ?? 450)));
+                        const defaultSwap = Math.min(defaultDur, Math.max(0, Number(col.default_transition?.swap_point_ms ?? Math.round(defaultDur / 2))));
+                        const resolvedDur = globalTx === 'cut'
+                            ? 0
+                            : clampTransitionDurationMs(globalDurRaw, globalTx === 'default' ? (col.default_transition?.type || 'fade') : globalTx, defaultDur);
+                        const resolvedSwap = globalTx === 'cut'
+                            ? 0
+                            : Math.min(resolvedDur, Math.max(0, Math.round(Number(globalSwapRaw ?? defaultSwap))));
+                        const useCustomTiming = resolvedDur !== defaultDur || resolvedSwap !== defaultSwap;
+
                         let transitionPayload = null;
-                        if (globalTx !== 'default') {
-                            const clampedDur = clampTransitionDurationMs(globalDurRaw, globalTx, defaultDur);
+                        if (globalTx !== 'default' || useCustomTiming) {
                             const durInput = document.getElementById('deck-uni-tx-duration');
-                            if (durInput) durInput.value = String(clampedDur);
-                            transitionPayload = { type: globalTx, duration_ms: clampedDur };
+                            const swapInput = document.getElementById('deck-uni-tx-swap');
+                            if (durInput) durInput.value = String(resolvedDur);
+                            if (swapInput) swapInput.value = String(resolvedSwap);
+                            transitionPayload = {
+                                type: globalTx === 'default' ? (col.default_transition?.type || 'fade') : globalTx,
+                                duration_ms: resolvedDur,
+                                swap_point_ms: resolvedSwap,
+                            };
                         } else if (cfg.transition_type && cfg.transition_type !== 'default') {
                             transitionPayload = { type: cfg.transition_type };
                             if (cfg.transition_duration_ms !== undefined && cfg.transition_duration_ms !== null && cfg.transition_duration_ms !== '') {
@@ -2957,20 +2996,35 @@
                     } catch {}
                 });
 
-                document.getElementById('deck-uni-tx-select')?.addEventListener('change', syncGlobalTransitionDurationUI);
+                document.getElementById('deck-uni-tx-select')?.addEventListener('change', () => syncGlobalTransitionDurationUI(false));
                 document.getElementById('deck-uni-tx-duration')?.addEventListener('input', (ev) => {
+                    window.__deckTxDirty = true;
                     const el = ev.target;
                     if (el.value !== '' && Number(el.value) > MAX_TX_DURATION_MS) {
                         el.value = String(MAX_TX_DURATION_MS);
                         showToast(`Maximum transition duration is ${MAX_TX_DURATION_MS} ms`, true);
                     }
+                    const swapEl = document.getElementById('deck-uni-tx-swap');
+                    const curDur = Math.min(MAX_TX_DURATION_MS, Math.max(0, Number(el.value || MAX_TX_DURATION_MS)));
+                    if (swapEl && swapEl.value !== '' && Number(swapEl.value) > curDur) {
+                        swapEl.value = String(curDur);
+                    }
                 });
                 document.getElementById('deck-uni-tx-duration')?.addEventListener('change', (ev) => {
                     const el = ev.target;
                     const txType = document.getElementById('deck-uni-tx-select')?.value || 'default';
-                    if (txType === 'default') return;
                     const col = getActiveCollection();
-                    el.value = String(clampTransitionDurationMs(el.value, txType, col?.default_transition?.duration_ms ?? 450));
+                    el.value = String(clampTransitionDurationMs(el.value, txType === 'default' ? (col?.default_transition?.type || 'fade') : txType, col?.default_transition?.duration_ms ?? 450));
+                });
+                document.getElementById('deck-uni-tx-swap')?.addEventListener('input', (ev) => {
+                    window.__deckTxDirty = true;
+                    const el = ev.target;
+                    const durVal = Number(document.getElementById('deck-uni-tx-duration')?.value || MAX_TX_DURATION_MS);
+                    const cap = Math.min(MAX_TX_DURATION_MS, Math.max(0, durVal));
+                    if (el.value !== '' && Number(el.value) > cap) {
+                        el.value = String(cap);
+                        showToast(`Midpoint cannot exceed ${cap} ms`, true);
+                    }
                 });
 
                 document.getElementById('deck-create-first-collection-btn')?.addEventListener('click', async () => {

@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.25.6] - 2026-11-28 | type: macro
+
+> Added Screen Collection default transition duration and midpoint (`swap_point_ms`, capped at `3000ms`) controls to Mobile Deck.
+
+### Improved
+- **Mobile Deck Transition Speed & Midpoint**: Always displays the transition duration (`#deck-uni-tx-duration`) and midpoint (`#deck-uni-tx-swap`) inputs hydrated from the active Screen Collection's `default_transition`, enforces the `3000ms` cap on both, and sends both when switching views.
+
 ## [v1.25.5] - 2026-11-28 | type: macro
 
 > Enforced a strict `3000ms` upper cap on both transition duration (`duration_ms`) and transition midpoint (`swap_point_ms`) across Filament's Screen Collection form and Studio Control Center inputs.
