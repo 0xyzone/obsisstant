@@ -92,7 +92,7 @@ class ScreenCollectionForm
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(3000)
-                            ->default(225)
+                            ->default(500)
                             ->helperText('Maximum 3000 ms.'),
                     ]),
             ]);
