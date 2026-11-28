@@ -83,11 +83,17 @@ class ScreenCollectionForm
                         TextInput::make('default_transition.duration_ms')
                             ->label('Transition Duration (ms)')
                             ->numeric()
-                            ->default(450),
+                            ->minValue(0)
+                            ->maxValue(3000)
+                            ->default(1000)
+                            ->helperText('Maximum 3000 ms.'),
                         TextInput::make('default_transition.swap_point_ms')
                             ->label('Stinger / Sweep Swap Point (ms)')
                             ->numeric()
-                            ->default(225),
+                            ->minValue(0)
+                            ->maxValue(3000)
+                            ->default(225)
+                            ->helperText('Maximum 3000 ms.'),
                     ]),
             ]);
     }

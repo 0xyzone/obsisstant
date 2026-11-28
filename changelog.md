@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.25.5] - 2026-11-28 | type: macro
+
+> Enforced a strict `3000ms` upper cap on both transition duration (`duration_ms`) and transition midpoint (`swap_point_ms`) across Filament's Screen Collection form and Studio Control Center inputs.
+
+### Fixed
+- **3000ms Cap on Duration & Midpoint**: Added `minValue(0)->maxValue(3000)` to `default_transition.duration_ms` and `default_transition.swap_point_ms` in `ScreenCollectionForm.php`, and live-clamped `#unified-tx-dur` (`0–3000ms`) and `#unified-tx-swap` (`0–min(3000, duration)`) in `control-center.blade.php`.
+
 ## [v1.25.4] - 2026-11-28 | type: macro
 
 > Hydrated Studio Control Center's transition duration and midpoint (`swap_point_ms`) inputs directly from the active Screen Collection's default transition settings instead of a hardcoded `450ms`, and allowed operators to override both on the fly.

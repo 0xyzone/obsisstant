@@ -4511,11 +4511,30 @@
                     }
                 });
 
+                const clampTxInputs = () => {
+                    const durEl = document.getElementById('unified-tx-dur');
+                    const swapEl = document.getElementById('unified-tx-swap');
+                    if (durEl && durEl.value !== '') {
+                        const clampedDur = Math.min(3000, Math.max(0, Math.round(Number(durEl.value))));
+                        if (Number.isFinite(clampedDur) && String(clampedDur) !== durEl.value) {
+                            durEl.value = String(clampedDur);
+                        }
+                    }
+                    if (swapEl && swapEl.value !== '') {
+                        const maxSwap = Math.min(3000, Math.max(0, Number(durEl?.value || 3000)));
+                        const clampedSwap = Math.min(maxSwap, Math.max(0, Math.round(Number(swapEl.value))));
+                        if (Number.isFinite(clampedSwap) && String(clampedSwap) !== swapEl.value) {
+                            swapEl.value = String(clampedSwap);
+                        }
+                    }
+                };
                 document.getElementById('unified-tx-dur')?.addEventListener('input', () => {
                     window.__uniTxDirty = true;
+                    clampTxInputs();
                 });
                 document.getElementById('unified-tx-swap')?.addEventListener('input', () => {
                     window.__uniTxDirty = true;
+                    clampTxInputs();
                 });
 
                 document.getElementById('stop-agent-btn')?.addEventListener('click', async () => {
@@ -4814,8 +4833,8 @@
                     if (metaScene) metaScene.textContent = col.obs_scene_name || 'Obsisstant Stage';
                     if (metaSource) metaSource.textContent = col.obs_source_name || 'Unified Screen';
                     if (metaRes) metaRes.textContent = `${col.width || 1920} × ${col.height || 1080}`;
-                    const colDur = Number(col.default_transition?.duration_ms ?? 450);
-                    const colSwap = Number(col.default_transition?.swap_point_ms ?? Math.round(colDur / 2));
+                    const colDur = Math.min(3000, Math.max(0, Number(col.default_transition?.duration_ms ?? 450)));
+                    const colSwap = Math.min(colDur, Math.max(0, Number(col.default_transition?.swap_point_ms ?? Math.round(colDur / 2))));
                     if (metaTx) {
                         const txLabel = String(col.default_transition?.type || 'fade').replaceAll('_', ' ');
                         metaTx.textContent = `${txLabel.charAt(0).toUpperCase()}${txLabel.slice(1)} · ${colDur}ms (mid ${colSwap}ms)`;
