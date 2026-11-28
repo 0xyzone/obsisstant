@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Minor (`X.Y.0`)**: New user-facing features, panels, resources, pages, or non-breaking capabilities.
 - **Macro (`X.Y.Z`)**: Bug fixes, UI polish, refactors, configuration tweaks, and incremental patches.
 
+## [v1.25.4] - 2026-11-28 | type: macro
+
+> Hydrated Studio Control Center's transition duration and midpoint (`swap_point_ms`) inputs directly from the active Screen Collection's default transition settings instead of a hardcoded `450ms`, and allowed operators to override both on the fly.
+
+### Fixed
+- **Dynamic Transition Duration & Midpoint in Studio**: `renderUnifiedWorkspace()` now populates `#unified-tx-dur` and a new `#unified-tx-swap` (`Mid`) input from `col.default_transition.duration_ms` and `col.default_transition.swap_point_ms` (keeping user edits intact until switching collections) and sends both `duration_ms` and `swap_point_ms` when switching views.
+
 ## [v1.25.3] - 2026-11-27 | type: macro
 
 > Eliminated the brief top-left "Ask Oxy" flash when navigating between Filament or public pages by keeping `.obs-mascot-flyer` hidden until its initial corner/hero coordinates are computed.

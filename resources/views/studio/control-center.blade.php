@@ -1594,6 +1594,9 @@
                                 </select>
                                 <input type="number" id="unified-tx-dur" class="s-input" min="0" max="3000" step="50" value="450" style="inline-size: 4.5rem; min-block-size: 1.9rem; font-size: 0.75rem;" aria-label="Transition duration in milliseconds" title="Transition duration (up to 3000 ms)">
                                 <span class="dock-subtitle">ms</span>
+                                <label for="unified-tx-swap" class="field-label" style="margin-inline-start: 0.25rem;">Mid</label>
+                                <input type="number" id="unified-tx-swap" class="s-input" min="0" max="3000" step="50" value="225" style="inline-size: 4.5rem; min-block-size: 1.9rem; font-size: 0.75rem;" aria-label="Transition midpoint in milliseconds" title="Transition midpoint / swap point (up to 3000 ms)">
+                                <span class="dock-subtitle">ms</span>
                             </div>
                         </div>
 
@@ -4508,6 +4511,13 @@
                     }
                 });
 
+                document.getElementById('unified-tx-dur')?.addEventListener('input', () => {
+                    window.__uniTxDirty = true;
+                });
+                document.getElementById('unified-tx-swap')?.addEventListener('input', () => {
+                    window.__uniTxDirty = true;
+                });
+
                 document.getElementById('stop-agent-btn')?.addEventListener('click', async () => {
                     if (!confirm('Stop the running OBS Agent process on your computer?')) return;
                     const btn = document.getElementById('stop-agent-btn');
@@ -4804,9 +4814,21 @@
                     if (metaScene) metaScene.textContent = col.obs_scene_name || 'Obsisstant Stage';
                     if (metaSource) metaSource.textContent = col.obs_source_name || 'Unified Screen';
                     if (metaRes) metaRes.textContent = `${col.width || 1920} × ${col.height || 1080}`;
+                    const colDur = Number(col.default_transition?.duration_ms ?? 450);
+                    const colSwap = Number(col.default_transition?.swap_point_ms ?? Math.round(colDur / 2));
                     if (metaTx) {
                         const txLabel = String(col.default_transition?.type || 'fade').replaceAll('_', ' ');
-                        metaTx.textContent = `${txLabel.charAt(0).toUpperCase()}${txLabel.slice(1)} · ${col.default_transition?.duration_ms ?? 450}ms`;
+                        metaTx.textContent = `${txLabel.charAt(0).toUpperCase()}${txLabel.slice(1)} · ${colDur}ms (mid ${colSwap}ms)`;
+                    }
+                    const txDurInput = document.getElementById('unified-tx-dur');
+                    const txSwapInput = document.getElementById('unified-tx-swap');
+                    if (window.__uniTxColId !== col.collection_id) {
+                        window.__uniTxColId = col.collection_id;
+                        window.__uniTxDirty = false;
+                    }
+                    if (!window.__uniTxDirty) {
+                        if (txDurInput && document.activeElement !== txDurInput) txDurInput.value = String(colDur);
+                        if (txSwapInput && document.activeElement !== txSwapInput) txSwapInput.value = String(colSwap);
                     }
 
                     const grid = document.getElementById('unified-views-grid');
@@ -4895,13 +4917,28 @@
                             btn.addEventListener('click', async () => {
                                 const txType = document.getElementById('unified-tx-type')?.value || 'default';
                                 const txDurEl = document.getElementById('unified-tx-dur');
+                                const txSwapEl = document.getElementById('unified-tx-swap');
+                                const defaultDur = Number(col.default_transition?.duration_ms ?? 450);
+                                const defaultSwap = Number(col.default_transition?.swap_point_ms ?? Math.round(defaultDur / 2));
                                 const txDur = txType === 'cut'
                                     ? 0
-                                    : Math.min(3000, Math.max(80, Math.round(Number(txDurEl?.value || 450))));
+                                    : Math.min(3000, Math.max(0, Math.round(Number(txDurEl?.value ?? defaultDur))));
+                                const txSwap = txType === 'cut'
+                                    ? 0
+                                    : Math.min(txDur, Math.max(0, Math.round(Number(txSwapEl?.value ?? defaultSwap))));
                                 if (txDurEl && txType !== 'default') txDurEl.value = String(txDur);
+                                if (txSwapEl && txType !== 'default') txSwapEl.value = String(txSwap);
+                                const useCustomTiming = txDur !== defaultDur || txSwap !== defaultSwap;
+                                const txPayload = (txType === 'default' && !useCustomTiming)
+                                    ? null
+                                    : {
+                                        type: txType === 'default' ? (col.default_transition?.type || 'fade') : txType,
+                                        duration_ms: txDur,
+                                        swap_point_ms: txSwap,
+                                    };
                                 const res = await postJson(endpoints.collectionSwitchTpl.replace('__COL__', col.collection_id), {
                                     view_id: view.id,
-                                    transition: txType === 'default' ? null : { type: txType, duration_ms: txDur },
+                                    transition: txPayload,
                                 });
                                 upsertCollectionData(res.collection);
                                 uniTimerEndDirty = false;
